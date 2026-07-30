@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://thymeleaf.org" lang="ru">
+<head th:replace="~{fragments/head :: head(~{::title})}">
+    <title th:text="${receiver != null ? 'Чат · ' + receiver.username : 'Сообщения · TestTitle'}">Чат</title>
+</head>
+<body class="chat-page">
+
+<div class="messenger-shell" th:classappend="${receiver != null ? 'has-active-chat' : ''}">
+    <aside th:replace="~{fragments/chat-sidebar :: sidebar}"></aside>
+
+    <section class="chat-pane">
+        <div class="chat-welcome" th:if="${receiver == null}">
+            <div class="chat-welcome-icon">💬</div>
+            <h2>Выберите чат</h2>
+            <p>Откройте диалог из списка слева или найдите пользователя по нику через поиск</p>
+        </div>
+
+        <div class="chat-app" th:if="${receiver != null}">
+            <header class="chat-header">
+                <a class="chat-back mobile-only" th:href="@{/chat}" aria-label="К списку чатов">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+
+                <a class="chat-peer" th:href="@{/profile/{username}(username=${receiver.username})}">
+                    <div th:replace="~{fragments/avatar :: avatar(${receiver.username}, ${receiver.avatarFilename}, 'chat-avatar')}"></div>
+                    <div class="chat-peer-info">
+                        <h1 class="chat-title" th:text="${receiver.username}">Собеседник</h1>
+                        <span id="chat-status"
+                              class="chat-status"
+                              th:classappend="${receiverOnline} ? ' is-online' : ' is-offline'"
+                              th:text="${receiverOnline} ? 'В сети' : 'Не в сети'">В сети</span>
+                    </div>
+                </a>
+            </header>
+
+            <main id="messages" class="chat-messages">
+                <div class="chat-empty" th:if="${#lists.isEmpty(messages)}">
+                    <span class="chat-empty-icon" aria-hidden="true"></span>
+                    Начните переписку — первое сообщение появится здесь мгновенно
+                </div>
+
+                <div class="message-row"
+                     th:classappend="${#authentication != null and msg.sender != null and msg.sender.username == #authentication.name ? 'outgoing' : 'incoming'}"
+                     th:each="msg : ${messages}"
+                     th:attr="data-message-id=${msg.id}">
+                    <div class="message-bubble">
+                        <span class="sender"
+                              th:if="${msg.sender.username != #authentication.name}"
+                              th:text="${msg.sender.username}"></span>
+                        <span class="content" th:text="${msg.content}"></span>
+                        <span class="message-meta">
+                            <time class="message-time" th:text="${#temporals.format(msg.timestamp, 'HH:mm')}"></time>
+                            <span class="read-receipt"
+                                  th:if="${msg.sender.username == #authentication.name}"
+                                  th:classappend="${msg.read} ? ' is-read' : ''"
+                                  th:attr="aria-label=${msg.read} ? 'Прочитано' : 'Доставлено'"
+                                  title="Read receipt">✓✓</span>
+                        </span>
+                    </div>
+                </div>
+            </main>
+
+            <div id="typing-indicator" class="typing-row" aria-live="polite">
+                <div class="typing-bubble">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                </div>
+                <span class="typing-label" th:text="${receiver.username} + ' печатает'">Собеседник печатает</span>
+            </div>
+
+            <footer class="chat-composer">
+                <form id="message-form" class="composer-form">
+                    <input type="hidden" id="receiver-username" th:value="${receiver.username}"/>
+                    <input type="text"
+                           id="message-input"
+                           name="content"
+                           placeholder="Напишите сообщение..."
+                           required
+                           autocomplete="off"
+                           maxlength="2000"/>
+                    <button type="submit" id="send-button" aria-label="Отправить">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>Отправить</span>
+                    </button>
+                </form>
+            </footer>
+        </div>
+    </section>
+</div>
+
+<script th:inline="javascript">
+    const currentUsername = /*[[${#authentication.name}]]*/ '';
+    const activeChatUsername = /*[[${receiver != null ? receiver.username : null}]]*/ null;
+    const initialReceiverOnline = /*[[${receiverOnline != null ? receiverOnline : false}]]*/ false;
+</script>
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script th:src="@{/js/chat-direct.js}"></script>
+</body>
+</html>

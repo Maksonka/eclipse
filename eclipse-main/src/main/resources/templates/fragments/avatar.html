@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="avatar(username, avatarFilename, extraClass)"
+     class="user-avatar"
+     th:classappend="${extraClass}">
+    <img th:if="${avatarFilename != null and !#strings.isEmpty(avatarFilename)}"
+         th:src="@{/uploads/avatars/{file}(file=${avatarFilename})}"
+         th:alt="${username}"
+         class="user-avatar-img"/>
+    <span th:unless="${avatarFilename != null and !#strings.isEmpty(avatarFilename)}"
+          class="user-avatar-letter"
+          th:text="${#strings.toUpperCase(#strings.substring(username, 0, 1))}">U</span>
+</div>
+</body>
+</html>

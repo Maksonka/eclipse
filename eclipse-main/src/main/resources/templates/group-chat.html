@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://thymeleaf.org" lang="ru">
+<head th:replace="~{fragments/head :: head(~{::title})}">
+    <title th:text="'Группа · ' + ${group.name}">Групповой чат</title>
+</head>
+<body class="chat-page">
+
+<div class="messenger-shell has-active-chat">
+    <aside th:replace="~{fragments/chat-sidebar :: sidebar}"></aside>
+
+    <section class="chat-pane">
+        <div class="chat-app">
+            <header class="chat-header">
+                <a class="chat-back mobile-only" th:href="@{/chat}" aria-label="К списку чатов">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+
+                <div class="chat-peer group-chat-peer">
+                    <span class="group-avatar-icon group-chat-icon">👥</span>
+                    <div class="chat-peer-info">
+                        <h1 class="chat-title" th:text="${group.name}">Группа</h1>
+                        <span class="chat-status is-online"
+                              th:text="${#lists.size(group.members)} + ' участников'">участники</span>
+                    </div>
+                </div>
+            </header>
+
+            <main id="messages" class="chat-messages">
+                <div class="chat-empty" th:if="${#lists.isEmpty(groupMessages)}">
+                    <span class="chat-empty-icon" aria-hidden="true"></span>
+                    Напишите первое сообщение в группе
+                </div>
+
+                <div class="message-row"
+                     th:classappend="${msg.sender.username == #authentication.name ? 'outgoing' : 'incoming'}"
+                     th:each="msg : ${groupMessages}"
+                     th:attr="data-message-id=${msg.id}">
+                    <div class="message-bubble">
+                        <span class="sender"
+                              th:if="${msg.sender.username != #authentication.name}"
+                              th:text="${msg.sender.username}"></span>
+                        <span class="content" th:text="${msg.content}"></span>
+                        <span class="message-meta">
+                            <time class="message-time" th:text="${#temporals.format(msg.timestamp, 'HH:mm')}"></time>
+                        </span>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="chat-composer">
+                <form id="message-form" class="composer-form">
+                    <input type="hidden" id="group-id" th:value="${group.id}"/>
+                    <input type="text"
+                           id="message-input"
+                           name="content"
+                           placeholder="Сообщение для группы..."
+                           required
+                           autocomplete="off"
+                           maxlength="2000"/>
+                    <button type="submit" id="send-button" aria-label="Отправить">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>Отправить</span>
+                    </button>
+                </form>
+            </footer>
+        </div>
+    </section>
+</div>
+
+<script th:inline="javascript">
+    const currentUsername = /*[[${#authentication.name}]]*/ '';
+    const activeGroupId = /*[[${group.id}]]*/ null;
+</script>
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script th:src="@{/js/chat-group.js}"></script>
+</body>
+</html>
