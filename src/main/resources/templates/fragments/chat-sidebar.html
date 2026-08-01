@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+<aside class="sidebar" th:fragment="sidebar">
+    <div class="sidebar-header">
+        <a class="sidebar-user" th:href="@{/profile/edit}">
+            <div th:replace="~{fragments/avatar :: avatar(${currentUser.username}, ${currentUser.avatarFilename}, 'sidebar-avatar')}"></div>
+            <div class="sidebar-user-info">
+                <span class="sidebar-username" th:text="${currentUser.username}">user</span>
+                <span class="sidebar-user-label">Мой профиль</span>
+            </div>
+        </a>
+        <div class="sidebar-header-actions">
+            <a class="sidebar-settings" th:href="@{/settings}" aria-label="Настройки" title="Настройки">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="2"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </a>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="sidebar-logout" aria-label="Выйти" title="Выйти">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M16 17l5-5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <form class="sidebar-search" th:action="@{/chat}" method="get">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+            <path d="M20 20l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <input type="search"
+               name="q"
+               th:value="${searchQuery}"
+               placeholder="Поиск по нику..."
+               autocomplete="off"/>
+    </form>
+
+    <div class="sidebar-section" th:if="${searchQuery != null}">
+        <h2 class="sidebar-section-title">Результаты поиска</h2>
+        <div class="sidebar-empty" th:if="${#lists.isEmpty(searchResults)}">
+            Никого не найдено
+        </div>
+        <div class="conversation-item search-result-item"
+             th:each="user : ${searchResults}"
+             th:classappend="${activeUsername == user.username ? 'is-active' : ''}">
+            <a class="conversation-avatar-link" th:href="@{/profile/{username}(username=${user.username})}" title="Профиль">
+                <div th:replace="~{fragments/avatar :: avatar(${user.username}, ${user.avatarFilename}, 'conversation-avatar')}"></div>
+            </a>
+            <a class="conversation-body" th:href="@{/chat/{username}(username=${user.username})}">
+                <span class="conversation-name" th:text="${user.username}">user</span>
+                <span class="conversation-preview">Начать переписку</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="sidebar-section" th:if="${!#lists.isEmpty(groups)}">
+        <h2 class="sidebar-section-title">Группы</h2>
+        <div id="groups-list">
+            <div class="conversation-item group-item"
+                 th:each="group : ${groups}"
+                 th:attr="data-group-id=${group.groupId}"
+                 th:classappend="${activeGroupId != null and activeGroupId == group.groupId ? 'is-active' : ''}">
+                <a class="conversation-avatar-link" th:href="@{/chat/group/{id}(id=${group.groupId})}" title="Группа">
+                    <div th:replace="~{fragments/avatar :: groupAvatar(${group.avatarFilename}, '')}"></div>
+                </a>
+                <a class="conversation-body" th:href="@{/chat/group/{id}(id=${group.groupId})}">
+                    <div class="conversation-top">
+                        <span class="conversation-name" th:text="${group.groupName}">Группа</span>
+                        <time class="conversation-time" th:text="${group.lastMessageTime}">12:00</time>
+                    </div>
+                    <span class="conversation-preview">
+                        <span th:if="${group.lastMessageSender != null and !#strings.isEmpty(group.lastMessageSender)}"
+                              th:text="${group.lastMessageSender} + ': '"></span>
+                        <span th:text="${group.lastMessagePreview}">сообщение</span>
+                    </span>
+                </a>
+                <span class="unread-badge" th:if="${group.unreadCount > 0}" th:text="${group.unreadCount > 99 ? '99+' : group.unreadCount}">1</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar-section sidebar-section-grow">
+        <h2 class="sidebar-section-title">
+            Чаты
+            <span class="sidebar-unread-total" th:if="${totalUnread != null and totalUnread > 0}"
+                  th:text="${totalUnread > 99 ? '99+' : totalUnread}">3</span>
+        </h2>
+        <div id="conversations-empty" class="sidebar-empty"
+             th:if="${#lists.isEmpty(conversations) and searchQuery == null}">
+            Пока нет переписок.<br/>Найдите пользователя через поиск.
+        </div>
+        <div id="conversations-list">
+        <div class="conversation-item"
+             th:each="conv : ${conversations}"
+             th:attr="data-partner=${conv.partnerUsername}"
+             th:classappend="${(activeUsername == conv.partnerUsername ? 'is-active ' : '') + (conv.unreadCount > 0 ? 'has-unread' : '')}">
+            <a class="conversation-avatar-link avatar-with-status" th:href="@{/profile/{username}(username=${conv.partnerUsername})}" title="Профиль">
+                <div th:replace="~{fragments/avatar :: avatar(${conv.partnerUsername}, ${conv.partnerAvatarFilename}, 'conversation-avatar')}"></div>
+                <span class="online-dot"
+                      th:classappend="${onlineUsers != null and onlineUsers.contains(conv.partnerUsername)} ? ' is-online' : ''"></span>
+            </a>
+            <a class="conversation-body" th:href="@{/chat/{username}(username=${conv.partnerUsername})}">
+                <div class="conversation-top">
+                    <span class="conversation-name" th:text="${conv.partnerUsername}">user</span>
+                    <time class="conversation-time" th:text="${conv.lastMessageTime}">12:00</time>
+                </div>
+                <span class="conversation-preview">
+                    <span th:if="${conv.lastMessageOutgoing}">Вы: </span>
+                    <span th:text="${conv.lastMessagePreview}">сообщение</span>
+                </span>
+            </a>
+            <span class="unread-badge"
+                  th:if="${conv.unreadCount > 0}"
+                  th:text="${conv.unreadCount > 99 ? '99+' : conv.unreadCount}">1</span>
+            <form th:action="@{/chat/{username}/delete(username=${conv.partnerUsername})}"
+                  method="post"
+                  th:attr="data-confirm-message=|Удалить переписку с ${conv.partnerUsername}? Это действие нельзя отменить.|">
+                <button type="submit" class="conversation-delete" title="Удалить переписку" aria-label="Удалить переписку">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </form>
+        </div>
+        </div>
+    </div>
+
+    <div class="sidebar-footer">
+        <a class="sidebar-admin-link" sec:authorize="hasRole('ADMIN')" th:href="@{/admin/users}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span>Пользователи</span>
+        </a>
+        <a class="sidebar-create-group" th:href="@{/group/create}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/>
+                <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M17 11l3-3m0 0l-3-3m3 3h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Создать группу</span>
+        </a>
+    </div>
+</aside>
+</body>
+</html>

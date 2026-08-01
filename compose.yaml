@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - 'POSTGRES_DB=eclipsedb'
+      - 'POSTGRES_PASSWORD=secreteclipse'
+      - 'POSTGRES_USER=myeclipse'
+    ports:
+      - "60811:5432"

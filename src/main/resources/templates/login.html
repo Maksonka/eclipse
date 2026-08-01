@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Вход · TestTitle</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+    <script th:src="@{/js/theme.js}"></script>
+</head>
+<body class="auth-page">
+
+<div class="auth-shell">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <div class="auth-logo">T</div>
+            <h1>TestTitle</h1>
+            <p>Войдите в аккаунт, чтобы продолжить</p>
+        </div>
+
+        <div class="auth-alert auth-alert-error" th:if="${loginError}">
+            Неверный логин или пароль
+        </div>
+
+        <form class="auth-form" th:action="@{/login}" method="post">
+            <label class="field">
+                <span>Никнейм или email</span>
+                <input type="text" name="username" placeholder="username или you@example.com" required autocomplete="username"/>
+            </label>
+            <label class="field">
+                <span>Пароль</span>
+                <input type="password" name="password" placeholder="••••••••" required autocomplete="current-password"/>
+            </label>
+            <button type="submit" class="btn-primary">Войти</button>
+        </form>
+
+        <p class="auth-footer">
+            Нет аккаунта?
+            <a th:href="@{/register}">Зарегистрироваться</a>
+        </p>
+    </div>
+</div>
+
+</body>
+</html>

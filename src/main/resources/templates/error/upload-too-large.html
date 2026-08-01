@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{fragments/head :: head(~{::title})}">
+    <title>Файл слишком большой</title>
+</head>
+<body class="settings-page">
+
+<div class="settings-shell">
+    <div class="settings-card">
+        <div class="settings-header">
+            <div class="settings-icon" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div>
+                <h1>Файл слишком большой</h1>
+                <p class="settings-subtitle" th:text="${uploadError}">Максимальный размер — 50 МБ</p>
+            </div>
+        </div>
+        <a class="settings-back" th:href="@{/chat}" style="margin-top: 12px">К чатам</a>
+    </div>
+</div>
+
+</body>
+</html>

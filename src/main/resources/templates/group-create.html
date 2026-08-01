@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{fragments/head :: head(~{::title})}">
+    <title>Создать группу · TestTitle</title>
+</head>
+<body class="settings-page">
+
+<div class="settings-shell">
+    <a class="settings-back" th:href="@{/chat}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Назад к чатам
+    </a>
+
+    <div class="settings-card">
+        <div class="settings-header">
+            <div class="settings-icon" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/>
+                    <path d="M4 20c0-4 3.5-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M17 11l3-3m0 0l-3-3m3 3h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div>
+                <h1>Создать группу</h1>
+                <p class="settings-subtitle">Назовите группу и добавьте участников</p>
+            </div>
+        </div>
+
+        <div class="auth-alert auth-alert-success" th:if="${groupCreated}">Группа создана!</div>
+        <div class="auth-alert auth-alert-error" th:if="${groupError}" th:text="${groupError}">Ошибка</div>
+
+        <form class="settings-form" th:action="@{/group/create}" method="post">
+            <label class="field">
+                <span>Название группы</span>
+                <input type="text" name="name" placeholder="Например: Команда" required maxlength="100"/>
+            </label>
+            <label class="field">
+                <span>Участники</span>
+                <input type="text" name="members" placeholder="user1, user2, user3"/>
+                <small class="field-hint">Ники через запятую. Вы будете добавлены автоматически</small>
+            </label>
+            <button type="submit" class="btn-primary">Создать группу</button>
+        </form>
+
+        <section class="settings-section" th:if="${!#lists.isEmpty(groups)}" style="margin-top:24px">
+            <h2>Ваши группы</h2>
+            <div class="settings-group-list">
+                <a class="settings-group-item" th:each="group : ${groups}"
+                   th:href="@{/chat/group/{id}(id=${group.groupId})}">
+                    <span class="settings-group-left">
+                        <div th:replace="~{fragments/avatar :: groupAvatar(${group.avatarFilename}, 'settings-group-avatar')}"></div>
+                        <span class="settings-group-name" th:text="${group.groupName}">Группа</span>
+                    </span>
+                    <span class="unread-badge" th:if="${group.unreadCount > 0}" th:text="${group.unreadCount}">1</span>
+                </a>
+            </div>
+        </section>
+    </div>
+</div>
+
+</body>
+</html>
