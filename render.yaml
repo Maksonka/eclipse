@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: eclipse
+    runtime: docker
+    repo: https://github.com/Maksonka/eclipse
+    plan: free
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: eclipse-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: eclipse-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: eclipse-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: eclipse-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: eclipse-db
+          property: password
+      - key: APP_ADMIN_USERNAME
+        value: admin
+      - key: APP_ADMIN_PASSWORD
+        value: admin123
+      - key: APP_ADMIN_EMAIL
+        value: admin@example.com
+
+databases:
+  - name: eclipse-db
+    plan: free
+    databaseName: eclipse
