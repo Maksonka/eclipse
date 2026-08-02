@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ru">
 <head th:replace="~{fragments/head :: head(~{::title})}">
-    <title th:text="'Р“СЂСѓРїРїР° В· ' + ${group.name}">РќР°СЃС‚СЂРѕР№РєРё РіСЂСѓРїРїС‹</title>
+    <title th:text="'Группа · ' + ${group.name}">Настройки группы</title>
 </head>
 <body class="settings-page">
 
@@ -10,43 +10,43 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        Рљ С‡Р°С‚Сѓ РіСЂСѓРїРїС‹
+        К чату группы
     </a>
 
     <div class="settings-card">
         <div class="settings-header">
             <div th:replace="~{fragments/avatar :: groupAvatar(${group.avatarFilename}, 'group-settings-avatar')}"></div>
             <div>
-                <h1 th:text="${group.name}">Р“СЂСѓРїРїР°</h1>
+                <h1 th:text="${group.name}">Группа</h1>
                 <p class="settings-subtitle"
-                   th:text="${#lists.size(group.members)} + ' СѓС‡Р°СЃС‚РЅРёРєРѕРІ В· СЃРѕР·РґР°Р»(Р°) ' + ${group.createdBy.username}">
-                    СѓС‡Р°СЃС‚РЅРёРєРё
+                   th:text="${#lists.size(group.members)} + ' участников · создал(а) ' + ${group.createdBy.username}">
+                    участники
                 </p>
             </div>
         </div>
 
-        <div class="auth-alert auth-alert-error" th:if="${avatarError}" th:text="${avatarError}">РћС€РёР±РєР°</div>
-        <div class="auth-alert auth-alert-success" th:if="${avatarSuccess}" th:text="${avatarSuccess}">Р“РѕС‚РѕРІРѕ</div>
+        <div class="auth-alert auth-alert-error" th:if="${avatarError}" th:text="${avatarError}">Ошибка</div>
+        <div class="auth-alert auth-alert-success" th:if="${avatarSuccess}" th:text="${avatarSuccess}">Готово</div>
 
         <section class="settings-section" th:if="${isCreator}">
-            <h2>РђРІР°С‚Р°СЂ РіСЂСѓРїРїС‹</h2>
-            <p class="settings-hint">РђРІР°С‚Р°СЂ РјРѕР¶РµС‚ РјРµРЅСЏС‚СЊ С‚РѕР»СЊРєРѕ СЃРѕР·РґР°С‚РµР»СЊ РіСЂСѓРїРїС‹</p>
+            <h2>Аватар группы</h2>
+            <p class="settings-hint">Аватар может менять только создатель группы</p>
 
             <form class="settings-form" th:action="@{/group/{id}/avatar(id=${group.id})}"
                   method="post" enctype="multipart/form-data">
                 <label class="field">
-                    <span>РќРѕРІС‹Р№ Р°РІР°С‚Р°СЂ</span>
+                    <span>Новый аватар</span>
                     <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif" required/>
-                    <small class="field-hint">JPG, PNG, WEBP РёР»Рё GIF, РґРѕ 10 РњР‘</small>
+                    <small class="field-hint">JPG, PNG, WEBP или GIF, до 10 МБ</small>
                 </label>
-                <button type="submit" class="btn-primary">Р—Р°РіСЂСѓР·РёС‚СЊ Р°РІР°С‚Р°СЂ</button>
+                <button type="submit" class="btn-primary">Загрузить аватар</button>
             </form>
         </section>
 
         <section class="settings-section">
-            <h2>РЈС‡Р°СЃС‚РЅРёРєРё</h2>
-            <p class="settings-hint" th:text="${#lists.size(group.members)} + ' СѓС‡Р°СЃС‚РЅРёРєРѕРІ'">РЈС‡Р°СЃС‚РЅРёРєРё</p>
-            <div class="auth-alert auth-alert-success" th:if="${groupSuccess}" th:text="${groupSuccess}">Р“РѕС‚РѕРІРѕ</div>
+            <h2>Участники</h2>
+            <p class="settings-hint" th:text="${#lists.size(group.members)} + ' участников'">Участники</p>
+            <div class="auth-alert auth-alert-success" th:if="${groupSuccess}" th:text="${groupSuccess}">Готово</div>
             <div class="group-members-list">
                 <div class="group-member-item"
                      th:each="member : ${groupMembers}"
@@ -56,14 +56,14 @@
                         <div th:replace="~{fragments/avatar :: avatar(${member.username}, ${member.avatarFilename}, 'group-member-avatar')}"></div>
                         <span class="group-member-name">
                             <span th:text="${member.username}">user</span>
-                            <span class="group-member-role" th:if="${member.username == group.createdBy.username}">РЎРѕР·РґР°С‚РµР»СЊ</span>
+                            <span class="group-member-role" th:if="${member.username == group.createdBy.username}">Создатель</span>
                         </span>
                     </a>
                     <form th:if="${isCreator and member.username != group.createdBy.username}"
                           th:action="@{/group/{id}/members/{username}/remove(id=${group.id}, username=${member.username})}"
                           method="post"
-                          th:attr="data-confirm-message=|РЈРґР°Р»РёС‚СЊ ${member.username} РёР· РіСЂСѓРїРїС‹?|">
-                        <button type="submit" class="group-member-remove" title="РЈРґР°Р»РёС‚СЊ РёР· РіСЂСѓРїРїС‹" aria-label="РЈРґР°Р»РёС‚СЊ РёР· РіСЂСѓРїРїС‹">
+                          th:attr="data-confirm-message=|Удалить ${member.username} из группы?|">
+                        <button type="submit" class="group-member-remove" title="Удалить из группы" aria-label="Удалить из группы">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                 <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             </svg>
@@ -74,12 +74,12 @@
         </section>
 
         <section class="settings-section danger-zone" th:if="${isCreator}">
-            <h2>РћРїР°СЃРЅР°СЏ Р·РѕРЅР°</h2>
-            <p class="settings-hint">РЈРґР°Р»РµРЅРёРµ РіСЂСѓРїРїС‹ Р±РµР·РІРѕР·РІСЂР°С‚РЅРѕ СѓРґР°Р»РёС‚ РІСЃРµ СЃРѕРѕР±С‰РµРЅРёСЏ Рё СѓС‡Р°СЃС‚РЅРёРєРѕРІ</p>
+            <h2>Опасная зона</h2>
+            <p class="settings-hint">Удаление группы безвозвратно удалит все сообщения и участников</p>
             <form th:action="@{/group/{id}/delete(id=${group.id})}"
                   method="post"
-                  th:attr="data-confirm-message=|РЈРґР°Р»РёС‚СЊ РіСЂСѓРїРїСѓ В«${group.name}В» РїРѕР»РЅРѕСЃС‚СЊСЋ? Р­С‚Рѕ РґРµР№СЃС‚РІРёРµ РЅРµР»СЊР·СЏ РѕС‚РјРµРЅРёС‚СЊ.|">
-                <button type="submit" class="btn-danger">РЈРґР°Р»РёС‚СЊ РіСЂСѓРїРїСѓ</button>
+                  th:attr="data-confirm-message=|Удалить группу «${group.name}» полностью? Это действие нельзя отменить.|">
+                <button type="submit" class="btn-danger">Удалить группу</button>
             </form>
         </section>
     </div>
