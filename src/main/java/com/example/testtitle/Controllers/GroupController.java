@@ -121,6 +121,20 @@ public class GroupController {
         return "redirect:/group/" + groupId + "/settings";
     }
 
+    @PostMapping("/{groupId}/members/add")
+    public String addMembers(@PathVariable Long groupId,
+                             @RequestParam("members") String members,
+                             Principal principal,
+                             RedirectAttributes redirectAttributes) {
+        try {
+            groupService.addMembers(groupId, principal.getName(), members);
+            redirectAttributes.addFlashAttribute("groupSuccess", "Участники добавлены в группу");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("groupError", e.getMessage());
+        }
+        return "redirect:/group/" + groupId + "/settings";
+    }
+
     @PostMapping("/{groupId}/delete")
     public String deleteGroup(@PathVariable Long groupId,
                               Principal principal,

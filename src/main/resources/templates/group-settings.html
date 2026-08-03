@@ -47,6 +47,18 @@
             <h2>Участники</h2>
             <p class="settings-hint" th:text="${#lists.size(group.members)} + ' участников'">Участники</p>
             <div class="auth-alert auth-alert-success" th:if="${groupSuccess}" th:text="${groupSuccess}">Готово</div>
+            <div class="auth-alert auth-alert-error" th:if="${groupError}" th:text="${groupError}">Ошибка</div>
+
+            <form class="settings-form" th:if="${isCreator}" th:action="@{/group/{id}/members/add(id=${group.id})}"
+                  method="post" style="margin-bottom:16px">
+                <label class="field">
+                    <span>Добавить участников</span>
+                    <input type="text" name="members" placeholder="user1, user2, user3"/>
+                    <small class="field-hint">Ники через запятую. Добавлять участников может только создатель группы</small>
+                </label>
+                <button type="submit" class="btn-primary">Добавить</button>
+            </form>
+
             <div class="group-members-list">
                 <div class="group-member-item"
                      th:each="member : ${groupMembers}"
