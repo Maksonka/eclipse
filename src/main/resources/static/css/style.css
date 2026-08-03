@@ -1073,6 +1073,10 @@ body.chat-page {
         display: none;
     }
 
+    .messenger-shell:not(.has-active-chat) .chat-pane {
+        display: none;
+    }
+
     .messenger-shell.has-active-chat .chat-pane {
         width: 100%;
     }
