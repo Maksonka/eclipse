@@ -17,19 +17,13 @@
                     </svg>
                 </a>
 
-                <div class="chat-peer group-chat-peer">
+                <a class="chat-peer group-chat-peer" th:href="@{/group/{id}/settings(id=${group.id})}" title="Настройки группы" aria-label="Настройки группы">
                     <div th:replace="~{fragments/avatar :: groupAvatar(${group.avatarFilename}, 'group-chat-icon')}"></div>
                     <div class="chat-peer-info">
                         <h1 class="chat-title" th:text="${group.name}">Группа</h1>
                         <span class="chat-status is-online"
                               th:text="${#lists.size(group.members)} + ' участников'">участники</span>
                     </div>
-                </div>
-                <a class="chat-options" th:href="@{/group/{id}/settings(id=${group.id})}" title="Информация о группе" aria-label="Информация о группе">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-                        <path d="M12 5V3M12 21v-2M5 12H3M21 12h-2M6.3 6.3L4.9 4.9M19.1 19.1l-1.4-1.4M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
                 </a>
             </header>
 
@@ -42,6 +36,7 @@
                 <div class="message-row"
                      th:classappend="${msg.sender.username == #authentication.name ? 'outgoing' : 'incoming'}"
                      th:each="msg : ${groupMessages}"
+                     th:if="${!(msg.deletedByUserIds != null and currentUser != null and msg.deletedByUserIds.contains(currentUser.id))}"
                      th:attr="data-message-id=${msg.id}">
                     <div class="message-bubble">
                         <span class="sender"
@@ -56,11 +51,8 @@
                         <th:block th:if="${msg.attachmentFilename != null}"
                                   th:replace="~{fragments/attachment :: attachment(${msg})}"></th:block>
 
-                        <span class="content deleted-text"
-                              th:if="${msg.deletedByUserIds != null and currentUser != null and msg.deletedByUserIds.contains(currentUser.id)}"
-                              th:text="'Сообщение удалено'"></span>
                         <span class="content"
-                              th:if="${!(msg.deletedByUserIds != null and currentUser != null and msg.deletedByUserIds.contains(currentUser.id)) and msg.content != null and !msg.content.isEmpty()}"
+                              th:if="${msg.content != null and !msg.content.isEmpty()}"
                               th:text="${msg.content}"></span>
                         <span class="message-meta">
                             <time class="message-time" th:text="${#temporals.format(msg.timestamp, 'HH:mm')}"></time>
@@ -68,6 +60,14 @@
                     </div>
                 </div>
             </main>
+
+            <div id="reply-preview" class="reply-preview">
+                <div class="reply-preview-content">
+                    <span class="reply-preview-sender"></span>
+                    <span class="reply-preview-text"></span>
+                </div>
+                <button class="reply-preview-close" aria-label="Отмена">&times;</button>
+            </div>
 
             <footer class="chat-composer">
                 <form id="message-form" class="composer-form">
@@ -101,23 +101,17 @@
 
 <script th:inline="javascript">
     const currentUsername = /*[[${#authentication.name}]]*/ '';
+    const currentUserId = /*[[${currentUser.id}]]*/ null;
     const activeGroupId = /*[[${group.id}]]*/ null;
 </script>
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
-<script th:src="@{/js/chat-group.js(v=3)}"></script>
 <div id="context-menu" class="context-menu" hidden>
     <button class="context-menu-item" data-action="reply">Ответить</button>
     <button class="context-menu-item" data-action="delete-me">Удалить для себя</button>
     <button class="context-menu-item" data-action="delete-all">Удалить для всех</button>
 </div>
-<div id="reply-preview" class="reply-preview">
-    <div class="reply-preview-content">
-        <span class="reply-preview-sender"></span>
-        <span class="reply-preview-text"></span>
-    </div>
-    <button class="reply-preview-close" aria-label="Отмена">&times;</button>
-</div>
+<script th:src="@{/js/chat-group.js(v=5)}"></script>
 <div id="lightbox" class="lightbox">
     <button class="lightbox-close" aria-label="Закрыть">&times;</button>
     <div class="lightbox-content"></div>

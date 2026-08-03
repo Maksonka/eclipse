@@ -221,6 +221,7 @@ public class MessageService {
         messageRepository.save(message);
         ChatMessageDto dto = toDto(message);
         messagingTemplate.convertAndSendToUser(message.getReceiver().getUsername(), "/queue/messages", dto);
+        messagingTemplate.convertAndSendToUser(message.getSender().getUsername(), "/queue/messages", dto);
         return dto;
     }
 

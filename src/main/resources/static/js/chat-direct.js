@@ -284,23 +284,8 @@ function markMessagesAsRead(messageIds) {
     });
 }
 
-function appendMessage(message) {
-    if (!messagesContainer || !isRelevantChat(message)) {
-        return;
-    }
-
-    if (message.id && displayedMessageIds.has(String(message.id))) {
-        return;
-    }
-    if (message.id) {
-        displayedMessageIds.add(String(message.id));
-    }
-
-    hideEmptyState();
-    hidePeerTyping();
-
+function buildMessageRow(message) {
     var isOutgoing = message.senderUsername === currentUsername;
-    var isDeleted = message.deleted || (message.content === 'Сообщение удалено');
     var rowEl = document.createElement('div');
     rowEl.className = 'message-row ' + (isOutgoing ? 'outgoing' : 'incoming');
     if (message.id) {
@@ -325,16 +310,12 @@ function appendMessage(message) {
         bubbleEl.appendChild(replyBlock);
     }
 
-    if (!isDeleted) {
-        var attachmentEl = createAttachmentElement(message);
-        if (attachmentEl) {
-            bubbleEl.appendChild(attachmentEl);
-        }
+    var attachmentEl = createAttachmentElement(message);
+    if (attachmentEl) {
+        bubbleEl.appendChild(attachmentEl);
     }
 
-    if (isDeleted) {
-        bubbleEl.appendChild(createDeletedBlock());
-    } else if (message.content) {
+    if (message.content) {
         var contentEl = document.createElement('span');
         contentEl.className = 'content';
         contentEl.textContent = message.content;
@@ -355,7 +336,35 @@ function appendMessage(message) {
 
     bubbleEl.appendChild(metaEl);
     rowEl.appendChild(bubbleEl);
-    messagesContainer.appendChild(rowEl);
+    return rowEl;
+}
+
+function appendMessage(message) {
+    if (!messagesContainer || !isRelevantChat(message)) {
+        return;
+    }
+
+    hideEmptyState();
+    hidePeerTyping();
+
+    var isDeleted = message.deleted || (message.content === 'Сообщение удалено');
+    if (message.id) {
+        var existingRow = messagesContainer.querySelector('[data-message-id="' + message.id + '"]');
+        if (isDeleted) {
+            if (existingRow) {
+                existingRow.remove();
+            }
+            return;
+        }
+        if (existingRow) {
+            existingRow.replaceWith(buildMessageRow(message));
+            scrollToBottom();
+            return;
+        }
+        displayedMessageIds.add(String(message.id));
+    }
+
+    messagesContainer.appendChild(buildMessageRow(message));
     scrollToBottom();
 }
 
@@ -676,15 +685,14 @@ if (contextMenu) {
             stompClient.send('/app/chat.delete', {}, JSON.stringify({ messageId: Number(messageId), mode: 'me' }));
             var msgRow = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
             if (msgRow) {
-                var bubble = msgRow.querySelector('.message-bubble');
-                var oldContent = bubble.querySelector('.content');
-                if (oldContent) oldContent.textContent = 'Сообщение удалено';
-                oldContent.classList.add('deleted-text');
-                var att = bubble.querySelector('.attachment');
-                if (att) att.remove();
+                msgRow.remove();
             }
         } else if (action === 'delete-all') {
             stompClient.send('/app/chat.delete', {}, JSON.stringify({ messageId: Number(messageId), mode: 'everyone' }));
+            var delRow = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
+            if (delRow) {
+                delRow.remove();
+            }
         }
     });
 }

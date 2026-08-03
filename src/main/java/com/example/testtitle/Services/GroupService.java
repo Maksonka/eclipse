@@ -225,6 +225,31 @@ public class GroupService {
         groupMembershipRepository.deleteByGroupIdAndUserUsername(groupId, memberUsername);
     }
 
+    public void addMembers(Long groupId, String creatorUsername, String memberUsernames) {
+        ChatGroup group = getGroupForCreator(groupId, creatorUsername);
+        if (memberUsernames == null || memberUsernames.isBlank()) {
+            throw new IllegalArgumentException("Укажите хотя бы одного участника");
+        }
+
+        Set<String> usernames = Arrays.stream(memberUsernames.split("[,;\\s]+"))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .filter(s -> !group.isMember(s))
+                .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+
+        if (usernames.isEmpty()) {
+            throw new IllegalArgumentException("Все указанные пользователи уже являются участниками группы");
+        }
+
+        for (String username : usernames) {
+            User member = userService.findByUsername(username)
+                    .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден: " + username));
+            group.getMembers().add(member);
+            groupMembershipRepository.save(new GroupMembership(group, member));
+        }
+        chatGroupRepository.save(group);
+    }
+
     public void deleteGroup(Long groupId, String creatorUsername) {
         ChatGroup group = getGroupForCreator(groupId, creatorUsername);
         try {
@@ -330,6 +355,9 @@ public class GroupService {
                 .orElseThrow(() -> new RuntimeException("Сообщение не найдено"));
         if (!message.getSender().getUsername().equals(username)) {
             throw new RuntimeException("Только автор может удалить сообщение для всех");
+        }
+        for (User member : message.getGroup().getMembers()) {
+            message.addDeletion(member.getId());
         }
         message.setContent("Сообщение удалено");
         message.setAttachmentFilename(null);

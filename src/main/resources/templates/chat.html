@@ -44,6 +44,7 @@
                 <div class="message-row"
                      th:classappend="${#authentication != null and msg.sender != null and msg.sender.username == #authentication.name ? 'outgoing' : 'incoming'}"
                      th:each="msg : ${messages}"
+                     th:if="${!((msg.sender.username == #authentication.name and msg.deletedBySender) or (msg.sender.username != #authentication.name and msg.deletedByReceiver))}"
                      th:attr="data-message-id=${msg.id}">
                     <div class="message-bubble">
                         <span class="sender"
@@ -58,11 +59,8 @@
                         <th:block th:if="${msg.attachmentFilename != null}"
                                   th:replace="~{fragments/attachment :: attachment(${msg})}"></th:block>
 
-                        <span class="content deleted-text"
-                              th:if="${(msg.sender.username == #authentication.name and msg.deletedBySender) or (msg.sender.username != #authentication.name and msg.deletedByReceiver)}"
-                              th:text="'Сообщение удалено'"></span>
                         <span class="content"
-                              th:if="${!((msg.sender.username == #authentication.name and msg.deletedBySender) or (msg.sender.username != #authentication.name and msg.deletedByReceiver)) and msg.content != null and !msg.content.isEmpty()}"
+                              th:if="${msg.content != null and !msg.content.isEmpty()}"
                               th:text="${msg.content}"></span>
                         <span class="message-meta">
                             <time class="message-time" th:text="${#temporals.format(msg.timestamp, 'HH:mm')}"></time>
@@ -83,6 +81,14 @@
                     <span class="typing-dot"></span>
                 </div>
                 <span class="typing-label" th:text="${receiver.username} + ' печатает'">Собеседник печатает</span>
+            </div>
+
+            <div id="reply-preview" class="reply-preview">
+                <div class="reply-preview-content">
+                    <span class="reply-preview-sender"></span>
+                    <span class="reply-preview-text"></span>
+                </div>
+                <button class="reply-preview-close" aria-label="Отмена">&times;</button>
             </div>
 
             <footer class="chat-composer">
@@ -122,19 +128,12 @@
 </script>
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
-<script th:src="@{/js/chat-direct.js(v=5)}"></script>
 <div id="context-menu" class="context-menu" hidden>
     <button class="context-menu-item" data-action="reply">Ответить</button>
     <button class="context-menu-item" data-action="delete-me">Удалить для себя</button>
     <button class="context-menu-item" data-action="delete-all">Удалить для всех</button>
 </div>
-<div id="reply-preview" class="reply-preview">
-    <div class="reply-preview-content">
-        <span class="reply-preview-sender"></span>
-        <span class="reply-preview-text"></span>
-    </div>
-    <button class="reply-preview-close" aria-label="Отмена">&times;</button>
-</div>
+<script th:src="@{/js/chat-direct.js(v=7)}"></script>
 <div id="lightbox" class="lightbox">
     <button class="lightbox-close" aria-label="Закрыть">&times;</button>
     <div class="lightbox-content"></div>

@@ -1286,7 +1286,7 @@ body.profile-page {
     align-items: center;
     gap: 10px;
     padding: 10px 16px;
-    margin: 0 18px 0;
+    margin: 6px 18px 0;
     background: var(--surface);
     border: 1px solid var(--border);
     border-left: 3px solid var(--purple-500);
@@ -1617,27 +1617,7 @@ body.profile-page {
     align-items: center;
     gap: 14px;
     min-width: 0;
-}
-
-.chat-options {
-    display: grid;
-    place-items: center;
-    width: 40px;
-    height: 40px;
-    margin-left: auto;
-    border-radius: var(--radius-full);
-    color: var(--text-muted);
-    border: 1px solid var(--border);
-    background: var(--surface);
-    text-decoration: none;
-    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-    flex-shrink: 0;
-}
-
-.chat-options:hover {
-    color: var(--purple-400);
-    border-color: var(--purple-400);
-    background: rgba(139, 92, 246, 0.06);
+    flex: 1;
 }
 
 /* ===== GROUP SETTINGS (members list) ===== */

@@ -24,23 +24,8 @@ function scrollToBottom() {
     }
 }
 
-function appendGroupMessage(message) {
-    if (!messagesContainer || message.groupId !== activeGroupId) {
-        return;
-    }
-
-    if (message.id && displayedMessageIds.has(String(message.id))) {
-        return;
-    }
-    if (message.id) {
-        displayedMessageIds.add(String(message.id));
-    }
-
-    hideEmptyState();
-
+function buildGroupMessageRow(message) {
     var isOutgoing = message.senderUsername === currentUsername;
-    var isDeletedByMe = message.deletedByUserIds && message.deletedByUserIds.indexOf && message.deletedByUserIds.indexOf(currentUsername) !== -1;
-    var isDeletedContent = message.content === '\u0421\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u0443\u0434\u0430\u043b\u0435\u043d\u043e';
     var rowEl = document.createElement('div');
     rowEl.className = 'message-row ' + (isOutgoing ? 'outgoing' : 'incoming');
     if (message.id) {
@@ -65,19 +50,16 @@ function appendGroupMessage(message) {
         bubbleEl.appendChild(replyBlock);
     }
 
-    if (isDeletedContent || isDeletedByMe) {
-        bubbleEl.appendChild(createDeletedBlock());
-    } else {
-        var attachmentEl = createAttachmentElement(message);
-        if (attachmentEl) {
-            bubbleEl.appendChild(attachmentEl);
-        }
-        if (message.content) {
-            var contentEl = document.createElement('span');
-            contentEl.className = 'content';
-            contentEl.textContent = message.content;
-            bubbleEl.appendChild(contentEl);
-        }
+    var attachmentEl = createAttachmentElement(message);
+    if (attachmentEl) {
+        bubbleEl.appendChild(attachmentEl);
+    }
+
+    if (message.content) {
+        var contentEl = document.createElement('span');
+        contentEl.className = 'content';
+        contentEl.textContent = message.content;
+        bubbleEl.appendChild(contentEl);
     }
 
     var metaEl = document.createElement('span');
@@ -89,7 +71,36 @@ function appendGroupMessage(message) {
 
     bubbleEl.appendChild(metaEl);
     rowEl.appendChild(bubbleEl);
-    messagesContainer.appendChild(rowEl);
+    return rowEl;
+}
+
+function appendGroupMessage(message) {
+    if (!messagesContainer || message.groupId !== activeGroupId) {
+        return;
+    }
+
+    hideEmptyState();
+
+    var isDeletedByMe = message.deletedByUserIds && message.deletedByUserIds.indexOf && message.deletedByUserIds.indexOf(currentUserId) !== -1;
+    var isDeletedContent = message.content === 'Сообщение удалено';
+    var isDeleted = isDeletedByMe || isDeletedContent;
+    if (message.id) {
+        var existingRow = messagesContainer.querySelector('[data-message-id="' + message.id + '"]');
+        if (isDeleted) {
+            if (existingRow) {
+                existingRow.remove();
+            }
+            return;
+        }
+        if (existingRow) {
+            existingRow.replaceWith(buildGroupMessageRow(message));
+            scrollToBottom();
+            return;
+        }
+        displayedMessageIds.add(String(message.id));
+    }
+
+    messagesContainer.appendChild(buildGroupMessageRow(message));
     scrollToBottom();
 }
 
