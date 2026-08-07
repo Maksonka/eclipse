@@ -1,5 +1,6 @@
 package com.example.testtitle.Models;
 
+import com.example.testtitle.enums.RoomVisibility;
 import com.example.testtitle.enums.WatchRoomStatus;
 import jakarta.persistence.*;
 
@@ -43,6 +44,11 @@ public class WatchRoom {
 
     @Column(name = "current_item_id")
     private Long currentItemId;
+
+    @Enumerated(EnumType.STRING)
+    @org.hibernate.annotations.ColumnDefault("'PUBLIC'")
+    @Column(name = "visibility", nullable = false)
+    private RoomVisibility visibility = RoomVisibility.PUBLIC;
 
     @ManyToMany
     @JoinTable(
@@ -144,6 +150,14 @@ public class WatchRoom {
 
     public void setMembers(Set<User> members) {
         this.members = members;
+    }
+
+    public RoomVisibility getVisibility() {
+        return visibility;
+    }
+
+    public void setVisibility(RoomVisibility visibility) {
+        this.visibility = visibility;
     }
 
     public boolean isMember(String username) {

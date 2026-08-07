@@ -15,6 +15,7 @@ import com.example.testtitle.Models.WatchRoomPlaylistItem;
 import com.example.testtitle.Repositories.WatchRoomMessageRepository;
 import com.example.testtitle.Repositories.WatchRoomPlaylistItemRepository;
 import com.example.testtitle.Repositories.WatchRoomRepository;
+import com.example.testtitle.enums.RoomVisibility;
 import com.example.testtitle.enums.WatchRoomStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -63,7 +64,7 @@ public class WatchRoomService {
     }
 
     @Transactional
-    public WatchRoomDto createRoom(String username, String name) {
+    public WatchRoomDto createRoom(String username, String name, String visibility) {
         User host = userService.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден"));
         String safeName = (name == null || name.isBlank()) ? "Комната " + username : name.trim();
@@ -72,6 +73,7 @@ public class WatchRoomService {
         }
 
         WatchRoom room = new WatchRoom(generateRoomCode(), safeName, host);
+        room.setVisibility(parseVisibility(visibility));
         final WatchRoom savedRoom = roomRepository.save(room);
 
         RoomState state = states.computeIfAbsent(savedRoom.getId(), id -> new RoomState(savedRoom));
@@ -440,7 +442,7 @@ public class WatchRoomService {
 
     @Transactional(readOnly = true)
     public List<WatchRoomPreviewDto> getRoomPreviews() {
-        List<WatchRoom> rooms = roomRepository.findByOrderByCreatedAtDesc();
+        List<WatchRoom> rooms = roomRepository.findPublicByOrderByUpdatedAtDesc();
         List<WatchRoomPreviewDto> previews = new ArrayList<>();
         for (WatchRoom room : rooms) {
             previews.add(toPreview(room));
@@ -514,7 +516,7 @@ public class WatchRoomService {
         for (User m : room.getMembers()) {
             members.add(m.getUsername());
         }
-        return new WatchRoomDto(
+        WatchRoomDto dto = new WatchRoomDto(
                 room.getId(),
                 room.getRoomCode(),
                 room.getName(),
@@ -525,6 +527,19 @@ public class WatchRoomService {
                 state.updatedAtMs,
                 members
         );
+        dto.setVisibility(room.getVisibility());
+        return dto;
+    }
+
+    private RoomVisibility parseVisibility(String visibility) {
+        if (visibility == null || visibility.isBlank()) {
+            return RoomVisibility.PUBLIC;
+        }
+        try {
+            return RoomVisibility.valueOf(visibility.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return RoomVisibility.PUBLIC;
+        }
     }
 
     private WatchRoomPreviewDto toPreview(WatchRoom room) {
@@ -537,8 +552,41 @@ public class WatchRoomService {
                 state.videoUrl,
                 state.status,
                 state.positionMs,
-                room.getMembers().size()
+                room.getMembers().size(),
+                room.getVisibility(),
+                resolveVideoTitle(room, state)
         );
+    }
+
+    /**
+     * Что сейчас играет в комнате: название из очереди (currentItemId) или
+     * название платформы из ссылки (youtube/vk/rutube/vimeo/mp4).
+     */
+    private String resolveVideoTitle(WatchRoom room, RoomState state) {
+        if (state.currentItemId != null) {
+            Optional<WatchRoomPlaylistItem> current = playlistItemRepository.findById(state.currentItemId);
+            if (current.isPresent() && current.get().getTitle() != null && !current.get().getTitle().isBlank()) {
+                return current.get().getTitle();
+            }
+        }
+        return hostFromUrl(state.videoUrl);
+    }
+
+    private String hostFromUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return null;
+        }
+        String lower = url.toLowerCase();
+        if (lower.contains("youtube.com") || lower.contains("youtu.be")) return "YouTube";
+        if (lower.contains("vk.com") || lower.contains("vkvideo.ru") || lower.contains("video.vk.com")) return "VK Видео";
+        if (lower.contains("rutube.ru")) return "Rutube";
+        if (lower.contains("vimeo.com")) return "Vimeo";
+        if (lower.endsWith(".mp4") || lower.endsWith(".webm") || lower.endsWith(".mp3")) return "Файл";
+        try {
+            return java.net.URI.create(url).getHost();
+        } catch (Exception e) {
+            return "Видео";
+        }
     }
 
     private WatchRoomPlaylistDto toPlaylistDto(WatchRoom room, RoomState state) {

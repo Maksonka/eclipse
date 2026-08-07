@@ -32,9 +32,17 @@
                     <h2>Создать комнату</h2>
                     <form id="create-room-form" class="watch-form">
                         <input type="text" id="room-name" placeholder="Название комнаты" maxlength="100" autocomplete="off"/>
+                        <div class="watch-visibility-toggle" id="room-visibility-toggle">
+                            <button type="button" class="watch-visibility-option is-active" data-visibility="PUBLIC" title="Лента и все могут войти по коду">
+                                <span aria-hidden="true">🌍</span> Публичная
+                            </button>
+                            <button type="button" class="watch-visibility-option" data-visibility="PRIVATE" title="Только по приглашению (код не виден в ленте)">
+                                <span aria-hidden="true">🔒</span> Приватная
+                            </button>
+                        </div>
                         <button type="submit" class="watch-btn primary">Создать</button>
                     </form>
-                    <p class="watch-card-hint">Вы станете хостом и будете управлять воспроизведением.</p>
+                    <p class="watch-card-hint" id="create-hint">Вы станете хостом и будете управлять воспроизведением. Публичные комнаты видны в ленте.</p>
                 </div>
 
                 <div class="watch-card">
@@ -49,7 +57,8 @@
             </div>
 
             <div class="watch-rooms">
-                <h2 class="watch-rooms-title">Активные комнаты</h2>
+                <h2 class="watch-rooms-title">Лента активных комнат</h2>
+                <p class="watch-card-hint">Только публичные комнаты. Нажмите, чтобы присоединиться и смотреть синхронно.</p>
                 <div class="sidebar-empty" th:if="${#lists.isEmpty(rooms)}">Сейчас нет активных комнат</div>
                 <div class="watch-room-list" id="rooms-list">
                     <div class="watch-room-item" th:each="room : ${rooms}"
@@ -58,15 +67,19 @@
                             <span class="watch-room-name" th:text="${room.name}">Комната</span>
                             <span class="watch-room-meta">
                                 <span th:text="${room.hostUsername}">host</span> ·
-                                <span th:text="${room.memberCount}">0</span> чел. ·
-                                <span class="watch-room-status"
-                                      th:classappend="' is-' + ${#strings.toLowerCase(room.status)}"
-                                      th:text="${room.status == 'PLAYING' ? 'Воспроизведение' : (room.status == 'PAUSED' ? 'Пауза' : 'Ожидание')}">Ожидание</span>
+                                <span th:text="${room.memberCount}">0</span> чел.
                             </span>
+                            <span class="watch-room-nowplaying" th:if="${room.status == 'PLAYING'}">
+                                <span class="watch-nowplaying-dot" aria-hidden="true"></span>
+                                <span th:text="${room.videoTitle != null ? room.videoTitle : 'Видео'}">Видео</span>
+                            </span>
+                            <span class="watch-room-status"
+                                  th:classappend="' is-' + ${#strings.toLowerCase(room.status)}"
+                                  th:text="${room.status == 'PLAYING' ? 'Воспроизведение' : (room.status == 'PAUSED' ? 'Пауза' : 'Ожидание')}">Ожидание</span>
                         </div>
                         <button type="button" class="watch-btn small join-room-btn"
                                 th:attr="data-room-code=${room.roomCode}"
-                                th:text="'Войти · ' + ${room.roomCode}">Войти</button>
+                                th:text="'Смотреть'">Смотреть</button>
                     </div>
                 </div>
             </div>
@@ -92,13 +105,13 @@
                 <div class="chat-peer-info">
                     <h1 class="chat-title" id="room-title">Комната</h1>
                     <span class="chat-status" id="room-meta">Код: —</span>
-                </div>
-            </div>
+                </div>            </div>
 
             <div class="watch-header-actions">
                 <span class="room-live-badge" id="room-live-badge" hidden>
                     <span class="room-live-dot" aria-hidden="true"></span>Вы в комнате
                 </span>
+                <span class="room-visibility-badge" id="room-visibility-badge" hidden></span>
                 <button type="button" id="invite-btn" class="watch-btn" title="Скопировать ссылку-приглашение">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M10 14a4 4 0 0 0 5.7.3l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2M14 10a4 4 0 0 0-5.7-.3l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2"
@@ -222,6 +235,6 @@
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 <script src="/js/hls.min.js"></script>
-<script th:src="@{/js/watch.js(v=36)}"></script>
+<script th:src="@{/js/watch.js(v=37)}"></script>
 </body>
 </html>

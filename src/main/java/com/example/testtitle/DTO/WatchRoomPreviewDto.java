@@ -1,5 +1,6 @@
 package com.example.testtitle.DTO;
 
+import com.example.testtitle.enums.RoomVisibility;
 import com.example.testtitle.enums.WatchRoomStatus;
 
 public class WatchRoomPreviewDto {
@@ -11,12 +12,15 @@ public class WatchRoomPreviewDto {
     private WatchRoomStatus status;
     private long positionMs;
     private int memberCount;
+    private RoomVisibility visibility;
+    private String videoTitle;
 
     public WatchRoomPreviewDto() {
     }
 
     public WatchRoomPreviewDto(Long roomId, String roomCode, String name, String hostUsername,
-                               String videoUrl, WatchRoomStatus status, long positionMs, int memberCount) {
+                               String videoUrl, WatchRoomStatus status, long positionMs, int memberCount,
+                               RoomVisibility visibility, String videoTitle) {
         this.roomId = roomId;
         this.roomCode = roomCode;
         this.name = name;
@@ -25,6 +29,8 @@ public class WatchRoomPreviewDto {
         this.status = status;
         this.positionMs = positionMs;
         this.memberCount = memberCount;
+        this.visibility = visibility;
+        this.videoTitle = videoTitle;
     }
 
     public Long getRoomId() {
@@ -89,5 +95,21 @@ public class WatchRoomPreviewDto {
 
     public void setMemberCount(int memberCount) {
         this.memberCount = memberCount;
+    }
+
+    public RoomVisibility getVisibility() {
+        return visibility;
+    }
+
+    public void setVisibility(RoomVisibility visibility) {
+        this.visibility = visibility;
+    }
+
+    public String getVideoTitle() {
+        return videoTitle;
+    }
+
+    public void setVideoTitle(String videoTitle) {
+        this.videoTitle = videoTitle;
     }
 }

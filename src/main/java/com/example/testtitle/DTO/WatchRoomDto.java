@@ -1,5 +1,6 @@
 package com.example.testtitle.DTO;
 
+import com.example.testtitle.enums.RoomVisibility;
 import com.example.testtitle.enums.WatchRoomStatus;
 
 import java.util.List;
@@ -16,6 +17,7 @@ public class WatchRoomDto {
     private List<String> members;
     private boolean restart;
     private String lastControlBy;
+    private RoomVisibility visibility;
 
     public WatchRoomDto() {
     }
@@ -120,5 +122,13 @@ public class WatchRoomDto {
 
     public void setLastControlBy(String lastControlBy) {
         this.lastControlBy = lastControlBy;
+    }
+
+    public RoomVisibility getVisibility() {
+        return visibility;
+    }
+
+    public void setVisibility(RoomVisibility visibility) {
+        this.visibility = visibility;
     }
 }

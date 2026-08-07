@@ -32,7 +32,7 @@ public class WatchRoomWebSocketController {
         if (principal == null) {
             return;
         }
-        watchRoomService.createRoom(principal.getName(), request.getName());
+        watchRoomService.createRoom(principal.getName(), request.getName(), request.getVisibility());
     }
 
     @MessageMapping("/room.join")

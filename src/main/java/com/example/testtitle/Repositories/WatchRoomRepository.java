@@ -18,6 +18,9 @@ public interface WatchRoomRepository extends JpaRepository<WatchRoom, Long> {
 
     List<WatchRoom> findByOrderByCreatedAtDesc();
 
+    @Query("SELECT r FROM WatchRoom r WHERE r.visibility = com.example.testtitle.enums.RoomVisibility.PUBLIC ORDER BY r.updatedAt DESC, r.createdAt DESC")
+    List<WatchRoom> findPublicByOrderByUpdatedAtDesc();
+
     @Query("SELECT DISTINCT r FROM WatchRoom r JOIN r.members m WHERE m.username = :username ORDER BY r.createdAt DESC")
     List<WatchRoom> findAllByMemberUsername(@Param("username") String username);
 

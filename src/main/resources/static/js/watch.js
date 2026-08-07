@@ -372,6 +372,8 @@ function resetRoomView() {
     hostHint.hidden = true;
     playlistHostHint.hidden = true;
     if (liveBadge) liveBadge.hidden = true;
+    var visBadge = document.getElementById('room-visibility-badge');
+    if (visBadge) visBadge.hidden = true;
     renderPlaylist();
     hidePlayerOverlay();
 }
@@ -593,6 +595,16 @@ function updateHeader() {
         liveBadge.hidden = false;
         liveBadge.setAttribute('title', 'Вы уже в комнате ' + activeRoom.roomCode);
     }
+    var visBadge = document.getElementById('room-visibility-badge');
+    if (visBadge) {
+        var isPrivate = activeRoom.visibility === 'PRIVATE';
+        visBadge.hidden = false;
+        visBadge.className = 'room-visibility-badge' + (isPrivate ? ' is-private' : ' is-public');
+        visBadge.textContent = isPrivate ? '🔒 Приватная' : '🌍 Публичная';
+        visBadge.setAttribute('title', isPrivate
+            ? 'Комната по приглашению: вход только по коду'
+            : 'Публичная комната: видна в ленте активных комнат');
+    }
 }
 
 function formatTime(sec) {
@@ -745,6 +757,7 @@ function applyRoomUpdate(update) {
     if (update.name) activeRoom.name = update.name;
     if (update.roomCode) activeRoom.roomCode = update.roomCode;
     if (update.status) activeRoom.status = update.status;
+    if (update.visibility) activeRoom.visibility = update.visibility;
     if (typeof update.positionMs === 'number') activeRoom.positionMs = update.positionMs;
     if (typeof update.updatedAtMs === 'number') activeRoom.updatedAtMs = update.updatedAtMs;
     if (typeof update.videoUrl === 'string') activeRoom.videoUrl = update.videoUrl;
@@ -982,17 +995,41 @@ function renderRooms(rooms) {
 
         var meta = document.createElement('span');
         meta.className = 'watch-room-meta';
-        var statusText = room.status === 'PLAYING' ? 'Воспроизведение' : (room.status === 'PAUSED' ? 'Пауза' : 'Ожидание');
-        meta.textContent = room.hostUsername + ' · ' + room.memberCount + ' чел. · ' + statusText;
+        meta.textContent = room.hostUsername + ' · ' + room.memberCount + ' чел.';
 
         info.appendChild(name);
         info.appendChild(meta);
+
+        if (room.status === 'PLAYING') {
+            var nowPlaying = document.createElement('span');
+            nowPlaying.className = 'watch-room-nowplaying';
+            var dot = document.createElement('span');
+            dot.className = 'watch-nowplaying-dot';
+            var title = document.createElement('span');
+            title.textContent = room.videoTitle || 'Видео';
+            nowPlaying.appendChild(dot);
+            nowPlaying.appendChild(title);
+            info.appendChild(nowPlaying);
+        }
+
+        var status = document.createElement('span');
+        status.className = 'watch-room-status';
+        if (room.status === 'PLAYING') {
+            status.classList.add('is-playing');
+            status.textContent = 'Сейчас играет';
+        } else if (room.status === 'PAUSED') {
+            status.classList.add('is-paused');
+            status.textContent = 'Пауза';
+        } else {
+            status.textContent = 'Ожидание';
+        }
+        info.appendChild(status);
 
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'watch-btn small join-room-btn';
         btn.setAttribute('data-room-code', room.roomCode);
-        btn.textContent = 'Войти · ' + room.roomCode;
+        btn.textContent = 'Смотреть';
 
         item.appendChild(info);
         item.appendChild(btn);
@@ -1007,8 +1044,29 @@ if (createForm) {
         e.preventDefault();
         if (!stompClient.connected) { showToast('Нет соединения с сервером'); return; }
         var name = roomNameInput.value.trim();
-        stompClient.send('/app/room.create', {}, JSON.stringify({ name: name }));
+        var visibility = selectedVisibility;
+        stompClient.send('/app/room.create', {}, JSON.stringify({ name: name, visibility: visibility }));
         roomNameInput.value = '';
+    });
+}
+
+var visibilityToggle = document.getElementById('room-visibility-toggle');
+var selectedVisibility = 'PUBLIC';
+if (visibilityToggle) {
+    visibilityToggle.addEventListener('click', function (e) {
+        var option = e.target.closest('.watch-visibility-option');
+        if (!option) return;
+        selectedVisibility = option.getAttribute('data-visibility');
+        var all = visibilityToggle.querySelectorAll('.watch-visibility-option');
+        for (var i = 0; i < all.length; i++) {
+            all[i].classList.toggle('is-active', all[i] === option);
+        }
+        var hint = document.getElementById('create-hint');
+        if (hint) {
+            hint.textContent = selectedVisibility === 'PRIVATE'
+                ? 'Приватная комната видна только по приглашению — код придёт друзьям.'
+                : 'Вы станете хостом и будете управлять воспроизведением. Публичные комнаты видны в ленте.';
+        }
     });
 }
 

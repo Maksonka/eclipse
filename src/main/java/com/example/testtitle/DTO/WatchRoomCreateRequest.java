@@ -2,6 +2,7 @@ package com.example.testtitle.DTO;
 
 public class WatchRoomCreateRequest {
     private String name;
+    private String visibility;
 
     public String getName() {
         return name;
@@ -9,5 +10,13 @@ public class WatchRoomCreateRequest {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getVisibility() {
+        return visibility;
+    }
+
+    public void setVisibility(String visibility) {
+        this.visibility = visibility;
     }
 }
