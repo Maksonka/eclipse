@@ -4,3 +4,8 @@ uploads
 .git
 .gitattributes
 *.iml
+run.log
+run.out.log
+run.err.log
+server.pid
+*.md
