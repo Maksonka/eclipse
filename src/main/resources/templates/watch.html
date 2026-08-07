@@ -67,14 +67,29 @@
                             <img th:src="${room.videoThumb}" alt="" loading="lazy" referrerpolicy="no-referrer"/>
                         </div>
                         <div class="watch-room-info">
-                            <span class="watch-room-name" th:text="${room.name}">Комната</span>
+                            <span class="watch-room-name" th:text="${room.videoTitle != null and !#strings.isEmpty(room.videoTitle)} ? ${room.videoTitle} : ${room.name}">Комната</span>
                             <span class="watch-room-meta">
                                 <span th:text="${room.hostUsername}">host</span> ·
                                 <span th:text="${room.memberCount}">0</span> чел.
                             </span>
+                            <span class="watch-room-members">
+                                <span class="watch-room-member" th:each="member, iter : ${room.members}"
+                                      th:if="${iter.index < 5}"
+                                      th:title="${member.username}">
+                                    <img th:if="${member.avatarFilename != null and !#strings.isEmpty(member.avatarFilename)}"
+                                         th:src="@{/uploads/avatars/{file}(file=${member.avatarFilename})}"
+                                         th:alt="${member.username}"
+                                         class="watch-room-member-img"/>
+                                    <span th:unless="${member.avatarFilename != null and !#strings.isEmpty(member.avatarFilename)}"
+                                          class="watch-room-member-letter"
+                                          th:text="${#strings.toUpperCase(#strings.substring(member.username, 0, 1))}">U</span>
+                                </span>
+                                <span class="watch-room-members-more" th:if="${room.memberCount > 5}"
+                                      th:title="${room.memberCount} зрителей">…</span>
+                            </span>
                             <span class="watch-room-nowplaying" th:if="${room.status.name() == 'PLAYING' and !#strings.isEmpty(room.videoTitle)}">
                                 <span class="watch-nowplaying-dot" aria-hidden="true"></span>
-                                <span th:text="${room.videoTitle}">Видео</span>
+                                <span>Сейчас играет</span>
                             </span>
                             <span class="watch-room-status"
                                   th:classappend="' is-' + ${#strings.toLowerCase(room.status)}"
@@ -238,6 +253,6 @@
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 <script src="/js/hls.min.js"></script>
-<script th:src="@{/js/watch.js(v=38)}"></script>
+<script th:src="@{/js/watch.js(v=40)}"></script>
 </body>
 </html>

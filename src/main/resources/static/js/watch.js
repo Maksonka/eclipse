@@ -1003,7 +1003,7 @@ function renderRooms(rooms) {
 
         var name = document.createElement('span');
         name.className = 'watch-room-name';
-        name.textContent = room.name;
+        name.textContent = (room.videoTitle && room.videoTitle.trim()) ? room.videoTitle : room.name;
 
         var meta = document.createElement('span');
         meta.className = 'watch-room-meta';
@@ -1012,13 +1012,45 @@ function renderRooms(rooms) {
         info.appendChild(name);
         info.appendChild(meta);
 
+        var members = room.members || [];
+        if (members.length > 0) {
+            var membersRow = document.createElement('span');
+            membersRow.className = 'watch-room-members';
+            members.slice(0, 5).forEach(function (m) {
+                var avatar = document.createElement('span');
+                avatar.className = 'watch-room-member';
+                avatar.title = m.username;
+                if (m.avatarFilename) {
+                    var img = document.createElement('img');
+                    img.className = 'watch-room-member-img';
+                    img.src = '/uploads/avatars/' + encodeURIComponent(m.avatarFilename);
+                    img.alt = m.username;
+                    avatar.appendChild(img);
+                } else {
+                    var letter = document.createElement('span');
+                    letter.className = 'watch-room-member-letter';
+                    letter.textContent = (m.username || '?').charAt(0).toUpperCase();
+                    avatar.appendChild(letter);
+                }
+                membersRow.appendChild(avatar);
+            });
+            if (room.memberCount > 5) {
+                var more = document.createElement('span');
+                more.className = 'watch-room-members-more';
+                more.title = room.memberCount + ' зрителей';
+                more.textContent = '…';
+                membersRow.appendChild(more);
+            }
+            info.appendChild(membersRow);
+        }
+
         if (room.status === 'PLAYING' && room.videoTitle) {
             var nowPlaying = document.createElement('span');
             nowPlaying.className = 'watch-room-nowplaying';
             var dot = document.createElement('span');
             dot.className = 'watch-nowplaying-dot';
             var title = document.createElement('span');
-            title.textContent = room.videoTitle;
+            title.textContent = 'Сейчас играет';
             nowPlaying.appendChild(dot);
             nowPlaying.appendChild(title);
             info.appendChild(nowPlaying);

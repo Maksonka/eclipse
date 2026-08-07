@@ -3,6 +3,7 @@ package com.example.testtitle.Services;
 import com.example.testtitle.DTO.WatchRoomChatMessageDto;
 import com.example.testtitle.DTO.WatchRoomControlRequest;
 import com.example.testtitle.DTO.WatchRoomDto;
+import com.example.testtitle.DTO.WatchRoomMemberPreviewDto;
 import com.example.testtitle.DTO.WatchRoomPlaylistDto;
 import com.example.testtitle.DTO.WatchRoomPlaylistItemDto;
 import com.example.testtitle.DTO.WatchRoomPreviewDto;
@@ -569,6 +570,9 @@ public class WatchRoomService {
                 resolveVideoTitle(room, state)
         );
         dto.setVideoThumb(room.getVideoThumb());
+        dto.setMembers(room.getMembers().stream()
+                .map(m -> new WatchRoomMemberPreviewDto(m.getUsername(), m.getAvatarFilename()))
+                .toList());
         return dto;
     }
 

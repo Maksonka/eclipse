@@ -3,6 +3,8 @@ package com.example.testtitle.DTO;
 import com.example.testtitle.enums.RoomVisibility;
 import com.example.testtitle.enums.WatchRoomStatus;
 
+import java.util.List;
+
 public class WatchRoomPreviewDto {
     private Long roomId;
     private String roomCode;
@@ -15,6 +17,7 @@ public class WatchRoomPreviewDto {
     private RoomVisibility visibility;
     private String videoTitle;
     private String videoThumb;
+    private List<WatchRoomMemberPreviewDto> members;
 
     public WatchRoomPreviewDto() {
     }
@@ -120,5 +123,13 @@ public class WatchRoomPreviewDto {
 
     public void setVideoThumb(String videoThumb) {
         this.videoThumb = videoThumb;
+    }
+
+    public List<WatchRoomMemberPreviewDto> getMembers() {
+        return members;
+    }
+
+    public void setMembers(List<WatchRoomMemberPreviewDto> members) {
+        this.members = members;
     }
 }
