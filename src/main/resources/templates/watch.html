@@ -85,7 +85,7 @@
                                           th:text="${#strings.toUpperCase(#strings.substring(member.username, 0, 1))}">U</span>
                                 </span>
                                 <span class="watch-room-members-more" th:if="${room.memberCount > 5}"
-                                      th:title="${room.memberCount} зрителей">…</span>
+                                      th:title="|${room.memberCount} зрителей|">…</span>
                             </span>
                             <span class="watch-room-nowplaying" th:if="${room.status.name() == 'PLAYING' and !#strings.isEmpty(room.videoTitle)}">
                                 <span class="watch-nowplaying-dot" aria-hidden="true"></span>
