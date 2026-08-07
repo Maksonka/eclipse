@@ -35,6 +35,8 @@ var seekRow = document.getElementById('seek-row');
 var seekBar = document.getElementById('seek-bar');
 var seekTime = document.getElementById('seek-time');
 var hostScrubbing = false;
+var lastSeekTime = 0;
+var lastSendControlTs = 0;
 
 var socket = new SockJS('/ws');
 var stompClient = Stomp.over(socket);
@@ -262,7 +264,10 @@ function checkYtAutoplay() {
 
 function getCurrentTimeMs() {
     if (playerMode === 'youtube' && ytPlayer) return (ytPlayer.getCurrentTime() || 0) * 1000;
-    if (playerMode === 'html5') return videoEl && videoEl.currentTime ? videoEl.currentTime * 1000 : 0;
+    if (playerMode === 'html5') {
+        if (activeRoom && typeof activeRoom.positionMs === 'number') return activeRoom.positionMs;
+        return videoEl && videoEl.currentTime ? videoEl.currentTime * 1000 : 0;
+    }
     return embedTimeMs();
 }
 
@@ -331,6 +336,7 @@ function sendControl(status, positionMs, videoUrl, restart) {
     if (typeof positionMs === 'number') payload.positionMs = Math.round(positionMs);
     if (videoUrl) payload.videoUrl = videoUrl;
     if (restart) payload.restart = true;
+    lastSendControlTs = Date.now();
     stompClient.send('/app/room.control', {}, JSON.stringify(payload));
 }
 
@@ -442,6 +448,32 @@ function loadVideo(url, posMs, status, updatedAtMs) {
             playHls(videoEl, playSrc);
         }
         syncPlayback(status, posMs, updatedAtMs, false);
+    } else if (meta.type === 'vk') {
+        playerMode = 'html5';
+        videoEl.hidden = false;
+        videoEl.muted = false;
+        var vkSrc = '/api/video/play/vk?id=' + encodeURIComponent(meta.oid + '_' + meta.id);
+        if (idChanged || directSrc !== vkSrc) {
+            videoEl.removeAttribute('src');
+            videoEl.load();
+            destroyHls();
+            directSrc = vkSrc;
+            fetch(vkSrc).then(function (r) { return r.ok ? r.text() : null; }).then(function (t) {
+                if (!t) { fallbackToEmbed(); return; }
+                if (!currentMeta || currentMeta.id !== meta.id) return;
+                var sep = t.indexOf('|');
+                var u = sep > 0 ? t.substring(sep + 1) : t;
+                if (sep > 0 && t.substring(0, sep) === 'hls') {
+                    playHls(videoEl, u);
+                } else {
+                    videoEl.src = u;
+                    videoEl.load();
+                }
+                syncPlayback(status, posMs, updatedAtMs, false);
+            });
+        } else {
+            syncPlayback(status, posMs, updatedAtMs, false);
+        }
     } else {
         ytWrap.hidden = false;
         embedNote.hidden = false;
@@ -591,15 +623,20 @@ function seekDurationSec() {
 
 function updateSeekBar() {
     if (!seekBar || !seekTime) return;
-    var dur = seekDurationSec();
-    var pos = seekPosSec();
     if (playerMode !== 'html5' && playerMode !== 'youtube') {
         seekRow.hidden = true;
         return;
     }
     seekRow.hidden = false;
-    var maxV = dur > 0 ? Math.round(dur * 1000) : 1000;
+    var dur = seekDurationSec();
+    var maxV = dur > 0 && isFinite(dur) ? Math.round(dur * 1000) : 1000;
     if (maxV > 0 && seekBar.max !== String(maxV)) seekBar.max = String(maxV);
+    var pos;
+    if (isHost && activeRoom) {
+        pos = (activeRoom.positionMs || 0) / 1000;
+    } else {
+        pos = seekPosSec();
+    }
     var val = Math.min(Math.max(pos * 1000, 0), maxV);
     if (!hostScrubbing) seekBar.value = String(val);
     seekTime.textContent = formatTime(pos) + ' / ' + formatTime(dur);
@@ -1097,25 +1134,29 @@ if (videoEl) {
     videoEl.addEventListener('timeupdate', applyPendingHtml5Snap);
     videoEl.addEventListener('play', function () {
         if (!isHost || applyingSync || playerMode !== 'html5') return;
-        sendControl('PLAYING', videoEl.currentTime * 1000);
+        if (Date.now() - lastSendControlTs < 1500) return;
+        sendControl('PLAYING', getCurrentTimeMs());
     });
     videoEl.addEventListener('pause', function () {
         if (!isHost || applyingSync || playerMode !== 'html5') return;
-        sendControl('PAUSED', videoEl.currentTime * 1000);
+        if (Date.now() - lastSendControlTs < 1500) return;
+        sendControl('PAUSED', getCurrentTimeMs());
     });
     videoEl.addEventListener('seeked', function () {
         if (hostScrubbing) { hostScrubbing = false; return; }
         if (!isHost || applyingSync || !activeRoom || playerMode !== 'html5') return;
-        sendControl(activeRoom.status === 'PLAYING' ? 'PLAYING' : 'PAUSED', videoEl.currentTime * 1000);
+        if (Date.now() - lastSendControlTs < 1500) return;
+        sendControl(activeRoom.status === 'PLAYING' ? 'PLAYING' : 'PAUSED', getCurrentTimeMs());
     });
     videoEl.addEventListener('timeupdate', updateSeekBar);
     videoEl.addEventListener('durationchange', updateSeekBar);
     videoEl.addEventListener('ended', function () {
         if (!isHost || applyingSync || playerMode !== 'html5') return;
+        if (Date.now() - lastSendControlTs < 1500) return;
         if (hasNextInPlaylist()) {
             stompClient.send('/app/room.playlist.next', {}, JSON.stringify({ roomId: activeRoom.roomId }));
         } else {
-            sendControl('PAUSED', videoEl.currentTime * 1000);
+            sendControl('PAUSED', getCurrentTimeMs());
         }
     });
 }
@@ -1143,6 +1184,8 @@ if (seekBar) {
             try { playing = ytPlayer.getPlayerState() === 1; } catch (e) {}
             try { ytPlayer.seekTo(val, true); } catch (e) {}
         }
+        lastSeekTime = Date.now();
+        if (activeRoom) activeRoom.positionMs = Math.round(val * 1000);
         sendControl(playing ? 'PLAYING' : 'PAUSED', Math.round(val * 1000), null, true);
     });
 }
@@ -1270,6 +1313,11 @@ window.onYouTubeIframeAPIReady = function () {
 setInterval(function () {
     if (playerMode === 'youtube') {
         checkYtAutoplay();
-        if (!hostScrubbing) updateSeekBar();
     }
-}, 1000);
+    if ((playerMode === 'html5' || playerMode === 'youtube') && !hostScrubbing) {
+        if (isHost && activeRoom && videoEl && isFinite(videoEl.currentTime) && videoEl.currentTime > 0) {
+            activeRoom.positionMs = Math.round(videoEl.currentTime * 1000);
+        }
+        updateSeekBar();
+    }
+}, 500);

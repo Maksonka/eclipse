@@ -25,9 +25,11 @@ import java.util.regex.Pattern;
 @RequestMapping("/api/video")
 public class VideoStreamController {
 
-    private static final Set<String> ALLOWED_HOST_SUFFIXES = Set.of("rutube.ru", "rtbcdn.ru");
+    private static final Set<String> ALLOWED_HOST_SUFFIXES = Set.of("rutube.ru", "rtbcdn.ru", "vkuser.net", "okcdn.ru");
     private static final Pattern VIDEO_BALANCER_DEFAULT = Pattern.compile("\"video_balancer\"\\s*:\\s*\\{[^}]*\"default\"\\s*:\\s*\"([^\"]+)\"");
     private static final Pattern URI_ATTR = Pattern.compile("URI=\"(https?://[^\"]+)\"");
+    private static final int[] VK_QUALITIES = {1080, 720, 480, 360, 240, 144};
+    private static final Pattern VK_HLS = Pattern.compile("\"hls\":\"([^\"]+)\"");
 
     @GetMapping("/play/rutube")
     public ResponseEntity<byte[]> playRutube(@RequestParam("id") String id) {
@@ -52,6 +54,44 @@ public class VideoStreamController {
         }
     }
 
+    @GetMapping("/play/vk")
+    public ResponseEntity<String> playVk(@RequestParam("id") String id) {
+        try {
+            String[] parts = id.split("_", 2);
+            if (parts.length != 2) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+            String embedUrl = "https://vk.com/video_ext.php?oid=" + parts[0] + "&id=" + parts[1];
+            String page = fetchText(embedUrl, "https://vk.com/");
+            String kind = "mp4";
+            String url = null;
+            for (int q : VK_QUALITIES) {
+                Matcher m = Pattern.compile("\"mp4_" + q + "\":\"([^\"]+)\"").matcher(page);
+                if (m.find()) {
+                    url = m.group(1).replace("\\/", "/");
+                    break;
+                }
+            }
+            if (url == null) {
+                Matcher h = VK_HLS.matcher(page);
+                if (h.find()) {
+                    url = h.group(1).replace("\\/", "/");
+                    kind = "hls";
+                }
+            }
+            if (url == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+            String proxy = "/api/video/stream?src=" + URLEncoder.encode(url, StandardCharsets.UTF_8)
+                    + "&referer=" + URLEncoder.encode("https://vk.com/", StandardCharsets.UTF_8);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(kind + "|" + proxy);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+        }
+    }
+
     @GetMapping("/stream")
     public ResponseEntity<StreamingResponseBody> stream(@RequestParam("src") String src,
                                                         @RequestParam(value = "referer", required = false) String referer,
@@ -61,7 +101,8 @@ public class VideoStreamController {
             if (!isAllowedHost(url.getHost())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
-            String effReferer = referer;
+            String effReferer = (referer == null || referer.isBlank()) && isVkHost(url.getHost())
+                    ? "https://vk.com/" : referer;
             HttpURLConnection conn = open(url, effReferer);
             String range = request.getHeader("Range");
             if (range != null) {
@@ -93,6 +134,10 @@ public class VideoStreamController {
             ResponseEntity.BodyBuilder response = ResponseEntity.status(HttpStatus.valueOf(code))
                     .contentType(mediaType)
                     .header("Accept-Ranges", "bytes");
+            String contentLength = conn.getHeaderField("Content-Length");
+            if (contentLength != null) {
+                response.header("Content-Length", contentLength);
+            }
             String contentRange = conn.getHeaderField("Content-Range");
             if (contentRange != null) {
                 response.header("Content-Range", contentRange);
@@ -122,6 +167,13 @@ public class VideoStreamController {
             }
         }
         return false;
+    }
+
+    private boolean isVkHost(String host) {
+        if (host == null || host.isBlank()) return false;
+        String h = host.toLowerCase();
+        return h.equals("vkuser.net") || h.endsWith(".vkuser.net")
+                || h.equals("okcdn.ru") || h.endsWith(".okcdn.ru");
     }
 
     private String rewritePlaylist(String text, String baseUrl) {
