@@ -1,0 +1,1275 @@
+var hub = document.getElementById('watch-hub');
+var roomView = document.getElementById('watch-room-view');
+var roomTitle = document.getElementById('room-title');
+var roomMeta = document.getElementById('room-meta');
+var roomsList = document.getElementById('rooms-list');
+var createForm = document.getElementById('create-room-form');
+var roomNameInput = document.getElementById('room-name');
+var joinForm = document.getElementById('join-room-form');
+var roomCodeInput = document.getElementById('room-code');
+var leaveBtn = document.getElementById('leave-room-btn');
+var inviteBtn = document.getElementById('invite-btn');
+var videoEl = document.getElementById('watch-video');
+var ytWrap = document.getElementById('watch-yt');
+var embedNote = document.getElementById('watch-embed-note');
+var playerEmpty = document.getElementById('player-empty');
+var playerEmptySub = document.getElementById('player-empty-sub');
+var playerOverlay = document.getElementById('player-overlay');
+var playerOverlayBtn = document.getElementById('player-overlay-btn');
+var playBtn = document.getElementById('play-btn');
+var pauseBtn = document.getElementById('pause-btn');
+var nextBtn = document.getElementById('next-btn');
+var videoUrlInput = document.getElementById('video-url-input');
+var setUrlBtn = document.getElementById('set-url-btn');
+var hostHint = document.getElementById('host-hint');
+var playlistList = document.getElementById('playlist-list');
+var playlistAddForm = document.getElementById('playlist-add-form');
+var playlistUrlInput = document.getElementById('playlist-url-input');
+var playlistTitleInput = document.getElementById('playlist-title-input');
+var playlistHostHint = document.getElementById('playlist-host-hint');
+var chatMessages = document.getElementById('watch-chat-messages');
+var chatForm = document.getElementById('watch-chat-form');
+var chatInput = document.getElementById('watch-chat-input');
+var toast = document.getElementById('watch-toast');
+var seekRow = document.getElementById('seek-row');
+var seekBar = document.getElementById('seek-bar');
+var seekTime = document.getElementById('seek-time');
+var hostScrubbing = false;
+
+var socket = new SockJS('/ws');
+var stompClient = Stomp.over(socket);
+stompClient.debug = null;
+
+var activeRoom = null;
+var isHost = false;
+var currentVideoUrl = null;
+var applyingSync = false;
+var syncSub = null;
+var chatSub = null;
+var playlistSub = null;
+var reactionSub = null;
+var reactionLayer = document.getElementById('reaction-layer');
+var reactionBar = document.getElementById('reaction-bar');
+var liveBadge = document.getElementById('room-live-badge');
+var playlist = { currentItemId: null, items: [] };
+var didInitialJoin = false;
+var connectErrorShown = false;
+
+/* Player adapter: html5 | youtube | embed */
+var playerMode = null;
+var currentMeta = null;
+var ytPlayer = null;
+var ytApiReady = false;
+var ytPlayAttempt = 0;
+var ytAutoplayResolved = false;
+var ytControlsForHost = -1;
+var pendingYt = null;
+var embedStarted = false;
+var embedTiming = { posMs: 0, startedAt: 0, playing: false };
+var hlsPlayer = null;
+var directSrc = null;
+var pendingHtml5Snap = null;
+
+function embedTimeMs() {
+    if (!embedTiming.playing) return embedTiming.posMs;
+    return embedTiming.posMs + (Date.now() - embedTiming.startedAt);
+}
+
+function driftTargetMs(posMs, updatedAtMs) {
+    var t = posMs || 0;
+    if (updatedAtMs) {
+        var elapsed = Date.now() - updatedAtMs;
+        if (elapsed > 0 && elapsed < 60000) t += elapsed;
+    }
+    return t;
+}
+
+function parseVideoUrl(url) {
+    if (!url) return null;
+    var yt = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/);
+    if (yt) return { type: 'youtube', id: yt[1] };
+    var vk = url.match(/(?:vk\.com\/video|vkvideo\.ru\/(?:video|play))(-?\d+)_(\d+)/i);
+    if (vk) return { type: 'vk', oid: vk[1], id: vk[2] };
+    var rt = url.match(/rutube\.ru\/(?:video|play\/embed)\/([\w-]+)/i);
+    if (rt) return { type: 'rutube', id: rt[1] };
+    var vim = url.match(/vimeo\.com\/(\d+)/i);
+    if (vim) return { type: 'vimeo', id: vim[1] };
+    if (/\.(mp4|webm|ogv|ogg|mov)(\?.*)?$/i.test(url)) return { type: 'html5', url: url };
+    return null;
+}
+
+function isSupportedVideoUrl(url) {
+    return parseVideoUrl(url) !== null;
+}
+
+function embedUrl(meta, autoplay, startSec) {
+    if (meta.type === 'vk') {
+        var u = 'https://vk.com/video_ext.php?oid=' + meta.oid + '&id=' + meta.id;
+        if (autoplay) u += '&autoplay=1';
+        if (startSec) u += '&start=' + Math.floor(startSec);
+        return u;
+    }
+    if (meta.type === 'rutube') {
+        var r = 'https://rutube.ru/play/embed/' + meta.id;
+        var q = [];
+        if (autoplay) q.push('autoplay=1');
+        if (startSec) q.push('start=' + Math.floor(startSec));
+        return q.length ? r + '?' + q.join('&') : r;
+    }
+    if (meta.type === 'vimeo') {
+        var v = 'https://player.vimeo.com/video/' + meta.id;
+        if (autoplay) v += '?autoplay=1';
+        if (startSec) v += '#t=' + Math.floor(startSec) + 's';
+        return v;
+    }
+    return '';
+}
+
+function mountEmbed(meta, autoplay, startSec) {
+    if (!ytWrap || !meta) return;
+    ytWrap.innerHTML = '<iframe src="' + embedUrl(meta, autoplay, startSec) + '" allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write" frameborder="0" scrolling="no" allowfullscreen></iframe>';
+}
+
+function destroyHls() {
+    if (hlsPlayer) { try { hlsPlayer.destroy(); } catch (e) {} hlsPlayer = null; }
+    directSrc = null;
+}
+
+function playHls(el, src) {
+    destroyHls();
+    directSrc = src;
+    if (window.Hls && Hls.isSupported()) {
+        var hls = new Hls({ maxBufferLength: 30 });
+        hlsPlayer = hls;
+        hls.on(Hls.Events.ERROR, function (evt, data) {
+            if (!data.fatal) return;
+            if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                try { hls.recoverMediaError(); } catch (e) {}
+            } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                try { hls.startLoad(); } catch (e) {}
+            } else {
+                fallbackToEmbed();
+            }
+        });
+        hls.loadSource(src);
+        hls.attachMedia(el);
+    } else if (el.canPlayType('application/vnd.apple.mpegurl')) {
+        el.src = src;
+        el.load();
+    } else {
+        fallbackToEmbed();
+    }
+}
+
+function fallbackToEmbed() {
+    if (!currentMeta || !directSrc || !currentVideoUrl) return;
+    var wasPlaying = !!activeRoom && activeRoom.status === 'PLAYING';
+    var pos = activeRoom ? (activeRoom.positionMs || 0) : 0;
+    var meta = currentMeta;
+    destroyHls();
+    playerMode = meta.type;
+    videoEl.pause();
+    videoEl.removeAttribute('src');
+    videoEl.load();
+    videoEl.hidden = true;
+    ytWrap.hidden = false;
+    embedNote.hidden = false;
+    mountEmbed(meta, wasPlaying, pos / 1000);
+    embedStarted = wasPlaying;
+    embedTiming.posMs = pos;
+    embedTiming.startedAt = Date.now();
+    embedTiming.playing = wasPlaying;
+    hidePlayerOverlay();
+    showToast('Прямое воспроизведение недоступно — включена вставка');
+}
+
+function loadYouTubeApi() {
+    if (window.YT && YT.Player) { ytApiReady = true; maybeCreateYt(); return; }
+    var tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    tag.async = true;
+    document.head.appendChild(tag);
+}
+
+function maybeCreateYt() {
+    if (!ytApiReady || !pendingYt) return;
+    var p = pendingYt;
+    pendingYt = null;
+    ensureYtPlayer(p.id, function () {
+        syncPlayback(p.status, p.posMs, p.updatedAtMs, false);
+    });
+}
+
+function ensureYtPlayer(videoId, cb) {
+    if (ytPlayer) {
+        if (ytPlayer.videoId === videoId) { if (cb) cb(); return; }
+        try { ytPlayer.destroy(); } catch (e) {}
+        ytPlayer = null;
+    }
+    ytPlayer = new YT.Player('watch-yt', {
+        width: '100%',
+        height: '100%',
+        videoId: videoId,
+        playerVars: {
+            autoplay: 0,
+            controls: isHost ? 1 : 0,
+            disablekb: isHost ? 0 : 1,
+            modestbranding: 1,
+            rel: 0,
+            playsinline: 1
+        },
+        events: {
+            onReady: function () { if (cb) cb(); },
+            onStateChange: function (e) { onYtStateChange(e.data); }
+        }
+    });
+    ytControlsForHost = isHost ? 1 : 0;
+    ytPlayer.videoId = videoId;
+}
+
+function onYtStateChange(state) {
+    if (state === 1) {
+        ytAutoplayResolved = true;
+        hidePlayerOverlay();
+    }
+    if (!activeRoom || !ytPlayer || applyingSync || !isHost) return;
+    var pos = (ytPlayer.getCurrentTime() || 0) * 1000;
+    if (state === 1) {
+        sendControl('PLAYING', pos);
+    } else if (state === 2) {
+        sendControl('PAUSED', pos);
+    } else if (state === 0) {
+        if (hasNextInPlaylist()) {
+            stompClient.send('/app/room.playlist.next', {}, JSON.stringify({ roomId: activeRoom.roomId }));
+        } else {
+            sendControl('PAUSED', pos);
+        }
+    }
+}
+
+function checkYtAutoplay() {
+    if (!ytPlayer || playerMode !== 'youtube' || ytPlayAttempt === 0 || ytAutoplayResolved) return;
+    var st;
+    try { st = ytPlayer.getPlayerState(); } catch (e) { return; }
+    if (st === 1) {
+        ytAutoplayResolved = true;
+        hidePlayerOverlay();
+        return;
+    }
+    if (st === 2 || st === 0) return;
+    if (Date.now() - ytPlayAttempt > 1500) showPlayerOverlay();
+}
+
+function getCurrentTimeMs() {
+    if (playerMode === 'youtube' && ytPlayer) return (ytPlayer.getCurrentTime() || 0) * 1000;
+    if (playerMode === 'html5') return videoEl && videoEl.currentTime ? videoEl.currentTime * 1000 : 0;
+    return embedTimeMs();
+}
+
+function showToast(text) {
+    if (!toast) return;
+    toast.textContent = text;
+    toast.hidden = false;
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function () {
+        toast.hidden = true;
+    }, 3500);
+}
+
+function saveRoom(room) {
+    try {
+        localStorage.setItem('eclipseWatchRoom', JSON.stringify({ roomId: room.roomId, roomCode: room.roomCode }));
+    } catch (e) {}
+}
+
+function getSavedRoom() {
+    try {
+        var raw = localStorage.getItem('eclipseWatchRoom');
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function clearSavedRoom() {
+    try {
+        localStorage.removeItem('eclipseWatchRoom');
+    } catch (e) {}
+}
+
+function copyInviteLink() {
+    if (!activeRoom) return;
+    var code = activeRoom.roomCode;
+    function fallback() {
+        var ta = document.createElement('textarea');
+        ta.value = code;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+        showToast('Код скопирован: ' + code);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(function () {
+            showToast('Код скопирован: ' + code);
+        }, fallback);
+    } else {
+        fallback();
+    }
+}
+
+function scrollChat() {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function sendControl(status, positionMs, videoUrl, restart) {
+    if (!stompClient.connected || !activeRoom) return;
+    var payload = { roomId: activeRoom.roomId };
+    if (status) payload.status = status;
+    if (typeof positionMs === 'number') payload.positionMs = Math.round(positionMs);
+    if (videoUrl) payload.videoUrl = videoUrl;
+    if (restart) payload.restart = true;
+    stompClient.send('/app/room.control', {}, JSON.stringify(payload));
+}
+
+/* ===== Room view ===== */
+
+function showRoomView() {
+    hub.hidden = true;
+    roomView.hidden = false;
+    chatMessages.innerHTML = '<div class="sidebar-empty">Загрузка…</div>';
+    resetPlayer();
+}
+
+function resetRoomView() {
+    if (syncSub) { try { syncSub.unsubscribe(); } catch (e) {} syncSub = null; }
+    if (chatSub) { try { chatSub.unsubscribe(); } catch (e) {} chatSub = null; }
+    if (playlistSub) { try { playlistSub.unsubscribe(); } catch (e) {} playlistSub = null; }
+    if (reactionSub) { try { reactionSub.unsubscribe(); } catch (e) {} reactionSub = null; }
+    clearReactions();
+    resetPlayer();
+    activeRoom = null;
+    isHost = false;
+    currentVideoUrl = null;
+    playlist = { currentItemId: null, items: [] };
+    chatMessages.innerHTML = '';
+    roomView.hidden = true;
+    hub.hidden = false;
+    videoUrlInput.disabled = true;
+    setUrlBtn.disabled = true;
+    playBtn.disabled = true;
+    pauseBtn.disabled = true;
+    nextBtn.disabled = true;
+    hostHint.hidden = true;
+    playlistHostHint.hidden = true;
+    if (liveBadge) liveBadge.hidden = true;
+    renderPlaylist();
+    hidePlayerOverlay();
+}
+
+function resetPlayer() {
+    currentVideoUrl = null;
+    playerMode = null;
+    currentMeta = null;
+    if (ytPlayer) { try { ytPlayer.destroy(); } catch (e) {} ytPlayer = null; }
+    ytPlayAttempt = 0;
+    ytAutoplayResolved = false;
+    embedStarted = false;
+    embedTiming = { posMs: 0, startedAt: 0, playing: false };
+    pendingHtml5Snap = null;
+    destroyHls();
+    videoEl.pause();
+    videoEl.removeAttribute('src');
+    videoEl.load();
+    ytWrap.hidden = true;
+    embedNote.hidden = true;
+    playerEmpty.hidden = false;
+    playerEmptySub.textContent = isHost ? 'Вставьте ссылку на видео в поле ниже' : 'Хост ещё не добавил видео';
+    if (seekRow) seekRow.hidden = true;
+    hidePlayerOverlay();
+}
+
+function loadVideo(url, posMs, status, updatedAtMs) {
+    var meta = parseVideoUrl(url);
+    currentVideoUrl = url;
+    if (!meta) {
+        resetPlayer();
+        return;
+    }
+    var idChanged = !currentMeta || currentMeta.type !== meta.type
+        || (meta.type === 'youtube' && currentMeta.id !== meta.id)
+        || (meta.type !== 'html5' && currentMeta.type === meta.type && currentMeta.id !== meta.id);
+    currentMeta = meta;
+    if (idChanged) {
+        if (ytPlayer) { try { ytPlayer.destroy(); } catch (e) {} ytPlayer = null; }
+        ytPlayAttempt = 0;
+        ytAutoplayResolved = false;
+        pendingHtml5Snap = null;
+        videoEl.pause();
+        videoEl.removeAttribute('src');
+        videoEl.load();
+        videoEl.hidden = true;
+        ytWrap.hidden = true;
+        embedNote.hidden = true;
+    }
+    playerMode = meta.type;
+    playerEmpty.hidden = true;
+    updateSeekControls();
+    if (meta.type === 'html5') {
+        videoEl.hidden = false;
+        if (videoEl.src !== meta.url) {
+            videoEl.src = meta.url;
+            videoEl.load();
+        }
+        syncPlayback(status, posMs, updatedAtMs, false);
+    } else if (meta.type === 'youtube') {
+        ytWrap.hidden = false;
+        if (idChanged) {
+            pendingYt = { id: meta.id, status: status, posMs: posMs, updatedAtMs: updatedAtMs };
+            loadYouTubeApi();
+        } else {
+            syncPlayback(status, posMs, updatedAtMs, false);
+        }
+    } else if (meta.type === 'rutube') {
+        playerMode = 'html5';
+        videoEl.hidden = false;
+        var playSrc = '/api/video/play/rutube?id=' + encodeURIComponent(meta.id);
+        if (idChanged || directSrc !== playSrc) {
+            videoEl.removeAttribute('src');
+            videoEl.load();
+            playHls(videoEl, playSrc);
+        }
+        syncPlayback(status, posMs, updatedAtMs, false);
+    } else {
+        ytWrap.hidden = false;
+        embedNote.hidden = false;
+        if (idChanged || ytWrap.querySelector('iframe') === null) {
+            mountEmbed(meta, status === 'PLAYING', (posMs || 0) / 1000);
+            embedStarted = status === 'PLAYING';
+        }
+        if (status === 'PLAYING') {
+            embedTiming.posMs = posMs || 0;
+            embedTiming.startedAt = Date.now();
+            embedTiming.playing = true;
+        } else {
+            embedTiming.posMs = posMs || 0;
+            embedTiming.playing = false;
+        }
+        hidePlayerOverlay();
+    }
+}
+
+function syncPlayback(status, posMs, updatedAtMs, restart) {
+    if (!status) return;
+    if (window.console) console.log('[sync] status=' + status + ' posMs=' + posMs + ' restart=' + restart + ' host=' + isHost + ' mode=' + playerMode);
+    if (playerMode === 'html5') {
+        if (!videoEl.src) {
+            if (restart && !isHost) {
+                pendingHtml5Snap = { target: driftTargetMs(posMs, updatedAtMs) / 1000, play: status === 'PLAYING', ts: Date.now() };
+            }
+            return;
+        }
+        if (status === 'PLAYING') {
+            var target = driftTargetMs(posMs, updatedAtMs) / 1000;
+            if (restart) {
+                pendingHtml5Snap = { target: target, play: true, ts: Date.now() };
+                if (window.console) console.log('[sync] snap to ' + target.toFixed(1) + 's, current=' + videoEl.currentTime.toFixed(1) + 's');
+                showToast('[sync] прыжок на ' + target.toFixed(1) + 'с (было ' + videoEl.currentTime.toFixed(1) + 'с)');
+            }
+            if (restart || (!isHost && Math.abs(videoEl.currentTime - target) > 2)) {
+                applyingSync = true;
+                try { videoEl.currentTime = target; } catch (e) {}
+                applyingSync = false;
+            }
+            var p = videoEl.play();
+            if (p && p.catch) p.catch(function () { showPlayerOverlay(); });
+        } else {
+            applyingSync = true;
+            videoEl.pause();
+            if (!isHost) {
+                var pv = (posMs || 0) / 1000;
+                if (Math.abs(videoEl.currentTime - pv) > 2) {
+                    try { videoEl.currentTime = pv; } catch (e) {}
+                }
+            }
+            applyingSync = false;
+            hidePlayerOverlay();
+        }
+    } else if (playerMode === 'youtube') {
+        if (!ytApiReady || !ytPlayer) {
+            if (!pendingYt) {
+                pendingYt = { id: currentMeta ? currentMeta.id : null, status: status, posMs: posMs, updatedAtMs: updatedAtMs };
+                loadYouTubeApi();
+            }
+            return;
+        }
+        var t = driftTargetMs(posMs, updatedAtMs) / 1000;
+        var cur = 0;
+        try { cur = ytPlayer.getCurrentTime() || 0; } catch (e) {}
+        var st = -1;
+        try { st = ytPlayer.getPlayerState(); } catch (e) {}
+        if (restart || (!isHost && Math.abs(cur - t) > 2)) {
+            applyingSync = true;
+            try { ytPlayer.seekTo(t, true); } catch (e) {}
+            applyingSync = false;
+        }
+        if (status === 'PLAYING') {
+            if (st !== 1) {
+                applyingSync = true;
+                try {
+                    ytPlayAttempt = Date.now();
+                    ytPlayer.playVideo();
+                } catch (e) {}
+                applyingSync = false;
+            }
+        } else {
+            if (st !== 2) {
+                applyingSync = true;
+                try { ytPlayer.pauseVideo(); } catch (e) {}
+                applyingSync = false;
+            }
+            hidePlayerOverlay();
+        }
+    } else {
+        if (status === 'PLAYING') {
+            if (((restart && !isHost) || !embedStarted) && currentMeta) {
+                embedStarted = true;
+                mountEmbed(currentMeta, true, (posMs || 0) / 1000);
+            }
+            embedTiming.posMs = posMs || 0;
+            embedTiming.startedAt = Date.now();
+            embedTiming.playing = true;
+            hidePlayerOverlay();
+        } else {
+            var wasStarted = embedStarted;
+            embedStarted = false;
+            embedTiming.playing = false;
+            if (posMs != null) embedTiming.posMs = posMs || 0;
+            if (wasStarted && currentMeta) mountEmbed(currentMeta, false, embedTiming.posMs / 1000);
+        }
+    }
+}
+
+function updateHeader() {
+    roomTitle.textContent = activeRoom.name || 'Комната';
+    var members = activeRoom.members ? activeRoom.members.length : 0;
+    roomMeta.textContent = 'Код: ' + activeRoom.roomCode + ' · ' + activeRoom.hostUsername + ' · ' + members + ' чел.';
+    if (liveBadge) {
+        liveBadge.hidden = false;
+        liveBadge.setAttribute('title', 'Вы уже в комнате ' + activeRoom.roomCode);
+    }
+}
+
+function formatTime(sec) {
+    if (!isFinite(sec) || sec < 0) return '0:00';
+    var s = Math.floor(sec);
+    var m = Math.floor(s / 60);
+    s = s % 60;
+    var h = Math.floor(m / 60);
+    m = m % 60;
+    var out = (h > 0 ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    return out;
+}
+
+function seekPosSec() {
+    if (playerMode === 'html5') return videoEl && isFinite(videoEl.currentTime) ? videoEl.currentTime : 0;
+    if (playerMode === 'youtube' && ytPlayer && ytApiReady) {
+        try { return ytPlayer.getCurrentTime() || 0; } catch (e) {}
+    }
+    return 0;
+}
+
+function seekDurationSec() {
+    if (playerMode === 'html5') return videoEl && isFinite(videoEl.duration) ? videoEl.duration : 0;
+    if (playerMode === 'youtube' && ytPlayer && ytApiReady) {
+        try { return ytPlayer.getDuration() || 0; } catch (e) {}
+    }
+    return 0;
+}
+
+function updateSeekBar() {
+    if (!seekBar || !seekTime) return;
+    var dur = seekDurationSec();
+    var pos = seekPosSec();
+    if (playerMode !== 'html5' && playerMode !== 'youtube') {
+        seekRow.hidden = true;
+        return;
+    }
+    seekRow.hidden = false;
+    var maxV = dur > 0 ? Math.round(dur * 1000) : 1000;
+    if (maxV > 0 && seekBar.max !== String(maxV)) seekBar.max = String(maxV);
+    var val = Math.min(Math.max(pos * 1000, 0), maxV);
+    if (!hostScrubbing) seekBar.value = String(val);
+    seekTime.textContent = formatTime(pos) + ' / ' + formatTime(dur);
+    seekBar.disabled = !isHost;
+}
+
+function updateSeekControls() {
+    if (!seekRow) return;
+    if (!currentVideoUrl || (playerMode !== 'html5' && playerMode !== 'youtube')) {
+        seekRow.hidden = true;
+        return;
+    }
+    updateSeekBar();
+}
+
+function updateControls() {
+    var hostNow = isHost;
+    var hasUrl = !!currentVideoUrl;
+    playBtn.disabled = !hostNow || !hasUrl;
+    pauseBtn.disabled = !hostNow || !hasUrl;
+    nextBtn.disabled = !hostNow || !(playlist.items || []).length;
+    setUrlBtn.disabled = !hostNow;
+    videoUrlInput.disabled = !hostNow;
+    hostHint.hidden = !hostNow;
+    playlistHostHint.hidden = !hostNow;
+    if (!hostNow && !currentVideoUrl) {
+        playerEmptySub.textContent = 'Синхронизация с хостом…';
+    }
+    updateSeekControls();
+    syncNativeControls();
+    renderPlaylist();
+}
+
+/* Только хост управляет воспроизведением: гостям скрываем нативные контролы.
+   HTML5 — переключаем атрибут; YouTube — controls задаётся при создании,
+   поэтому при смене хоста пересоздаём плеер. */
+function syncNativeControls() {
+    if (playerMode === 'html5') {
+        videoEl.controls = false;
+    } else if (playerMode === 'youtube' && ytPlayer && ytApiReady) {
+        var want = isHost ? 1 : 0;
+        if (ytControlsForHost !== want) {
+            var vid = currentMeta ? currentMeta.id : null;
+            if (vid) {
+                var r = activeRoom || {};
+                pendingYt = { id: vid, status: r.status, posMs: r.positionMs || 0, updatedAtMs: r.updatedAtMs || 0 };
+                if (ytPlayer) { try { ytPlayer.destroy(); } catch (e) {} ytPlayer = null; }
+                maybeCreateYt();
+            }
+        }
+    }
+}
+
+function showPlayerOverlay() {
+    playerOverlay.hidden = false;
+}
+
+function hidePlayerOverlay() {
+    playerOverlay.hidden = true;
+}
+
+function isEmbedMode() {
+    return playerMode && playerMode !== 'html5' && playerMode !== 'youtube';
+}
+
+function unlockEmbedAutoplay() {
+    if (!isEmbedMode() || !currentMeta || !activeRoom) return;
+    if (activeRoom.status !== 'PLAYING') return;
+    embedStarted = true;
+    var pos = activeRoom.positionMs || 0;
+    embedTiming.posMs = pos;
+    embedTiming.startedAt = Date.now();
+    embedTiming.playing = true;
+    mountEmbed(currentMeta, true, pos / 1000);
+    hidePlayerOverlay();
+}
+
+document.addEventListener('pointerdown', unlockEmbedAutoplay, { once: true, capture: true });
+
+function setVideoSource(url, posMs, status, updatedAtMs) {
+    loadVideo(url, posMs, status, updatedAtMs);
+}
+
+function handleRoomDeleted() {
+    clearSavedRoom();
+    if (activeRoom) {
+        showToast('Комната «' + activeRoom.name + '» закрыта');
+    }
+    resetRoomView();
+}
+
+function applyRoomUpdate(update) {
+    if (!activeRoom || update.roomId !== activeRoom.roomId) return;
+
+    if (update.deleted) {
+        handleRoomDeleted();
+        return;
+    }
+
+    if (update.hostUsername) {
+        activeRoom.hostUsername = update.hostUsername;
+        isHost = update.hostUsername === currentUsername;
+    }
+    if (update.members) activeRoom.members = update.members;
+    if (update.name) activeRoom.name = update.name;
+    if (update.roomCode) activeRoom.roomCode = update.roomCode;
+    if (update.status) activeRoom.status = update.status;
+    if (typeof update.positionMs === 'number') activeRoom.positionMs = update.positionMs;
+    if (typeof update.updatedAtMs === 'number') activeRoom.updatedAtMs = update.updatedAtMs;
+    if (typeof update.videoUrl === 'string') activeRoom.videoUrl = update.videoUrl;
+
+    updateHeader();
+
+    if (update.videoUrl !== currentVideoUrl) {
+        setVideoSource(update.videoUrl, update.positionMs, update.status, update.updatedAtMs);
+    } else if (isHost && update.lastControlBy === currentUsername) {
+        if (playerMode === 'html5' && videoEl.src) {
+            if (update.status === 'PLAYING') { var p = videoEl.play(); if (p && p.catch) p.catch(function(){}); }
+            else { videoEl.pause(); }
+        } else if (playerMode === 'youtube' && ytPlayer && ytApiReady) {
+            if (update.status === 'PLAYING') { try { ytPlayer.playVideo(); } catch(e){} }
+            else { try { ytPlayer.pauseVideo(); } catch(e){} }
+        }
+    } else {
+        syncPlayback(update.status, update.positionMs, update.updatedAtMs, !!update.restart);
+    }
+    updateControls();
+}
+
+function onRoomJoined(room) {
+    if (!room || !room.roomId) return;
+    activeRoom = room;
+    isHost = room.hostUsername === currentUsername;
+    saveRoom(room);
+    showRoomView();
+
+    if (syncSub) { try { syncSub.unsubscribe(); } catch (e) {} }
+    if (chatSub) { try { chatSub.unsubscribe(); } catch (e) {} }
+    if (playlistSub) { try { playlistSub.unsubscribe(); } catch (e) {} }
+    if (reactionSub) { try { reactionSub.unsubscribe(); } catch (e) {} }
+    syncSub = stompClient.subscribe('/topic/room.' + room.roomId, function (payload) {
+        applyRoomUpdate(JSON.parse(payload.body));
+    });
+    chatSub = stompClient.subscribe('/topic/room.' + room.roomId + '.chat', function (payload) {
+        appendChatMessage(JSON.parse(payload.body));
+    });
+    playlistSub = stompClient.subscribe('/topic/room.' + room.roomId + '.playlist', function (payload) {
+        onPlaylistUpdate(JSON.parse(payload.body));
+    });
+    reactionSub = stompClient.subscribe('/topic/room.' + room.roomId + '.reactions', function (payload) {
+        var r = JSON.parse(payload.body);
+        if (r && r.emoji) spawnReaction(r.emoji, r.username);
+    });
+
+    loadChatHistory(room.roomId);
+    loadPlaylist(room.roomId);
+    applyRoomUpdate(room);
+}
+
+/* ===== Chat ===== */
+
+function loadChatHistory(roomId) {
+    fetch('/watch/' + roomId + '/messages').then(function (r) {
+        return r.json();
+    }).then(function (messages) {
+        chatMessages.innerHTML = '';
+        if (Array.isArray(messages) && messages.length) {
+            messages.forEach(appendChatMessage);
+            scrollChat();
+        } else {
+            chatMessages.innerHTML = '<div class="sidebar-empty">Сообщений пока нет</div>';
+        }
+    }).catch(function () {
+        chatMessages.innerHTML = '<div class="sidebar-empty">Не удалось загрузить чат</div>';
+    });
+}
+
+function appendChatMessage(msg) {
+    var empty = chatMessages.querySelector('.sidebar-empty');
+    if (empty) empty.remove();
+
+    var row = document.createElement('div');
+    row.className = 'chat-msg ' + (msg.senderUsername === currentUsername ? 'outgoing' : 'incoming');
+    if (msg.messageId) row.setAttribute('data-msg-id', msg.messageId);
+
+    var sender = document.createElement('span');
+    sender.className = 'chat-msg-sender';
+    sender.textContent = msg.senderUsername;
+
+    var content = document.createElement('span');
+    content.className = 'chat-msg-content';
+    content.textContent = msg.content;
+
+    var meta = document.createElement('time');
+    meta.className = 'chat-msg-time';
+    meta.textContent = msg.timestamp || '';
+
+    row.appendChild(sender);
+    row.appendChild(content);
+    row.appendChild(meta);
+    chatMessages.appendChild(row);
+    scrollChat();
+}
+
+/* ===== Reactions ===== */
+
+var REACTION_EMOJIS = ['🔥', '😂', '😮', '❤️', '👍', '👏'];
+
+function sendReaction(emoji) {
+    if (!activeRoom || !stompClient.connected) return;
+    stompClient.send('/app/room.react', {}, JSON.stringify({ roomId: activeRoom.roomId, emoji: emoji }));
+    spawnReaction(emoji, currentUsername);
+}
+
+function spawnReaction(emoji, username) {
+    if (!reactionLayer) return;
+    var el = document.createElement('span');
+    el.className = 'reaction-float';
+    el.textContent = emoji;
+    var drift = (Math.random() * 120 - 60).toFixed(0);
+    el.style.left = (18 + Math.random() * 64) + '%';
+    el.style.setProperty('--drift', drift + 'px');
+    if (username) el.setAttribute('data-user', username);
+    reactionLayer.appendChild(el);
+    setTimeout(function () {
+        if (el.parentNode) el.parentNode.removeChild(el);
+    }, 2200);
+}
+
+function clearReactions() {
+    if (reactionLayer) reactionLayer.innerHTML = '';
+}
+
+/* ===== Playlist ===== */
+
+function loadPlaylist(roomId) {
+    fetch('/watch/' + roomId + '/playlist').then(function (r) {
+        return r.json();
+    }).then(function (data) {
+        if (data && Array.isArray(data.items)) {
+            playlist = data;
+            renderPlaylist();
+            updateControls();
+        }
+    }).catch(function () {});
+}
+
+function onPlaylistUpdate(data) {
+    if (!data || !activeRoom || data.roomId !== activeRoom.roomId) return;
+    playlist = data;
+    renderPlaylist();
+    updateControls();
+}
+
+function hasNextInPlaylist() {
+    var items = playlist.items || [];
+    if (!items.length || !playlist.currentItemId) return false;
+    for (var i = 0; i < items.length - 1; i++) {
+        if (items[i].itemId === playlist.currentItemId) return true;
+    }
+    return false;
+}
+
+function renderPlaylist() {
+    if (!playlistList) return;
+    var items = playlist.items || [];
+    playlistList.innerHTML = '';
+    if (!items.length) {
+        var empty = document.createElement('div');
+        empty.className = 'sidebar-empty';
+        empty.textContent = 'Очередь пуста';
+        playlistList.appendChild(empty);
+        return;
+    }
+    items.forEach(function (item, idx) {
+        var row = document.createElement('div');
+        row.className = 'watch-playlist-item';
+        if (playlist.currentItemId && item.itemId === playlist.currentItemId) {
+            row.classList.add('is-current');
+        }
+        row.setAttribute('data-item-id', item.itemId);
+
+        var info = document.createElement('div');
+        info.className = 'watch-playlist-item-info';
+
+        var title = document.createElement('span');
+        title.className = 'watch-playlist-item-title';
+        title.textContent = item.title || item.videoUrl;
+        title.title = item.videoUrl;
+
+        var meta = document.createElement('span');
+        meta.className = 'watch-playlist-item-meta';
+        meta.textContent = (idx + 1) + '. ' + item.addedBy;
+
+        info.appendChild(title);
+        info.appendChild(meta);
+        row.appendChild(info);
+
+        if (isHost) {
+            var play = document.createElement('button');
+            play.type = 'button';
+            play.className = 'watch-btn small playlist-play-btn';
+            play.textContent = '▶';
+            play.title = 'Запустить это видео';
+
+            var remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'watch-btn small danger playlist-remove-btn';
+            remove.textContent = '✕';
+            remove.title = 'Убрать из очереди';
+
+            row.appendChild(play);
+            row.appendChild(remove);
+        }
+        playlistList.appendChild(row);
+    });
+}
+
+/* ===== Hub ===== */
+
+function renderRooms(rooms) {
+    if (!roomsList) return;
+    roomsList.innerHTML = '';
+    if (!rooms || rooms.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'sidebar-empty';
+        empty.textContent = 'Сейчас нет активных комнат';
+        roomsList.appendChild(empty);
+        return;
+    }
+    rooms.forEach(function (room) {
+        var item = document.createElement('div');
+        item.className = 'watch-room-item';
+        item.setAttribute('data-room-id', room.roomId);
+
+        var info = document.createElement('div');
+        info.className = 'watch-room-info';
+
+        var name = document.createElement('span');
+        name.className = 'watch-room-name';
+        name.textContent = room.name;
+
+        var meta = document.createElement('span');
+        meta.className = 'watch-room-meta';
+        var statusText = room.status === 'PLAYING' ? 'Воспроизведение' : (room.status === 'PAUSED' ? 'Пауза' : 'Ожидание');
+        meta.textContent = room.hostUsername + ' · ' + room.memberCount + ' чел. · ' + statusText;
+
+        info.appendChild(name);
+        info.appendChild(meta);
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'watch-btn small join-room-btn';
+        btn.setAttribute('data-room-code', room.roomCode);
+        btn.textContent = 'Войти · ' + room.roomCode;
+
+        item.appendChild(info);
+        item.appendChild(btn);
+        roomsList.appendChild(item);
+    });
+}
+
+/* ===== Events ===== */
+
+if (createForm) {
+    createForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!stompClient.connected) { showToast('Нет соединения с сервером'); return; }
+        var name = roomNameInput.value.trim();
+        stompClient.send('/app/room.create', {}, JSON.stringify({ name: name }));
+        roomNameInput.value = '';
+    });
+}
+
+if (joinForm) {
+    joinForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!stompClient.connected) { showToast('Нет соединения с сервером'); return; }
+        var code = roomCodeInput.value.trim().toUpperCase();
+        if (!code) return;
+        stompClient.send('/app/room.join', {}, JSON.stringify({ roomCode: code }));
+        roomCodeInput.value = '';
+    });
+}
+
+if (roomsList) {
+    roomsList.addEventListener('click', function (e) {
+        var btn = e.target.closest('.join-room-btn');
+        if (!btn) return;
+        var code = btn.getAttribute('data-room-code');
+        if (code) stompClient.send('/app/room.join', {}, JSON.stringify({ roomCode: code }));
+    });
+}
+
+if (leaveBtn) {
+    leaveBtn.addEventListener('click', function () {
+        if (!activeRoom) return;
+        if (stompClient.connected) {
+            try {
+                stompClient.send('/app/room.leave', {}, JSON.stringify({ roomId: activeRoom.roomId }));
+            } catch (e) {}
+        }
+        clearSavedRoom();
+        resetRoomView();
+    });
+}
+
+if (inviteBtn) {
+    inviteBtn.addEventListener('click', function () {
+        if (!activeRoom) return;
+        copyInviteLink();
+    });
+}
+
+if (setUrlBtn) {
+    setUrlBtn.addEventListener('click', function () {
+        if (!isHost || !activeRoom) return;
+        var url = videoUrlInput.value.trim();
+        if (!url) { showToast('Вставьте ссылку на видео'); return; }
+        if (!isSupportedVideoUrl(url)) { showToast('Неподдерживаемая ссылка: используйте YouTube, VK, Rutube, Vimeo или прямой файл .mp4/.webm'); return; }
+        sendControl('PLAYING', 0, url);
+        videoUrlInput.value = '';
+    });
+    videoUrlInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') setUrlBtn.click();
+    });
+}
+
+if (playBtn) {
+    playBtn.addEventListener('click', function () {
+        if (!isHost || !currentVideoUrl) return;
+        if (playerMode && playerMode !== 'html5' && playerMode !== 'youtube') {
+            var startPos = embedTiming.playing
+                ? 0
+                : (activeRoom && activeRoom.status === 'PAUSED' ? (activeRoom.positionMs || 0) : 0);
+            embedTiming.posMs = startPos;
+            embedTiming.startedAt = Date.now();
+            embedTiming.playing = true;
+            embedStarted = true;
+            if (currentMeta) mountEmbed(currentMeta, true, startPos / 1000);
+            sendControl('PLAYING', getCurrentTimeMs(), null, true);
+        } else {
+            if (playerMode === 'html5') {
+                var pp = videoEl.play();
+                if (pp && pp.catch) pp.catch(function () { showPlayerOverlay(); });
+            }
+            sendControl('PLAYING', getCurrentTimeMs(), null, true);
+        }
+    });
+}
+
+if (pauseBtn) {
+    pauseBtn.addEventListener('click', function () {
+        if (!isHost || !currentVideoUrl) return;
+        if (playerMode && playerMode !== 'html5' && playerMode !== 'youtube') {
+            var t = embedTimeMs();
+            embedTiming.playing = false;
+            embedTiming.posMs = t;
+            embedStarted = false;
+            if (currentMeta) mountEmbed(currentMeta, false, t / 1000);
+        } else if (playerMode === 'html5') {
+            videoEl.pause();
+        }
+        sendControl('PAUSED', getCurrentTimeMs());
+    });
+}
+
+function applyPendingHtml5Snap() {
+    if (!pendingHtml5Snap || playerMode !== 'html5') return;
+    var snap = pendingHtml5Snap;
+    if (!videoEl.src) return;
+    if (Date.now() - snap.ts > 15000) {
+        pendingHtml5Snap = null;
+        return;
+    }
+    if (Math.abs(videoEl.currentTime - snap.target) > 0.5) {
+        applyingSync = true;
+        try { videoEl.currentTime = snap.target; } catch (e) {}
+        applyingSync = false;
+    } else {
+        pendingHtml5Snap = null;
+        if (window.console) console.log('[sync] snap OK at ' + snap.target.toFixed(1) + 's');
+        showToast('[sync] гость на ' + snap.target.toFixed(1) + 'с');
+        if (snap.play) {
+            var p = videoEl.play();
+            if (p && p.catch) p.catch(function () {});
+        }
+    }
+}
+
+if (videoEl) {
+    videoEl.addEventListener('seeked', applyPendingHtml5Snap);
+    videoEl.addEventListener('canplay', applyPendingHtml5Snap);
+    videoEl.addEventListener('loadeddata', applyPendingHtml5Snap);
+    videoEl.addEventListener('timeupdate', applyPendingHtml5Snap);
+    videoEl.addEventListener('play', function () {
+        if (!isHost || applyingSync || playerMode !== 'html5') return;
+        sendControl('PLAYING', videoEl.currentTime * 1000);
+    });
+    videoEl.addEventListener('pause', function () {
+        if (!isHost || applyingSync || playerMode !== 'html5') return;
+        sendControl('PAUSED', videoEl.currentTime * 1000);
+    });
+    videoEl.addEventListener('seeked', function () {
+        if (hostScrubbing) { hostScrubbing = false; return; }
+        if (!isHost || applyingSync || !activeRoom || playerMode !== 'html5') return;
+        sendControl(activeRoom.status === 'PLAYING' ? 'PLAYING' : 'PAUSED', videoEl.currentTime * 1000);
+    });
+    videoEl.addEventListener('timeupdate', updateSeekBar);
+    videoEl.addEventListener('durationchange', updateSeekBar);
+    videoEl.addEventListener('ended', function () {
+        if (!isHost || applyingSync || playerMode !== 'html5') return;
+        if (hasNextInPlaylist()) {
+            stompClient.send('/app/room.playlist.next', {}, JSON.stringify({ roomId: activeRoom.roomId }));
+        } else {
+            sendControl('PAUSED', videoEl.currentTime * 1000);
+        }
+    });
+}
+
+if (seekBar) {
+    seekBar.addEventListener('input', function () {
+        if (!isHost) return;
+        hostScrubbing = true;
+        var val = (Number(seekBar.value) || 0) / 1000;
+        if (playerMode === 'html5') {
+            try { videoEl.currentTime = val; } catch (e) {}
+        } else if (playerMode === 'youtube' && ytPlayer && ytApiReady) {
+            try { ytPlayer.seekTo(val, true); } catch (e) {}
+        }
+        seekTime.textContent = formatTime(val) + ' / ' + formatTime(seekDurationSec());
+    });
+    seekBar.addEventListener('change', function () {
+        if (!isHost) return;
+        var val = (Number(seekBar.value) || 0) / 1000;
+        var playing = false;
+        if (playerMode === 'html5') {
+            playing = videoEl && !videoEl.paused;
+            try { videoEl.currentTime = val; } catch (e) {}
+        } else if (playerMode === 'youtube' && ytPlayer && ytApiReady) {
+            try { playing = ytPlayer.getPlayerState() === 1; } catch (e) {}
+            try { ytPlayer.seekTo(val, true); } catch (e) {}
+        }
+        sendControl(playing ? 'PLAYING' : 'PAUSED', Math.round(val * 1000), null, true);
+    });
+}
+
+if (playlistAddForm) {
+    playlistAddForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!activeRoom || !stompClient.connected) return;
+        var url = playlistUrlInput.value.trim();
+        if (!url) { showToast('Вставьте ссылку на видео'); return; }
+        if (!isSupportedVideoUrl(url)) { showToast('Неподдерживаемая ссылка: используйте YouTube, VK, Rutube, Vimeo или прямой файл .mp4/.webm'); return; }
+        var title = playlistTitleInput.value.trim();
+        stompClient.send('/app/room.playlist.add', {}, JSON.stringify({ roomId: activeRoom.roomId, url: url, title: title }));
+        playlistUrlInput.value = '';
+        playlistTitleInput.value = '';
+    });
+}
+
+if (nextBtn) {
+    nextBtn.addEventListener('click', function () {
+        if (!isHost || !activeRoom) return;
+        stompClient.send('/app/room.playlist.next', {}, JSON.stringify({ roomId: activeRoom.roomId }));
+    });
+}
+
+if (playlistList) {
+    playlistList.addEventListener('click', function (e) {
+        if (!isHost || !activeRoom) return;
+        var itemRow = e.target.closest('.watch-playlist-item');
+        if (!itemRow) return;
+        var itemId = Number(itemRow.getAttribute('data-item-id'));
+        if (e.target.closest('.playlist-play-btn')) {
+            stompClient.send('/app/room.playlist.play', {}, JSON.stringify({ roomId: activeRoom.roomId, itemId: itemId }));
+        } else if (e.target.closest('.playlist-remove-btn')) {
+            stompClient.send('/app/room.playlist.remove', {}, JSON.stringify({ roomId: activeRoom.roomId, itemId: itemId }));
+        }
+    });
+}
+
+if (reactionBar) {
+    reactionBar.addEventListener('click', function (e) {
+        var btn = e.target.closest('.reaction-btn');
+        if (!btn) return;
+        sendReaction(btn.getAttribute('data-emoji') || btn.textContent);
+    });
+}
+
+if (playerOverlayBtn) {
+    playerOverlayBtn.addEventListener('click', function () {
+        hidePlayerOverlay();
+        if (playerMode === 'youtube') {
+            if (!ytPlayer) return;
+            ytAutoplayResolved = true;
+            applyingSync = true;
+            try {
+                ytPlayAttempt = 0;
+                ytPlayer.playVideo();
+            } catch (e) {}
+            applyingSync = false;
+        } else {
+            var p = videoEl.play();
+            if (p && p.catch) p.catch(function () {});
+        }
+    });
+}
+
+if (chatForm) {
+    chatForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!activeRoom || !stompClient.connected) return;
+        var content = chatInput.value.trim();
+        if (!content) return;
+        stompClient.send('/app/room.message', {}, JSON.stringify({ roomId: activeRoom.roomId, content: content }));
+        chatInput.value = '';
+        chatInput.focus();
+    });
+}
+
+/* ===== Connect ===== */
+
+stompClient.connect({}, function () {
+    stompClient.subscribe('/topic/rooms', function (payload) {
+        renderRooms(JSON.parse(payload.body));
+    });
+    stompClient.subscribe('/user/queue/room', function (payload) {
+        onRoomJoined(JSON.parse(payload.body));
+    });
+    stompClient.subscribe('/user/queue/room-state', function (payload) {
+        onRoomJoined(JSON.parse(payload.body));
+    });
+    stompClient.subscribe('/user/queue/room-error', function (payload) {
+        var data = JSON.parse(payload.body);
+        showToast(String(data.error || 'Произошла ошибка'));
+    });
+
+    if (!didInitialJoin) {
+        didInitialJoin = true;
+        var saved = getSavedRoom();
+        var code = inviteRoom || (saved && saved.roomCode);
+        if (code) {
+            stompClient.send('/app/room.join', {}, JSON.stringify({ roomCode: code }));
+        }
+    }
+}, function () {
+    if (!connectErrorShown) {
+        connectErrorShown = true;
+        showToast('Не удалось установить соединение с сервером');
+    }
+});
+
+stompClient.onerror = function (frame) {
+    var text = (frame && frame.headers && frame.headers.message)
+        ? frame.headers.message
+        : 'Произошла ошибка';
+    showToast(String(text));
+};
+
+/* ===== YouTube IFrame API ===== */
+
+window.onYouTubeIframeAPIReady = function () {
+    ytApiReady = true;
+    maybeCreateYt();
+};
+
+setInterval(function () {
+    if (playerMode === 'youtube') {
+        checkYtAutoplay();
+        if (!hostScrubbing) updateSeekBar();
+    }
+}, 1000);

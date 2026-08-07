@@ -29,6 +29,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws")
                 .addInterceptors(new HttpSessionHandshakeInterceptor())
                 .withSockJS();
+        registry.addEndpoint("/ws-mobile")
+                .addInterceptors(new HttpSessionHandshakeInterceptor())
+                .setAllowedOriginPatterns("*");
     }
 
     @Override

@@ -41,16 +41,16 @@
                 <tbody>
                 <tr th:each="user, iter : ${users}"
                     th:classappend="${user.username == currentUser.username ? 'is-me' : ''}">
-                    <td th:text="${iter.count}">1</td>
-                    <td>
+                    <td th:text="${iter.count}" th:attr="data-label='#'">1</td>
+                    <td th:attr="data-label='Ник'">
                         <a class="admin-user-link" th:href="@{/profile/{username}(username=${user.username})}"
                            th:text="${user.username}">user</a>
                     </td>
-                    <td>
+                    <td th:attr="data-label='Роль'">
                         <span class="admin-role" th:classappend="${user.role.name() == 'ADMIN'} ? ' is-admin' : ''"
                               th:text="${user.role.name() == 'ADMIN' ? 'Администратор' : 'Пользователь'}">user</span>
                     </td>
-                    <td th:text="${user.hasAvatar()} ? 'Да' : '—'">Да</td>
+                    <td th:text="${user.hasAvatar()} ? 'Да' : '—'" th:attr="data-label='Аватар'">Да</td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(users)}">
                     <td colspan="4" class="admin-empty">Пользователи не найдены</td>

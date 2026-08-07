@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Server logs ###
+run.log
+run.out.log
+run.err.log
+server.pid

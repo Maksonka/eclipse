@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,6 +36,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class GroupService {
+
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "image/jpeg", "image/png", "image/webp", "image/gif"
@@ -117,16 +120,13 @@ public class GroupService {
             latestByGroup.putIfAbsent(message.getGroup().getId(), message);
         }
 
+        Map<Long, Long> unreadByGroup = new HashMap<>();
+        for (Object[] row : groupMessageRepository.countUnreadByGroupsForUser(groupIds, username)) {
+            unreadByGroup.put((Long) row[0], (Long) row[1]);
+        }
+
         List<GroupPreviewDto> previews = new ArrayList<>();
         for (ChatGroup group : groups) {
-            GroupMembership membership = groupMembershipRepository
-                    .findByGroupIdAndUserUsername(group.getId(), username)
-                    .orElse(null);
-            LocalDateTime lastReadAt = membership != null ? membership.getLastReadAt() : null;
-            long unread = lastReadAt != null
-                    ? groupMessageRepository.countUnreadSince(group.getId(), username, lastReadAt)
-                    : groupMessageRepository.countAllFromOthers(group.getId(), username);
-
             GroupMessage latest = latestByGroup.get(group.getId());
             String preview = latest != null
                     ? (latest.getContent() != null && !latest.getContent().isBlank()
@@ -134,7 +134,7 @@ public class GroupService {
                         : AttachmentService.labelForType(latest.getAttachmentType()))
                     : "Нет сообщений";
             String time = latest != null && latest.getTimestamp() != null
-                    ? latest.getTimestamp().format(DateTimeFormatter.ofPattern("HH:mm"))
+                    ? latest.getTimestamp().format(TIME_FORMATTER)
                     : "";
             String sender = latest != null ? latest.getSender().getUsername() : "";
 
@@ -145,7 +145,7 @@ public class GroupService {
                     preview,
                     time,
                     sender,
-                    unread
+                    unreadByGroup.getOrDefault(group.getId(), 0L)
             ));
         }
         return previews;

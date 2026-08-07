@@ -24,6 +24,9 @@ import java.util.Map;
 @Service
 @Transactional
 public class MessageService {
+
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+
     private final MessageRepository messageRepository;
     private final UserService userService;
     private final SimpMessagingTemplate messagingTemplate;
@@ -117,7 +120,7 @@ public class MessageService {
 
     public ChatMessageDto toDto(Message message) {
         String time = message.getTimestamp() != null
-                ? message.getTimestamp().format(DateTimeFormatter.ofPattern("HH:mm"))
+                ? message.getTimestamp().format(TIME_FORMATTER)
                 : "";
         boolean deleted = message.isDeletedBySender() && message.isDeletedByReceiver();
         return new ChatMessageDto(
@@ -139,7 +142,10 @@ public class MessageService {
     }
 
     public List<ConversationPreviewDto> getConversations(String username) {
-        Map<String, Long> unreadByPartner = getUnreadCountsByPartner(username);
+        return getConversations(username, getUnreadCountsByPartner(username));
+    }
+
+    public List<ConversationPreviewDto> getConversations(String username, Map<String, Long> unreadByPartner) {
         List<Message> messages = messageRepository.findAllByUserInvolvedOrderByTimestampDesc(username);
         Map<String, Message> latestByPartner = new LinkedHashMap<>();
 
@@ -167,6 +173,10 @@ public class MessageService {
 
     public long getTotalUnreadCount(String username) {
         return getUnreadCountsByPartner(username).values().stream().mapToLong(Long::longValue).sum();
+    }
+
+    public long getTotalUnreadCount(Map<String, Long> unreadByPartner) {
+        return unreadByPartner.values().stream().mapToLong(Long::longValue).sum();
     }
 
     public List<Long> markConversationAsRead(String readerUsername, String partnerUsername) {
@@ -240,7 +250,7 @@ public class MessageService {
         }
 
         String time = message.getTimestamp() != null
-                ? message.getTimestamp().format(DateTimeFormatter.ofPattern("HH:mm"))
+                ? message.getTimestamp().format(TIME_FORMATTER)
                 : "";
 
         long unread = unreadByPartner.getOrDefault(partner, 0L);

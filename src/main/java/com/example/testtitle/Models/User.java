@@ -4,8 +4,6 @@ import com.example.testtitle.enums.UserRole;
 import com.example.testtitle.enums.ThemePreference;
 import jakarta.persistence.*;
 
-import java.util.List;
-
 @Entity
 @Table(name = "users")
 public class User {
@@ -45,27 +43,11 @@ public class User {
         this.password = password;
     }
 
-    @OneToMany(mappedBy = "sender", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Message> sendMessages;
-
-
-    @OneToMany(mappedBy = "receiver", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Message> recMessages;
-
     public User(String username, String email, String password, UserRole role) {
         this.username = username;
         this.email = email;
         this.password = password;
         this.role = role;
-    }
-
-    public User(Long id, String username, String password, UserRole role, List<Message> sendMessages, List<Message> recMessages) {
-        this.id = id;
-        this.username = username;
-        this.password = password;
-        this.role = role;
-        this.sendMessages = sendMessages;
-        this.recMessages = recMessages;
     }
 
     public User() {
@@ -97,15 +79,6 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    public List<Message> getSendMessages() {
-        return sendMessages;
-    }
-
-
-    public List<Message> getRecMessages() {
-        return recMessages;
     }
 
     public String getAbout() {

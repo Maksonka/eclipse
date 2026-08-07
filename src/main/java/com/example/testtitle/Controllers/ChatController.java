@@ -7,6 +7,7 @@ import com.example.testtitle.Models.User;
 import com.example.testtitle.Services.GroupService;
 import com.example.testtitle.Services.MessageService;
 import com.example.testtitle.Services.PresenceService;
+import com.example.testtitle.Services.SidebarModelService;
 import com.example.testtitle.Services.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -32,15 +33,18 @@ public class ChatController {
     private final UserService userService;
     private final GroupService groupService;
     private final PresenceService presenceService;
+    private final SidebarModelService sidebarModelService;
 
     public ChatController(MessageService messageService,
                           UserService userService,
                           GroupService groupService,
-                          PresenceService presenceService) {
+                          PresenceService presenceService,
+                          SidebarModelService sidebarModelService) {
         this.messageService = messageService;
         this.userService = userService;
         this.groupService = groupService;
         this.presenceService = presenceService;
+        this.sidebarModelService = sidebarModelService;
     }
 
     @GetMapping("/account")
@@ -127,21 +131,6 @@ public class ChatController {
     }
 
     private void populateSidebar(Model model, Principal principal, String activeUsername, Long activeGroupId, String searchQuery) {
-        User currentUser = userService.findByUsername(principal.getName())
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-
-        model.addAttribute("currentUser", currentUser);
-        model.addAttribute("currentUsername", principal.getName());
-        model.addAttribute("activeUsername", activeUsername);
-        model.addAttribute("activeGroupId", activeGroupId);
-        model.addAttribute("conversations", messageService.getConversations(principal.getName()));
-        model.addAttribute("groups", groupService.getGroupPreviews(principal.getName()));
-        model.addAttribute("onlineUsers", presenceService.getOnlinePartners(principal.getName()));
-        model.addAttribute("totalUnread", messageService.getTotalUnreadCount(principal.getName()));
-
-        if (searchQuery != null && !searchQuery.isBlank()) {
-            model.addAttribute("searchQuery", searchQuery.trim());
-            model.addAttribute("searchResults", userService.searchUsers(searchQuery, principal.getName()));
-        }
+        sidebarModelService.populate(model, principal, activeUsername, activeGroupId, searchQuery);
     }
 }

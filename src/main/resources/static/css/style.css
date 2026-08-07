@@ -2278,3 +2278,1071 @@ body.settings-page {
     --bg-composer: rgba(248, 248, 250, 0.98);
     --bg-card: rgba(255, 255, 255, 0.95);
 }
+
+/* ===== WATCH (СОВМЕСТНЫЙ ПРОСМОТР) ===== */
+
+.sidebar-watch-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-watch-link:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+.watch-hub {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    background:
+        radial-gradient(circle at top right, rgba(109, 40, 217, 0.16), transparent 34%),
+        var(--bg-chat-pane);
+}
+
+.watch-hub-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 36px 28px 48px;
+}
+
+.watch-hub-header {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.watch-hub-logo {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 14px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-full);
+    background: linear-gradient(145deg, var(--purple-700), var(--purple-500));
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+}
+
+.watch-hub-header h1 {
+    margin: 0 0 10px;
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+.watch-hub-header p {
+    margin: 0;
+    max-width: 480px;
+    margin: 0 auto;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.watch-hub-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.watch-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(14px);
+}
+
+.watch-card h2 {
+    margin: 0 0 14px;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.watch-card-hint {
+    margin: 12px 0 0;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.watch-form {
+    display: flex;
+    gap: 10px;
+}
+
+.watch-form input,
+.watch-controls-row input {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-elevated);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.watch-form input:focus,
+.watch-controls-row input:focus {
+    border-color: var(--border-strong);
+}
+
+.watch-form input:disabled,
+.watch-controls-row input:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.watch-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface-hover);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, transform 0.05s ease, border-color 0.15s ease;
+}
+
+.watch-btn:hover:not(:disabled) {
+    background: var(--surface);
+    border-color: var(--border-strong);
+}
+
+.watch-btn:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.watch-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.watch-btn.primary {
+    background: linear-gradient(135deg, var(--purple-600), var(--purple-500));
+    border-color: transparent;
+    color: #fff;
+}
+
+.watch-btn.primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--purple-500), var(--purple-400));
+}
+
+.watch-btn.danger {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #f87171;
+}
+
+.watch-btn.danger:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.watch-btn.small {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+}
+
+.watch-rooms-title {
+    margin: 0 0 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.watch-room-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.watch-room-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    backdrop-filter: blur(14px);
+}
+
+.watch-room-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.watch-room-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.watch-room-meta {
+    color: var(--text-dim);
+    font-size: 0.82rem;
+}
+
+.watch-room-status.is-playing {
+    color: #34d399;
+    font-weight: 600;
+}
+
+/* ===== ROOM VIEW ===== */
+
+.watch-room-view {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.watch-room-avatar {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-full);
+    background: linear-gradient(145deg, var(--purple-700), var(--purple-500));
+    color: #fff;
+}
+
+.watch-stage {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+}
+
+.watch-player-col {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.watch-player-wrap {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+#watch-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.watch-yt {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.watch-yt iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.watch-embed-note {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 4;
+    pointer-events: none;
+}
+
+
+.watch-player-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    text-align: center;
+    padding: 24px;
+}
+
+.watch-player-empty-icon {
+    color: var(--text-dim);
+    margin-bottom: 4px;
+}
+
+.watch-player-empty-sub {
+    color: var(--text-dim);
+    font-size: 0.82rem;
+}
+
+.watch-player-overlay {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 5;
+}
+
+.reaction-layer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 20;
+}
+
+.reaction-float {
+    position: absolute;
+    bottom: 8px;
+    font-size: 1.9rem;
+    line-height: 1;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    animation: reaction-float 2.2s ease-out forwards;
+}
+
+@keyframes reaction-float {
+    0% {
+        opacity: 0;
+        transform: translateY(10px) translateX(0) scale(0.7);
+    }
+    12% {
+        opacity: 1;
+        transform: translateY(0) translateX(0) scale(1.15);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-150px) translateX(var(--drift, 0px)) scale(1);
+    }
+}
+
+.reaction-bar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    width: fit-content;
+    padding: 4px 10px;
+    margin: 10px 0 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+}
+
+.reaction-bar-label {
+    color: var(--text-dim);
+    font-size: 0.72rem;
+    padding: 0 8px 0 2px;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.reaction-btn {
+    background: transparent;
+    border: 0;
+    padding: 6px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.reaction-btn:hover {
+    background: var(--bg-hover);
+    transform: scale(1.25);
+}
+
+.reaction-btn:active {
+    transform: scale(0.95);
+}
+
+.room-live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(34, 197, 94, 0.12);
+    color: #22c55e;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.room-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: room-live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes room-live-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+
+/* атрибут hidden должен реально скрывать элементы, у которых задан display */
+.watch-hub[hidden],
+.watch-room-view[hidden],
+.watch-player-empty[hidden],
+.watch-player-overlay[hidden],
+.watch-yt[hidden],
+.watch-embed-note[hidden],
+#watch-video[hidden] {
+    display: none;
+}
+
+.watch-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.watch-seek-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 2px 2px;
+}
+
+.watch-seek-row input[type="range"] {
+    flex: 1;
+    min-width: 0;
+    accent-color: var(--accent, #4f7cff);
+    cursor: pointer;
+}
+
+.watch-seek-row input[type="range"]:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.watch-seek-time {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.watch-controls-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.watch-hint {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+}
+
+.watch-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.watch-header-actions .watch-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+@media (max-width: 720px) {
+    .watch-header-actions .watch-btn span {
+        display: none;
+    }
+}
+
+/* ===== PLAYLIST ===== */
+
+.watch-playlist {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.watch-playlist-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.watch-playlist-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.watch-playlist-add {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.watch-playlist-add input {
+    flex: 1 1 200px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-input);
+    color: var(--text);
+    font-size: 0.9rem;
+}
+
+.watch-playlist-add input:focus {
+    outline: none;
+    border-color: var(--purple-400);
+}
+
+.watch-playlist-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.watch-playlist-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+}
+
+.watch-playlist-item.is-current {
+    border-color: var(--purple-400);
+    background: rgba(139, 92, 246, 0.12);
+}
+
+.watch-playlist-item-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.watch-playlist-item-title {
+    font-size: 0.85rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.watch-playlist-item.is-current .watch-playlist-item-title {
+    color: var(--purple-400);
+}
+
+.watch-playlist-item-meta {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+}
+
+/* ===== ROOM CHAT ===== */
+
+.watch-chat {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.watch-chat-title {
+    margin: 0;
+    padding: 14px 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+}
+
+.watch-chat-messages {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+}
+
+.chat-msg {
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--incoming-bg);
+    max-width: 100%;
+}
+
+.chat-msg.outgoing {
+    background: rgba(139, 92, 246, 0.16);
+    align-self: flex-end;
+}
+
+.chat-msg-sender {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--purple-400);
+    margin-bottom: 2px;
+}
+
+.chat-msg-content {
+    display: block;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.chat-msg-time {
+    display: block;
+    margin-top: 3px;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+}
+
+.watch-chat-form {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-composer);
+}
+
+.watch-chat-form input {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-elevated);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.watch-chat-form input:focus {
+    border-color: var(--border-strong);
+}
+
+.watch-toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    max-width: min(420px, 90vw);
+    padding: 12px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+@media (max-width: 900px) {
+    .watch-hub-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .watch-stage {
+        flex-direction: column;
+    }
+
+    .watch-chat {
+        width: 100%;
+        height: 320px;
+        flex-shrink: 0;
+    }
+}
+
+@media (max-width: 600px) {
+    .watch-controls-row {
+        flex-wrap: wrap;
+    }
+
+    .watch-controls-row input {
+        flex: 1 1 100%;
+        order: 10;
+    }
+
+    .watch-playlist-add button {
+        flex: 1 1 auto;
+    }
+}
+
+/* ===== RESPONSIVE HARDENING (mobile-first fixes across all pages) ===== */
+
+/* Prevent horizontal scroll globally */
+html, body {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+}
+
+/* Touch targets & iOS zoom prevention */
+@media (max-width: 768px) {
+    button,
+    .btn,
+    a.btn,
+    input[type="button"],
+    input[type="submit"],
+    input[type="reset"],
+    .watch-btn,
+    .confirm-btn,
+    .settings-back,
+    .profile-back,
+    .mobile-only,
+    .chat-send,
+    .attachment-remove,
+    .reaction-btn,
+    .theme-option-card {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+
+    /* Ensure tap targets for links in lists */
+    .group-member-link,
+    .admin-user-link,
+    .watch-room-item a,
+    .sidebar-nav a {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
+}
+
+/* Watch page: room header & actions wrap on small screens */
+@media (max-width: 560px) {
+    .watch-header,
+    .watch-top {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .watch-header .watch-btn,
+    .watch-top .watch-btn {
+        padding: 10px 14px;
+        font-size: 0.85rem;
+    }
+
+    .watch-room-code {
+        order: 10;
+        width: 100%;
+        text-align: center;
+        font-size: 0.85rem;
+    }
+}
+
+/* Admin table: card layout on mobile */
+@media (max-width: 720px) {
+    .admin-table thead {
+        display: none;
+    }
+
+    .admin-table,
+    .admin-table tbody,
+    .admin-table tr,
+    .admin-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .admin-table tr {
+        margin-bottom: 16px;
+        padding: 16px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow);
+    }
+
+    .admin-table td {
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .admin-table td:last-child {
+        border-bottom: none;
+    }
+
+    .admin-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        flex-shrink: 0;
+    }
+
+    .admin-table tr.is-me {
+        background: rgba(139, 92, 246, 0.08);
+    }
+}
+
+/* Auth pages: forms full width, stacked */
+@media (max-width: 480px) {
+    .auth-shell {
+        padding: 16px;
+    }
+
+    .auth-card {
+        padding: 24px 16px;
+    }
+
+    .auth-form .field {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .auth-form label {
+        text-align: left;
+    }
+
+    .auth-form input,
+    .auth-form button {
+        width: 100%;
+    }
+
+    .auth-divider {
+        margin: 16px 0;
+    }
+}
+
+/* Settings / Profile forms: fields stack on mobile */
+@media (max-width: 480px) {
+    .settings-form .field,
+    .profile-form .field {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .settings-form label,
+    .profile-form label {
+        text-align: left;
+        font-size: 0.85rem;
+    }
+
+    .settings-form input,
+    .settings-form select,
+    .settings-form textarea,
+    .profile-form input,
+    .profile-form select,
+    .profile-form textarea {
+        width: 100%;
+    }
+
+    .settings-group-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .settings-group-left {
+        justify-content: flex-start;
+    }
+
+    .theme-form {
+        gap: 8px;
+    }
+
+    .theme-option-card {
+        padding: 16px;
+    }
+}
+
+/* Group pages: member list, create/edit forms */
+@media (max-width: 480px) {
+    .group-member-item {
+        flex-wrap: wrap;
+    }
+
+    .group-member-actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 4px;
+    }
+
+    .group-create-form .field,
+    .group-edit-form .field {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .group-create-form label,
+    .group-edit-form label {
+        text-align: left;
+    }
+
+    .group-create-form input,
+    .group-create-form textarea,
+    .group-edit-form input,
+    .group-edit-form textarea {
+        width: 100%;
+    }
+}
+
+/* Chat composer: ensure send button touch-friendly on very small screens */
+@media (max-width: 380px) {
+    .chat-composer {
+        gap: 6px;
+        padding: 8px;
+    }
+
+    .chat-composer input {
+        padding: 12px 10px;
+        font-size: 16px;
+    }
+
+    .chat-send {
+        padding: 10px;
+        min-width: 44px;
+    }
+
+    .attachment-preview {
+        max-width: 100%;
+    }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: max(0px)) {
+    .messenger-shell,
+    .watch-shell,
+    .settings-shell,
+    .auth-shell,
+    .profile-shell {
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: max(16px, env(safe-area-inset-right));
+        padding-bottom: max(16px, env(safe-area-inset-bottom));
+    }
+
+    .chat-composer {
+        padding-left: max(12px, env(safe-area-inset-left));
+        padding-right: max(12px, env(safe-area-inset-right));
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+}
+
+/* Watch hub: tighter spacing on small phones */
+@media (max-width: 420px) {
+    .watch-hub {
+        padding: 16px;
+    }
+
+    .watch-hub-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .watch-hub-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .watch-room-list {
+        gap: 8px;
+    }
+
+    .watch-room-item {
+        padding: 12px;
+    }
+}
+
+/* Profile header: avatar + actions stack on very small */
+@media (max-width: 360px) {
+    .profile-header {
+        gap: 10px;
+    }
+
+    .profile-avatar {
+        width: 80px;
+        height: 80px;
+        font-size: 2rem;
+    }
+
+    .profile-actions {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* hidden-атрибут всегда должен перебивать заданный display (flex/grid/inline-flex) */
+[hidden] {
+    display: none !important;
+}
