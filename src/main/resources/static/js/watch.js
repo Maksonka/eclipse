@@ -53,6 +53,7 @@ var reactionSub = null;
 var reactionLayer = document.getElementById('reaction-layer');
 var reactionBar = document.getElementById('reaction-bar');
 var liveBadge = document.getElementById('room-live-badge');
+var fullscreenBtn = document.getElementById('fullscreen-btn');
 var playlist = { currentItemId: null, items: [] };
 var didInitialJoin = false;
 var connectErrorShown = false;
@@ -1321,3 +1322,48 @@ setInterval(function () {
         updateSeekBar();
     }
 }, 500);
+
+/* ===== FULLSCREEN (available to ALL users) ===== */
+(function () {
+    if (!fullscreenBtn) return;
+
+    var playerWrap = document.querySelector('.watch-player-wrap');
+
+    function isFullscreen() {
+        return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+    }
+
+    function toggleFullscreen() {
+        if (isFullscreen()) {
+            if (document.exitFullscreen) document.exitFullscreen();
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+        } else {
+            var el = playerWrap || document.documentElement;
+            if (el.requestFullscreen) el.requestFullscreen();
+            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+            else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+        }
+    }
+
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+    document.addEventListener('fullscreenchange', updateFsIcon);
+    document.addEventListener('webkitfullscreenchange', updateFsIcon);
+    document.addEventListener('mozfullscreenchange', updateFsIcon);
+
+    function updateFsIcon() {
+        if (isFullscreen()) {
+            fullscreenBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            fullscreenBtn.title = 'Выйти из полноэкранного режима';
+        } else {
+            fullscreenBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            fullscreenBtn.title = 'На весь экран';
+        }
+    }
+
+    /* Show button on touch devices (no hover) */
+    if ('ontouchstart' in window) {
+        fullscreenBtn.style.opacity = '1';
+    }
+})();

@@ -2299,6 +2299,74 @@ body.settings-page {
     color: var(--text);
 }
 
+/* ===== WATCH SHELL (standalone page) ===== */
+
+body.watch-page {
+    background:
+        radial-gradient(circle at top left, rgba(109, 40, 217, 0.18), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(139, 92, 246, 0.10), transparent 32%),
+        var(--bg);
+    min-height: 100%;
+    margin: 0;
+}
+
+.watch-shell {
+    width: min(1200px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 20px 0 40px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+}
+
+.watch-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+}
+
+.watch-back:hover {
+    color: var(--purple-400);
+}
+
+/* Fullscreen button on player */
+.watch-fs-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: #fff;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.15s ease;
+}
+
+.watch-player-wrap:hover .watch-fs-btn,
+.watch-fs-btn:focus-visible {
+    opacity: 1;
+}
+
+.watch-fs-btn:hover {
+    background: rgba(0, 0, 0, 0.75);
+}
+
+.watch-fs-btn:active {
+    transform: scale(0.92);
+}
+
 .watch-hub {
     flex: 1;
     min-height: 0;
@@ -3588,6 +3656,55 @@ html, body {
     .profile-actions {
         width: 100%;
         justify-content: center;
+    }
+}
+
+/* ===== WATCH SHELL RESPONSIVE ===== */
+
+@media (max-width: 768px) {
+    .watch-shell {
+        width: 100%;
+        padding: 12px 12px 32px;
+    }
+
+    .watch-back {
+        font-size: 0.84rem;
+        margin-bottom: 12px;
+    }
+
+    .watch-hub-inner {
+        padding: 0;
+    }
+
+    .watch-hub {
+        background: transparent;
+    }
+
+    .watch-fs-btn {
+        width: 36px;
+        height: 36px;
+        top: 8px;
+        right: 8px;
+        border-radius: 6px;
+    }
+
+    .watch-fs-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .watch-shell {
+        padding: 8px 8px 24px;
+    }
+
+    .watch-hub-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .watch-fs-btn {
+        opacity: 1;
     }
 }
 

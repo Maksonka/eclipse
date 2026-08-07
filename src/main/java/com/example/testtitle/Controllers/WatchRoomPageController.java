@@ -1,6 +1,5 @@
 package com.example.testtitle.Controllers;
 
-import com.example.testtitle.Services.SidebarModelService;
 import com.example.testtitle.Services.WatchRoomService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,18 +19,14 @@ import java.util.Map;
 public class WatchRoomPageController {
 
     private final WatchRoomService watchRoomService;
-    private final SidebarModelService sidebarModelService;
 
-    public WatchRoomPageController(WatchRoomService watchRoomService,
-                                   SidebarModelService sidebarModelService) {
+    public WatchRoomPageController(WatchRoomService watchRoomService) {
         this.watchRoomService = watchRoomService;
-        this.sidebarModelService = sidebarModelService;
     }
 
     @GetMapping
     public String watchPage(@RequestParam(value = "room", required = false) String room,
                             Principal principal, Model model) {
-        sidebarModelService.populate(model, principal, null, null, null);
         model.addAttribute("rooms", watchRoomService.getRoomPreviews());
         model.addAttribute("room", room);
         return "watch";
