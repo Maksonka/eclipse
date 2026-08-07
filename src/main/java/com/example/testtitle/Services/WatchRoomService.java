@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -44,6 +45,7 @@ public class WatchRoomService {
     private final WatchRoomPlaylistItemRepository playlistItemRepository;
     private final UserService userService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final VideoMetadataService videoMetadataService;
 
     /**
      * Живое состояние комнат. Комната-источник правды для синхронизации:
@@ -55,12 +57,14 @@ public class WatchRoomService {
                             WatchRoomMessageRepository messageRepository,
                             WatchRoomPlaylistItemRepository playlistItemRepository,
                             UserService userService,
-                            SimpMessagingTemplate messagingTemplate) {
+                            SimpMessagingTemplate messagingTemplate,
+                            VideoMetadataService videoMetadataService) {
         this.roomRepository = roomRepository;
         this.messageRepository = messageRepository;
         this.playlistItemRepository = playlistItemRepository;
         this.userService = userService;
         this.messagingTemplate = messagingTemplate;
+        this.videoMetadataService = videoMetadataService;
     }
 
     @Transactional
@@ -168,14 +172,15 @@ public class WatchRoomService {
 
         RoomState state = states.computeIfAbsent(roomId, id -> new RoomState(room));
 
+        boolean urlChanged = request.getVideoUrl() != null && !request.getVideoUrl().isBlank();
+        if (urlChanged) {
+            state.videoUrl = request.getVideoUrl().trim();
+        }
         if (request.getStatus() != null && !request.getStatus().isBlank()) {
             state.status = parseStatus(request.getStatus());
         }
         if (request.getPositionMs() != null && request.getPositionMs() >= 0) {
             state.positionMs = request.getPositionMs();
-        }
-        if (request.getVideoUrl() != null && !request.getVideoUrl().isBlank()) {
-            state.videoUrl = request.getVideoUrl().trim();
         }
         state.updatedAtMs = System.currentTimeMillis();
 
@@ -191,6 +196,9 @@ public class WatchRoomService {
         System.out.println("[ctrl] user=" + username + " status=" + request.getStatus()
                 + " posMs=" + request.getPositionMs() + " restart=" + dto.isRestart()
                 + " -> room=" + roomId + " broadcast posMs=" + state.positionMs);
+        if (urlChanged) {
+            refreshVideoMetadata(room);
+        }
         sendAfterCommit(() -> messagingTemplate.convertAndSend("/topic/room." + roomId, dto));
         return dto;
     }
@@ -362,6 +370,8 @@ public class WatchRoomService {
         room.setCurrentItemId(item.getId());
         roomRepository.save(room);
 
+        refreshVideoMetadata(room);
+
         WatchRoomDto dto = toDto(room, state);
         sendAfterCommit(() -> {
             messagingTemplate.convertAndSend("/topic/room." + roomId, dto);
@@ -421,6 +431,8 @@ public class WatchRoomService {
         room.setUpdatedAt(Instant.ofEpochMilli(state.updatedAtMs));
         room.setCurrentItemId(next.getId());
         roomRepository.save(room);
+
+        refreshVideoMetadata(room);
 
         WatchRoomDto dto = toDto(room, state);
         sendAfterCommit(() -> {
@@ -544,7 +556,7 @@ public class WatchRoomService {
 
     private WatchRoomPreviewDto toPreview(WatchRoom room) {
         RoomState state = states.computeIfAbsent(room.getId(), id -> new RoomState(room));
-        return new WatchRoomPreviewDto(
+        WatchRoomPreviewDto dto = new WatchRoomPreviewDto(
                 room.getId(),
                 room.getRoomCode(),
                 room.getName(),
@@ -556,13 +568,18 @@ public class WatchRoomService {
                 room.getVisibility(),
                 resolveVideoTitle(room, state)
         );
+        dto.setVideoThumb(room.getVideoThumb());
+        return dto;
     }
 
     /**
-     * Что сейчас играет в комнате: название из очереди (currentItemId) или
-     * название платформы из ссылки (youtube/vk/rutube/vimeo/mp4).
+     * Что сейчас играет в комнате: сохранённое название из метаданных, затем
+     * название из очереди (currentItemId), затем платформа из ссылки.
      */
     private String resolveVideoTitle(WatchRoom room, RoomState state) {
+        if (room.getVideoTitle() != null && !room.getVideoTitle().isBlank()) {
+            return room.getVideoTitle();
+        }
         if (state.currentItemId != null) {
             Optional<WatchRoomPlaylistItem> current = playlistItemRepository.findById(state.currentItemId);
             if (current.isPresent() && current.get().getTitle() != null && !current.get().getTitle().isBlank()) {
@@ -623,6 +640,43 @@ public class WatchRoomService {
 
     private void broadcastRoomsList() {
         messagingTemplate.convertAndSend("/topic/rooms", getRoomPreviews());
+    }
+
+    /**
+     * Асинхронно достаёт название и заставку текущего видео и обновляет
+     * превью в ленте. Вызывается при смене ссылки.
+     */
+    private void refreshVideoMetadata(WatchRoom room) {
+        String url = room.getVideoUrl();
+        if (url == null || url.isBlank()) {
+            return;
+        }
+        CompletableFuture.runAsync(() -> {
+            try {
+                VideoMetadataService.VideoInfo info = videoMetadataService.fetch(url);
+                if (info.title() == null && info.thumb() == null) {
+                    return;
+                }
+                Long roomId = room.getId();
+                roomRepository.findById(roomId).ifPresent(r -> {
+                    boolean changed = false;
+                    if (info.title() != null) {
+                        r.setVideoTitle(info.title().substring(0, Math.min(info.title().length(), 300)));
+                        changed = true;
+                    }
+                    if (info.thumb() != null) {
+                        r.setVideoThumb(info.thumb().substring(0, Math.min(info.thumb().length(), 2000)));
+                        changed = true;
+                    }
+                    if (changed) {
+                        roomRepository.save(r);
+                        sendAfterCommit(WatchRoomService.this::broadcastRoomsList);
+                    }
+                });
+            } catch (Exception e) {
+                // молча игнорируем — метаданные не критичны
+            }
+        });
     }
 
     /**

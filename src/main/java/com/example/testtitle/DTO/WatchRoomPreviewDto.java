@@ -14,6 +14,7 @@ public class WatchRoomPreviewDto {
     private int memberCount;
     private RoomVisibility visibility;
     private String videoTitle;
+    private String videoThumb;
 
     public WatchRoomPreviewDto() {
     }
@@ -111,5 +112,13 @@ public class WatchRoomPreviewDto {
 
     public void setVideoTitle(String videoTitle) {
         this.videoTitle = videoTitle;
+    }
+
+    public String getVideoThumb() {
+        return videoThumb;
+    }
+
+    public void setVideoThumb(String videoThumb) {
+        this.videoThumb = videoThumb;
     }
 }

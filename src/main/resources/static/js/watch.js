@@ -986,6 +986,18 @@ function renderRooms(rooms) {
         item.className = 'watch-room-item';
         item.setAttribute('data-room-id', room.roomId);
 
+        if (room.videoThumb) {
+            var thumb = document.createElement('div');
+            thumb.className = 'watch-room-thumb';
+            var img = document.createElement('img');
+            img.src = room.videoThumb;
+            img.alt = '';
+            img.loading = 'lazy';
+            img.referrerPolicy = 'no-referrer';
+            thumb.appendChild(img);
+            item.appendChild(thumb);
+        }
+
         var info = document.createElement('div');
         info.className = 'watch-room-info';
 
@@ -1000,13 +1012,13 @@ function renderRooms(rooms) {
         info.appendChild(name);
         info.appendChild(meta);
 
-        if (room.status === 'PLAYING') {
+        if (room.status === 'PLAYING' && room.videoTitle) {
             var nowPlaying = document.createElement('span');
             nowPlaying.className = 'watch-room-nowplaying';
             var dot = document.createElement('span');
             dot.className = 'watch-nowplaying-dot';
             var title = document.createElement('span');
-            title.textContent = room.videoTitle || 'Видео';
+            title.textContent = room.videoTitle;
             nowPlaying.appendChild(dot);
             nowPlaying.appendChild(title);
             info.appendChild(nowPlaying);

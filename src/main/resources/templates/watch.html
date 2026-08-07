@@ -63,19 +63,22 @@
                 <div class="watch-room-list" id="rooms-list">
                     <div class="watch-room-item" th:each="room : ${rooms}"
                          th:attr="data-room-id=${room.roomId}">
+                        <div class="watch-room-thumb" th:if="${room.videoThumb != null}">
+                            <img th:src="${room.videoThumb}" alt="" loading="lazy" referrerpolicy="no-referrer"/>
+                        </div>
                         <div class="watch-room-info">
                             <span class="watch-room-name" th:text="${room.name}">Комната</span>
                             <span class="watch-room-meta">
                                 <span th:text="${room.hostUsername}">host</span> ·
                                 <span th:text="${room.memberCount}">0</span> чел.
                             </span>
-                            <span class="watch-room-nowplaying" th:if="${room.status == 'PLAYING'}">
+                            <span class="watch-room-nowplaying" th:if="${room.status.name() == 'PLAYING' and !#strings.isEmpty(room.videoTitle)}">
                                 <span class="watch-nowplaying-dot" aria-hidden="true"></span>
-                                <span th:text="${room.videoTitle != null ? room.videoTitle : 'Видео'}">Видео</span>
+                                <span th:text="${room.videoTitle}">Видео</span>
                             </span>
                             <span class="watch-room-status"
                                   th:classappend="' is-' + ${#strings.toLowerCase(room.status)}"
-                                  th:text="${room.status == 'PLAYING' ? 'Воспроизведение' : (room.status == 'PAUSED' ? 'Пауза' : 'Ожидание')}">Ожидание</span>
+                                  th:text="${room.status.name() == 'PLAYING' ? 'Воспроизведение' : (room.status.name() == 'PAUSED' ? 'Пауза' : 'Ожидание')}">Ожидание</span>
                         </div>
                         <button type="button" class="watch-btn small join-room-btn"
                                 th:attr="data-room-code=${room.roomCode}"
@@ -235,6 +238,6 @@
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 <script src="/js/hls.min.js"></script>
-<script th:src="@{/js/watch.js(v=37)}"></script>
+<script th:src="@{/js/watch.js(v=38)}"></script>
 </body>
 </html>

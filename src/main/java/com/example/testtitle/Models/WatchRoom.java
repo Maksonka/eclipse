@@ -45,6 +45,12 @@ public class WatchRoom {
     @Column(name = "current_item_id")
     private Long currentItemId;
 
+    @Column(name = "video_title", length = 300)
+    private String videoTitle;
+
+    @Column(name = "video_thumb", length = 2000)
+    private String videoThumb;
+
     @Enumerated(EnumType.STRING)
     @org.hibernate.annotations.ColumnDefault("'PUBLIC'")
     @Column(name = "visibility", nullable = false)
@@ -158,6 +164,22 @@ public class WatchRoom {
 
     public void setVisibility(RoomVisibility visibility) {
         this.visibility = visibility;
+    }
+
+    public String getVideoTitle() {
+        return videoTitle;
+    }
+
+    public void setVideoTitle(String videoTitle) {
+        this.videoTitle = videoTitle;
+    }
+
+    public String getVideoThumb() {
+        return videoThumb;
+    }
+
+    public void setVideoThumb(String videoThumb) {
+        this.videoThumb = videoThumb;
     }
 
     public boolean isMember(String username) {

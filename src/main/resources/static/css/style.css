@@ -2612,11 +2612,29 @@ body.watch-page {
     backdrop-filter: blur(14px);
 }
 
+.watch-room-thumb {
+    flex: 0 0 auto;
+    width: 112px;
+    height: 63px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+}
+
+.watch-room-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
 .watch-room-info {
     display: flex;
     flex-direction: column;
     gap: 4px;
     min-width: 0;
+    flex: 1;
 }
 
 .watch-room-name {
