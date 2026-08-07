@@ -3000,6 +3000,255 @@ body.settings-page {
     text-align: center;
 }
 
+/* ===== WATCH ROOM MOBILE RESPONSIVE ===== */
+
+/* Chat header: prevent overflow, compact on mobile */
+@media (max-width: 768px) {
+    .chat-header {
+        padding: 8px 12px;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .chat-title {
+        font-size: 0.9rem;
+    }
+
+    .chat-status {
+        font-size: 0.72rem;
+    }
+
+    .watch-room-avatar {
+        width: 34px;
+        height: 34px;
+    }
+
+    .watch-header-actions {
+        gap: 4px;
+    }
+}
+
+/* Stage: tighter gap, no horizontal padding waste */
+@media (max-width: 600px) {
+    .watch-stage {
+        gap: 10px;
+        padding: 10px;
+    }
+
+    /* Seek bar: taller thumb for touch */
+    .watch-seek-row {
+        padding: 8px 0 0;
+    }
+
+    .watch-seek-row input[type="range"] {
+        height: 36px;
+    }
+
+    .watch-seek-row input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--accent, #4f7cff);
+        cursor: pointer;
+    }
+
+    .watch-seek-row input[type="range"]::-moz-range-thumb {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--accent, #4f7cff);
+        border: none;
+        cursor: pointer;
+    }
+
+    .watch-seek-time {
+        font-size: 0.72rem;
+    }
+
+    /* Controls: stack into 2 rows */
+    .watch-controls-row {
+        gap: 6px;
+    }
+
+    .watch-controls-row .watch-btn {
+        flex: 1 1 auto;
+        white-space: nowrap;
+        padding: 10px 12px;
+        font-size: 0.82rem;
+    }
+
+    /* Hide button text, keep icon */
+    .watch-controls-row .watch-btn span {
+        display: none;
+    }
+
+    .watch-controls-row .watch-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .watch-controls-row input[type="url"] {
+        flex: 1 1 100%;
+        order: 10;
+        padding: 12px;
+        font-size: 16px;
+    }
+
+    .watch-controls-row .watch-btn:last-child {
+        order: 11;
+        flex: 1 1 100%;
+        text-align: center;
+    }
+
+    /* Host hint below controls */
+    .watch-hint {
+        font-size: 0.75rem;
+    }
+
+    /* Chat: use remaining space, not fixed 320px */
+    .watch-chat {
+        height: auto;
+        max-height: 50vh;
+        min-height: 180px;
+        width: 100%;
+        border-radius: var(--radius-md);
+    }
+
+    .watch-chat-title {
+        padding: 10px 14px;
+        font-size: 0.88rem;
+    }
+
+    .watch-chat-messages {
+        padding: 10px 12px;
+        gap: 6px;
+    }
+
+    .chat-msg {
+        padding: 6px 10px;
+    }
+
+    .chat-msg-content {
+        font-size: 0.85rem;
+    }
+
+    .watch-chat-form {
+        padding: 8px 10px;
+        gap: 6px;
+    }
+
+    .watch-chat-form input {
+        padding: 10px 12px;
+        font-size: 16px;
+    }
+
+    .watch-chat-form .watch-btn {
+        padding: 10px 14px;
+        font-size: 0.82rem;
+    }
+
+    /* Playlist: tighter */
+    .watch-playlist {
+        padding: 10px 12px;
+    }
+
+    .watch-playlist-add {
+        gap: 6px;
+    }
+
+    .watch-playlist-add input {
+        flex: 1 1 100%;
+        padding: 10px 12px;
+        font-size: 16px;
+    }
+
+    .watch-playlist-add button {
+        flex: 1 1 100%;
+        text-align: center;
+    }
+
+    .watch-playlist-list {
+        max-height: 200px;
+    }
+
+    /* Reaction bar: tighter, scrollable if needed */
+    .reaction-bar {
+        padding: 4px 8px;
+        gap: 0;
+    }
+
+    .reaction-bar-label {
+        display: none;
+    }
+
+    .reaction-btn {
+        padding: 8px 6px;
+        font-size: 1.4rem;
+    }
+}
+
+/* Very small phones (<380px) */
+@media (max-width: 380px) {
+    .watch-stage {
+        padding: 6px;
+        gap: 8px;
+    }
+
+    .watch-player-wrap {
+        border-radius: var(--radius-sm);
+    }
+
+    .watch-controls-row .watch-btn {
+        padding: 10px 10px;
+        font-size: 0.78rem;
+    }
+
+    .watch-chat {
+        max-height: 45vh;
+    }
+
+    .watch-chat-form input {
+        padding: 10px 8px;
+    }
+}
+
+/* Landscape on phone: use horizontal space better */
+@media (max-height: 500px) and (orientation: landscape) {
+    .watch-stage {
+        flex-direction: row;
+        padding: 8px;
+    }
+
+    .watch-chat {
+        width: 280px;
+        height: auto;
+        max-height: none;
+        flex-shrink: 0;
+    }
+
+    .watch-player-wrap {
+        aspect-ratio: 16 / 9;
+    }
+
+    .chat-header {
+        padding: 4px 12px;
+    }
+
+    .watch-room-avatar {
+        width: 28px;
+        height: 28px;
+    }
+
+    .reaction-bar {
+        display: none;
+    }
+
+    .watch-seek-row {
+        padding: 4px 0 0;
+    }
+}
+
 @media (max-width: 900px) {
     .watch-hub-actions {
         grid-template-columns: 1fr;
