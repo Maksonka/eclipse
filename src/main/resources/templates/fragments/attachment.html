@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <th:block th:fragment="attachment(msg)">
@@ -32,7 +32,7 @@
                 </svg>
             </span>
             <span class="attachment-file-name" th:text="${msg.attachmentOriginalName}">file.txt</span>
-            <span class="attachment-file-size" th:text="${T(com.example.testtitle.Services.AttachmentService).formatSize(msg.attachmentSize)}">размер</span>
+            <span class="attachment-file-size" th:text="${T(com.example.shadowvibe.Services.AttachmentService).formatSize(msg.attachmentSize)}">размер</span>
         </a>
     </span>
 </th:block>
