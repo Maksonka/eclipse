@@ -194,9 +194,6 @@ public class WatchRoomService {
         WatchRoomDto dto = toDto(room, state);
         dto.setRestart(Boolean.TRUE.equals(request.getRestart()));
         dto.setLastControlBy(username);
-        System.out.println("[ctrl] user=" + username + " status=" + request.getStatus()
-                + " posMs=" + request.getPositionMs() + " restart=" + dto.isRestart()
-                + " -> room=" + roomId + " broadcast posMs=" + state.positionMs);
         if (urlChanged) {
             refreshVideoMetadata(room);
         }

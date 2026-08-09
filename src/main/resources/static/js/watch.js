@@ -498,7 +498,6 @@ function loadVideo(url, posMs, status, updatedAtMs) {
 
 function syncPlayback(status, posMs, updatedAtMs, restart) {
     if (!status) return;
-    if (window.console) console.log('[sync] status=' + status + ' posMs=' + posMs + ' restart=' + restart + ' host=' + isHost + ' mode=' + playerMode);
     if (playerMode === 'html5') {
         if (!videoEl.src) {
             if (restart && !isHost) {
@@ -510,7 +509,6 @@ function syncPlayback(status, posMs, updatedAtMs, restart) {
             var target = driftTargetMs(posMs, updatedAtMs) / 1000;
             if (restart) {
                 pendingHtml5Snap = { target: target, play: true, ts: Date.now() };
-                if (window.console) console.log('[sync] snap to ' + target.toFixed(1) + 's, current=' + videoEl.currentTime.toFixed(1) + 's');
                 showToast('[sync] прыжок на ' + target.toFixed(1) + 'с (было ' + videoEl.currentTime.toFixed(1) + 'с)');
             }
             if (restart || (!isHost && Math.abs(videoEl.currentTime - target) > 2)) {
@@ -1221,7 +1219,6 @@ function applyPendingHtml5Snap() {
         applyingSync = false;
     } else {
         pendingHtml5Snap = null;
-        if (window.console) console.log('[sync] snap OK at ' + snap.target.toFixed(1) + 's');
         showToast('[sync] гость на ' + snap.target.toFixed(1) + 'с');
         if (snap.play) {
             var p = videoEl.play();
