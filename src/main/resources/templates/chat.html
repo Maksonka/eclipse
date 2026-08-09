@@ -1,7 +1,7 @@
-<!DOCTYPE html>
+п»ї<!DOCTYPE html>
 <html xmlns:th="http://thymeleaf.org" lang="ru">
 <head th:replace="~{fragments/head :: head(~{::title})}">
-    <title th:text="${receiver != null ? 'Чат · ' + receiver.username : 'Сообщения · ShadowVibe'}">Чат</title>
+    <title th:text="${receiver != null ? 'Р§Р°С‚ В· ' + receiver.username : 'РЎРѕРѕР±С‰РµРЅРёСЏ В· ShadowVibe'}">Р§Р°С‚</title>
 </head>
 <body class="chat-page">
 
@@ -10,14 +10,14 @@
 
     <section class="chat-pane">
         <div class="chat-welcome" th:if="${receiver == null}">
-            <div class="chat-welcome-icon">??</div>
-            <h2>Выберите чат</h2>
-            <p>Откройте диалог из списка слева или найдите пользователя по нику через поиск</p>
+            <div class="chat-welcome-icon">рџ’¬</div>
+            <h2>Р’С‹Р±РµСЂРёС‚Рµ С‡Р°С‚</h2>
+            <p>РћС‚РєСЂРѕР№С‚Рµ РґРёР°Р»РѕРі РёР· СЃРїРёСЃРєР° СЃР»РµРІР° РёР»Рё РЅР°Р№РґРёС‚Рµ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РїРѕ РЅРёРєСѓ С‡РµСЂРµР· РїРѕРёСЃРє</p>
         </div>
 
         <div class="chat-app" th:if="${receiver != null}">
             <header class="chat-header">
-                <a class="chat-back mobile-only" th:href="@{/chat}" aria-label="К списку чатов">
+                <a class="chat-back mobile-only" th:href="@{/chat}" aria-label="Рљ СЃРїРёСЃРєСѓ С‡Р°С‚РѕРІ">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -26,11 +26,11 @@
                 <a class="chat-peer" th:href="@{/profile/{username}(username=${receiver.username})}">
                     <div th:replace="~{fragments/avatar :: avatar(${receiver.username}, ${receiver.avatarFilename}, 'chat-avatar')}"></div>
                     <div class="chat-peer-info">
-                        <h1 class="chat-title" th:text="${receiver.username}">Собеседник</h1>
+                        <h1 class="chat-title" th:text="${receiver.username}">РЎРѕР±РµСЃРµРґРЅРёРє</h1>
                         <span id="chat-status"
                               class="chat-status"
                               th:classappend="${receiverOnline} ? ' is-online' : ' is-offline'"
-                              th:text="${receiverOnline} ? 'В сети' : 'Не в сети'">В сети</span>
+                              th:text="${receiverOnline} ? 'Р’ СЃРµС‚Рё' : 'РќРµ РІ СЃРµС‚Рё'">Р’ СЃРµС‚Рё</span>
                     </div>
                 </a>
             </header>
@@ -38,7 +38,7 @@
             <main id="messages" class="chat-messages">
                 <div class="chat-empty" th:if="${#lists.isEmpty(messages)}">
                     <span class="chat-empty-icon" aria-hidden="true"></span>
-                    Начните переписку — первое сообщение появится здесь мгновенно
+                    РќР°С‡РЅРёС‚Рµ РїРµСЂРµРїРёСЃРєСѓ вЂ” РїРµСЂРІРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ РїРѕСЏРІРёС‚СЃСЏ Р·РґРµСЃСЊ РјРіРЅРѕРІРµРЅРЅРѕ
                 </div>
 
                 <div class="message-row"
@@ -63,7 +63,7 @@
                         <img class="sticker-image"
                              th:if="${msg.stickerUrl != null}"
                              th:src="${msg.stickerUrl}"
-                             th:alt="'Стикер от ' + ${msg.sender.username}"/>
+                             th:alt="'РЎС‚РёРєРµСЂ РѕС‚ ' + ${msg.sender.username}"/>
 
                         <span class="content"
                               th:if="${msg.content != null and !msg.content.isEmpty()}"
@@ -73,8 +73,8 @@
                             <span class="read-receipt"
                                   th:if="${msg.sender.username == #authentication.name}"
                                   th:classappend="${msg.read} ? ' is-read' : ''"
-                                  th:attr="aria-label=${msg.read} ? 'Прочитано' : 'Доставлено'"
-                                  title="Статус сообщения">
+                                  th:attr="aria-label=${msg.read} ? 'РџСЂРѕС‡РёС‚Р°РЅРѕ' : 'Р”РѕСЃС‚Р°РІР»РµРЅРѕ'"
+                                  title="РЎС‚Р°С‚СѓСЃ СЃРѕРѕР±С‰РµРЅРёСЏ">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                     <path d="M2.5 12.5l4.5 4.5L16.5 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
                                     <path d="M10.5 17l2 2L22 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -91,7 +91,7 @@
                     <span class="typing-dot"></span>
                     <span class="typing-dot"></span>
                 </div>
-                <span class="typing-label" th:text="${receiver.username} + ' печатает'">Собеседник печатает</span>
+                <span class="typing-label" th:text="${receiver.username} + ' РїРµС‡Р°С‚Р°РµС‚'">РЎРѕР±РµСЃРµРґРЅРёРє РїРµС‡Р°С‚Р°РµС‚</span>
             </div>
 
             <div id="reply-preview" class="reply-preview">
@@ -99,13 +99,13 @@
                     <span class="reply-preview-sender"></span>
                     <span class="reply-preview-text"></span>
                 </div>
-                <button class="reply-preview-close" aria-label="Отмена">&times;</button>
+                <button class="reply-preview-close" aria-label="РћС‚РјРµРЅР°">&times;</button>
             </div>
 
             <footer class="chat-composer">
                 <form id="message-form" class="composer-form">
                     <input type="hidden" id="receiver-username" th:value="${receiver.username}"/>
-                    <button type="button" id="attach-button" class="composer-attach" aria-label="Прикрепить файл" title="Прикрепить файл">
+                    <button type="button" id="attach-button" class="composer-attach" aria-label="РџСЂРёРєСЂРµРїРёС‚СЊ С„Р°Р№Р»" title="РџСЂРёРєСЂРµРїРёС‚СЊ С„Р°Р№Р»">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
@@ -114,16 +114,16 @@
                     <input type="text"
                            id="message-input"
                            name="content"
-                           placeholder="Напишите сообщение..."
+                           placeholder="РќР°РїРёС€РёС‚Рµ СЃРѕРѕР±С‰РµРЅРёРµ..."
                            required
                            autocomplete="off"
                            maxlength="2000"/>
-                    <button type="submit" id="send-button" aria-label="Отправить">
+                    <button type="submit" id="send-button" aria-label="РћС‚РїСЂР°РІРёС‚СЊ">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        <span>Отправить</span>
+                        <span>РћС‚РїСЂР°РІРёС‚СЊ</span>
                     </button>
                 </form>
                 <div id="composer-error" class="composer-error" hidden></div>
@@ -140,15 +140,15 @@
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 <div id="context-menu" class="context-menu" hidden>
-    <button class="context-menu-item" data-action="reply">Ответить</button>
-    <button class="context-menu-item" data-action="delete-me">Удалить для себя</button>
-    <button class="context-menu-item" data-action="delete-all">Удалить для всех</button>
+    <button class="context-menu-item" data-action="reply">РћС‚РІРµС‚РёС‚СЊ</button>
+    <button class="context-menu-item" data-action="delete-me">РЈРґР°Р»РёС‚СЊ РґР»СЏ СЃРµР±СЏ</button>
+    <button class="context-menu-item" data-action="delete-all">РЈРґР°Р»РёС‚СЊ РґР»СЏ РІСЃРµС…</button>
 </div>
 <script th:src="@{/js/notifications.js(v=3)}"></script>
 <script th:src="@{/js/stickers.js(v=4)}"></script>
 <script th:src="@{/js/chat-direct.js(v=11)}"></script>
 <div id="lightbox" class="lightbox">
-    <button class="lightbox-close" aria-label="Закрыть">&times;</button>
+    <button class="lightbox-close" aria-label="Р—Р°РєСЂС‹С‚СЊ">&times;</button>
     <div class="lightbox-content"></div>
 </div>
 <script>
@@ -164,7 +164,7 @@
         if (link) {
             e.preventDefault();
             var src = link.getAttribute('data-full-src') || link.href;
-            openLB('<img src="' + src + '" alt="Фото" class="lightbox-img"/>');
+            openLB('<img src="' + src + '" alt="Р¤РѕС‚Рѕ" class="lightbox-img"/>');
             return;
         }
         var vid = e.target.closest('.attachment-video');
