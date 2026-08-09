@@ -7,8 +7,9 @@ window.StickerUI = (function () {
     var gridEl = null;
     var addForm = null;
     var btn = null;
-    var packSelect = null;
     var nameInput = null;
+    var stickerFileInput = null;
+    var panelErrEl = null;
 
     function createButton(insertBeforeEl) {
         btn = document.createElement('button');
@@ -59,6 +60,22 @@ window.StickerUI = (function () {
         panel.appendChild(header);
         panel.appendChild(gridEl);
         panel.appendChild(addForm);
+
+        panelErrEl = document.createElement('div');
+        panelErrEl.className = 'sticker-error';
+        panelErrEl.hidden = true;
+        panel.appendChild(panelErrEl);
+
+        stickerFileInput = document.createElement('input');
+        stickerFileInput.type = 'file';
+        stickerFileInput.accept = 'image/png,image/jpeg,image/webp,image/gif';
+        stickerFileInput.multiple = true;
+        stickerFileInput.hidden = true;
+        document.body.appendChild(stickerFileInput);
+        stickerFileInput.addEventListener('change', function () {
+            addStickersToActivePack(stickerFileInput.files);
+        });
+
         document.body.appendChild(panel);
     }
 
@@ -69,7 +86,7 @@ window.StickerUI = (function () {
 
         var title = document.createElement('div');
         title.className = 'sticker-add-title';
-        title.textContent = 'Добавить стикеры';
+        title.textContent = 'Создать новый набор';
         form.appendChild(title);
 
         var nameRow = document.createElement('div');
@@ -78,69 +95,36 @@ window.StickerUI = (function () {
         nameInput = document.createElement('input');
         nameInput.type = 'text';
         nameInput.className = 'sticker-add-input';
-        nameInput.placeholder = 'Название нового набора...';
+        nameInput.placeholder = 'Название набора...';
         nameInput.maxLength = 60;
 
         var createBtn = document.createElement('button');
         createBtn.type = 'button';
         createBtn.className = 'sticker-add-btn';
-        createBtn.textContent = 'Создать набор';
+        createBtn.textContent = 'Создать';
         createBtn.addEventListener('click', createPack);
 
         nameRow.appendChild(nameInput);
         nameRow.appendChild(createBtn);
         form.appendChild(nameRow);
 
-        var orRow = document.createElement('div');
-        orRow.className = 'sticker-add-or';
-        orRow.textContent = 'или добавьте в существующий:';
-        form.appendChild(orRow);
-
-        packSelect = document.createElement('select');
-        packSelect.className = 'sticker-add-select';
-        form.appendChild(packSelect);
-
-        var fileRow = document.createElement('div');
-        fileRow.className = 'sticker-add-row';
-
-        var fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.id = 'sticker-file-input';
-        fileInput.accept = 'image/png,image/jpeg,image/webp,image/gif';
-        fileInput.multiple = true;
-
-        var uploadBtn = document.createElement('button');
-        uploadBtn.type = 'button';
-        uploadBtn.className = 'sticker-add-btn';
-        uploadBtn.textContent = 'Загрузить';
-        uploadBtn.addEventListener('click', function () {
-            uploadStickers(fileInput.files);
-        });
-
-        fileRow.appendChild(fileInput);
-        fileRow.appendChild(uploadBtn);
-        form.appendChild(fileRow);
-
         var hint = document.createElement('div');
         hint.className = 'sticker-add-hint';
-        hint.textContent = 'Формат JPG, PNG, WEBP или GIF, до 3 МБ за стикер';
+        hint.textContent = 'Стикеры в новый набор добавляйте из самого набора';
         form.appendChild(hint);
-
-        var err = document.createElement('div');
-        err.className = 'sticker-add-error';
-        err.hidden = true;
-        form.appendChild(err);
 
         return form;
     }
 
-    function setAddError(text) {
-        var err = addForm.querySelector('.sticker-add-error');
+    function setError(text) {
+        if (!panelErrEl) {
+            return;
+        }
         if (text) {
-            err.textContent = text;
-            err.hidden = false;
+            panelErrEl.textContent = text;
+            panelErrEl.hidden = false;
         } else {
-            err.hidden = true;
+            panelErrEl.hidden = true;
         }
     }
 
@@ -175,14 +159,10 @@ window.StickerUI = (function () {
         var addTab = document.createElement('button');
         addTab.type = 'button';
         addTab.className = 'sticker-tab sticker-tab-add' + (addForm.hidden ? '' : ' is-active');
-        addTab.title = 'Добавить стикеры';
+        addTab.title = 'Создать новый набор';
         addTab.textContent = '+';
         addTab.addEventListener('click', function () {
-            var willShow = addForm.hidden;
-            showAdd(willShow);
-            if (willShow) {
-                populatePackSelect();
-            }
+            showAdd(addForm.hidden);
         });
         tabsEl.appendChild(addTab);
     }
@@ -202,6 +182,7 @@ window.StickerUI = (function () {
         }
         if (!pack.stickers || !pack.stickers.length) {
             gridEl.innerHTML = '<div class="sticker-empty">В этом наборе пока нет стикеров</div>';
+            renderAddCell(pack);
             return;
         }
         pack.stickers.forEach(function (sticker) {
@@ -221,37 +202,41 @@ window.StickerUI = (function () {
             });
             gridEl.appendChild(cell);
         });
+        renderAddCell(pack);
     }
 
-    function populatePackSelect() {
-        packSelect.innerHTML = '';
-        packs.forEach(function (pack) {
-            var option = document.createElement('option');
-            option.value = String(pack.id);
-            option.textContent = pack.name + (pack.authorUsername ? ' (автор: ' + pack.authorUsername + ')' : '');
-            if (pack.id === activePackId) {
-                option.selected = true;
-            }
-            packSelect.appendChild(option);
-        });
-        if (!packs.length) {
-            var emptyOption = document.createElement('option');
-            emptyOption.value = '';
-            emptyOption.textContent = 'Нет наборов';
-            packSelect.appendChild(emptyOption);
-            packSelect.disabled = true;
-        } else {
-            packSelect.disabled = false;
+    function renderAddCell(pack) {
+        if (!pack.mine) {
+            return;
         }
+        var addTile = document.createElement('button');
+        addTile.type = 'button';
+        addTile.className = 'sticker-add-cell';
+        addTile.title = 'Добавить стикеры в этот набор';
+        var plus = document.createElement('span');
+        plus.className = 'sticker-add-cell-plus';
+        plus.textContent = '+';
+        var label = document.createElement('span');
+        label.textContent = 'Добавить стикер';
+        addTile.appendChild(plus);
+        addTile.appendChild(label);
+        addTile.addEventListener('click', function () {
+            setError('');
+            if (stickerFileInput) {
+                stickerFileInput.value = '';
+                stickerFileInput.click();
+            }
+        });
+        gridEl.appendChild(addTile);
     }
 
     function createPack() {
         var name = nameInput.value.trim();
         if (!name) {
-            setAddError('Введите название набора');
+            setError('Введите название набора');
             return;
         }
-        setAddError('');
+        setError('');
         var form = new FormData();
         form.append('name', name);
         fetch('/api/sticker-packs', { method: 'POST', body: form })
@@ -263,24 +248,23 @@ window.StickerUI = (function () {
                     throw new Error(res.data.error || 'Не удалось создать набор');
                 }
                 nameInput.value = '';
+                showAdd(false);
                 return loadPacks(res.data.pack.id);
             })
             .catch(function (e) {
-                setAddError(e.message || 'Не удалось создать набор');
+                setError(e.message || 'Не удалось создать набор');
             });
     }
 
-    function uploadStickers(files) {
-        var packId = packSelect.value;
-        if (!packId) {
-            setAddError('Сначала создайте или выберите набор');
+    function addStickersToActivePack(files) {
+        if (!activePackId) {
             return;
         }
         if (!files || !files.length) {
-            setAddError('Выберите файлы стикеров');
             return;
         }
-        setAddError('');
+        setError('');
+        var packId = activePackId;
         var form = new FormData();
         for (var i = 0; i < files.length; i++) {
             form.append('files', files[i]);
@@ -293,14 +277,13 @@ window.StickerUI = (function () {
                 if (!res.ok) {
                     throw new Error(res.data.error || 'Не удалось загрузить стикеры');
                 }
-                var fileInput = document.getElementById('sticker-file-input');
-                if (fileInput) {
-                    fileInput.value = '';
+                if (stickerFileInput) {
+                    stickerFileInput.value = '';
                 }
-                return loadPacks(Number(packId));
+                return loadPacks(packId);
             })
             .catch(function (e) {
-                setAddError(e.message || 'Не удалось загрузить стикеры');
+                setError(e.message || 'Не удалось загрузить стикеры');
             });
     }
 
@@ -320,7 +303,6 @@ window.StickerUI = (function () {
                 }
                 renderTabs();
                 renderGrid();
-                populatePackSelect();
             });
     }
 

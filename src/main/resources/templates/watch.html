@@ -1,7 +1,7 @@
-п»ї<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://thymeleaf.org" lang="ru">
 <head th:replace="~{fragments/head :: head(~{::title})}">
-    <title>РЎРѕРІРјРµСЃС‚РЅС‹Р№ РїСЂРѕСЃРјРѕС‚СЂ В· ShadowVibe</title>
+    <title>Совместный просмотр · ShadowVibe</title>
 </head>
 <body class="watch-page">
 
@@ -10,7 +10,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        РќР°Р·Р°Рґ Рє С‡Р°С‚Р°Рј
+        Назад к чатам
     </a>
 
     <!-- ===== HUB ===== -->
@@ -23,43 +23,43 @@
                         <path d="M10 8.5v7l6-3.5l-6-3.5Z" fill="currentColor"/>
                     </svg>
                 </div>
-                <h1>РЎРѕРІРјРµСЃС‚РЅС‹Р№ РїСЂРѕСЃРјРѕС‚СЂ</h1>
-                <p>РЎРѕР·РґР°Р№С‚Рµ РєРѕРјРЅР°С‚Сѓ РёР»Рё РІРѕР№РґРёС‚Рµ РїРѕ РєРѕРґСѓ вЂ” Рё СЃРјРѕС‚СЂРёС‚Рµ РІРёРґРµРѕ СЃРёРЅС…СЂРѕРЅРЅРѕ СЃ РґСЂСѓР·СЊСЏРјРё, РѕР±С‰Р°СЏСЃСЊ РІ С‡Р°С‚Рµ.</p>
+                <h1>Совместный просмотр</h1>
+                <p>Создайте комнату или войдите по коду — и смотрите видео синхронно с друзьями, общаясь в чате.</p>
             </header>
 
             <div class="watch-hub-actions">
                 <div class="watch-card">
-                    <h2>РЎРѕР·РґР°С‚СЊ РєРѕРјРЅР°С‚Сѓ</h2>
+                    <h2>Создать комнату</h2>
                     <form id="create-room-form" class="watch-form">
-                        <input type="text" id="room-name" placeholder="РќР°Р·РІР°РЅРёРµ РєРѕРјРЅР°С‚С‹" maxlength="100" autocomplete="off"/>
+                        <input type="text" id="room-name" placeholder="Название комнаты" maxlength="100" autocomplete="off"/>
                         <div class="watch-visibility-toggle" id="room-visibility-toggle">
-                            <button type="button" class="watch-visibility-option is-active" data-visibility="PUBLIC" title="Р›РµРЅС‚Р° Рё РІСЃРµ РјРѕРіСѓС‚ РІРѕР№С‚Рё РїРѕ РєРѕРґСѓ">
-                                <span aria-hidden="true">рџЊЌ</span> РџСѓР±Р»РёС‡РЅР°СЏ
+                            <button type="button" class="watch-visibility-option is-active" data-visibility="PUBLIC" title="Лента и все могут войти по коду">
+                                <span aria-hidden="true">??</span> Публичная
                             </button>
-                            <button type="button" class="watch-visibility-option" data-visibility="PRIVATE" title="РўРѕР»СЊРєРѕ РїРѕ РїСЂРёРіР»Р°С€РµРЅРёСЋ (РєРѕРґ РЅРµ РІРёРґРµРЅ РІ Р»РµРЅС‚Рµ)">
-                                <span aria-hidden="true">рџ”’</span> РџСЂРёРІР°С‚РЅР°СЏ
+                            <button type="button" class="watch-visibility-option" data-visibility="PRIVATE" title="Только по приглашению (код не виден в ленте)">
+                                <span aria-hidden="true">??</span> Приватная
                             </button>
                         </div>
-                        <button type="submit" class="watch-btn primary">РЎРѕР·РґР°С‚СЊ</button>
+                        <button type="submit" class="watch-btn primary">Создать</button>
                     </form>
-                    <p class="watch-card-hint" id="create-hint">Р’С‹ СЃС‚Р°РЅРµС‚Рµ С…РѕСЃС‚РѕРј Рё Р±СѓРґРµС‚Рµ СѓРїСЂР°РІР»СЏС‚СЊ РІРѕСЃРїСЂРѕРёР·РІРµРґРµРЅРёРµРј. РџСѓР±Р»РёС‡РЅС‹Рµ РєРѕРјРЅР°С‚С‹ РІРёРґРЅС‹ РІ Р»РµРЅС‚Рµ.</p>
+                    <p class="watch-card-hint" id="create-hint">Вы станете хостом и будете управлять воспроизведением. Публичные комнаты видны в ленте.</p>
                 </div>
 
                 <div class="watch-card">
-                    <h2>Р’РѕР№С‚Рё РїРѕ РєРѕРґСѓ</h2>
+                    <h2>Войти по коду</h2>
                     <form id="join-room-form" class="watch-form">
-                        <input type="text" id="room-code" placeholder="РљРѕРґ, РЅР°РїСЂРёРјРµСЂ A1B2C3" maxlength="6"
+                        <input type="text" id="room-code" placeholder="Код, например A1B2C3" maxlength="6"
                                autocomplete="off" spellcheck="false"/>
-                        <button type="submit" class="watch-btn">Р’РѕР№С‚Рё</button>
+                        <button type="submit" class="watch-btn">Войти</button>
                     </form>
-                    <p class="watch-card-hint">РљРѕРґ РјРѕР¶РЅРѕ РІР·СЏС‚СЊ Сѓ С…РѕСЃС‚Р° РєРѕРјРЅР°С‚С‹.</p>
+                    <p class="watch-card-hint">Код можно взять у хоста комнаты.</p>
                 </div>
             </div>
 
             <div class="watch-rooms">
-                <h2 class="watch-rooms-title">Р›РµРЅС‚Р° Р°РєС‚РёРІРЅС‹С… РєРѕРјРЅР°С‚</h2>
-                <p class="watch-card-hint">РўРѕР»СЊРєРѕ РїСѓР±Р»РёС‡РЅС‹Рµ РєРѕРјРЅР°С‚С‹. РќР°Р¶РјРёС‚Рµ, С‡С‚РѕР±С‹ РїСЂРёСЃРѕРµРґРёРЅРёС‚СЊСЃСЏ Рё СЃРјРѕС‚СЂРµС‚СЊ СЃРёРЅС…СЂРѕРЅРЅРѕ.</p>
-                <div class="sidebar-empty" th:if="${#lists.isEmpty(rooms)}">РЎРµР№С‡Р°СЃ РЅРµС‚ Р°РєС‚РёРІРЅС‹С… РєРѕРјРЅР°С‚</div>
+                <h2 class="watch-rooms-title">Лента активных комнат</h2>
+                <p class="watch-card-hint">Только публичные комнаты. Нажмите, чтобы присоединиться и смотреть синхронно.</p>
+                <div class="sidebar-empty" th:if="${#lists.isEmpty(rooms)}">Сейчас нет активных комнат</div>
                 <div class="watch-room-list" id="rooms-list">
                     <div class="watch-room-item" th:each="room : ${rooms}"
                          th:attr="data-room-id=${room.roomId}">
@@ -67,10 +67,10 @@
                             <img th:src="${room.videoThumb}" alt="" loading="lazy" referrerpolicy="no-referrer"/>
                         </div>
                         <div class="watch-room-info">
-                            <span class="watch-room-name" th:text="${room.videoTitle != null and !#strings.isEmpty(room.videoTitle)} ? ${room.videoTitle} : ${room.name}">РљРѕРјРЅР°С‚Р°</span>
+                            <span class="watch-room-name" th:text="${room.videoTitle != null and !#strings.isEmpty(room.videoTitle)} ? ${room.videoTitle} : ${room.name}">Комната</span>
                             <span class="watch-room-meta">
-                                <span th:text="${room.hostUsername}">host</span> В·
-                                <span th:text="${room.memberCount}">0</span> С‡РµР».
+                                <span th:text="${room.hostUsername}">host</span> ·
+                                <span th:text="${room.memberCount}">0</span> чел.
                             </span>
                             <span class="watch-room-members">
                                 <span class="watch-room-member" th:each="member, iter : ${room.members}"
@@ -85,19 +85,19 @@
                                           th:text="${#strings.toUpperCase(#strings.substring(member.username, 0, 1))}">U</span>
                                 </span>
                                 <span class="watch-room-members-more" th:if="${room.memberCount > 5}"
-                                      th:title="|${room.memberCount} Р·СЂРёС‚РµР»РµР№|">вЂ¦</span>
+                                      th:title="|${room.memberCount} зрителей|">…</span>
                             </span>
                             <span class="watch-room-nowplaying" th:if="${room.status.name() == 'PLAYING' and !#strings.isEmpty(room.videoTitle)}">
                                 <span class="watch-nowplaying-dot" aria-hidden="true"></span>
-                                <span>РЎРµР№С‡Р°СЃ РёРіСЂР°РµС‚</span>
+                                <span>Сейчас играет</span>
                             </span>
                             <span class="watch-room-status"
                                   th:classappend="' is-' + ${#strings.toLowerCase(room.status)}"
-                                  th:text="${room.status.name() == 'PLAYING' ? 'Р’РѕСЃРїСЂРѕРёР·РІРµРґРµРЅРёРµ' : (room.status.name() == 'PAUSED' ? 'РџР°СѓР·Р°' : 'РћР¶РёРґР°РЅРёРµ')}">РћР¶РёРґР°РЅРёРµ</span>
+                                  th:text="${room.status.name() == 'PLAYING' ? 'Воспроизведение' : (room.status.name() == 'PAUSED' ? 'Пауза' : 'Ожидание')}">Ожидание</span>
                         </div>
                         <button type="button" class="watch-btn small join-room-btn"
                                 th:attr="data-room-code=${room.roomCode}"
-                                th:text="'РЎРјРѕС‚СЂРµС‚СЊ'">РЎРјРѕС‚СЂРµС‚СЊ</button>
+                                th:text="'Смотреть'">Смотреть</button>
                     </div>
                 </div>
             </div>
@@ -107,7 +107,7 @@
     <!-- ===== ROOM VIEW ===== -->
     <div class="watch-room-view" id="watch-room-view" hidden>
         <header class="chat-header">
-            <a class="chat-back" th:href="@{/watch}" aria-label="Рљ РєРѕРјРЅР°С‚Р°Рј">
+            <a class="chat-back" th:href="@{/watch}" aria-label="К комнатам">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -121,23 +121,23 @@
                     </svg>
                 </div>
                 <div class="chat-peer-info">
-                    <h1 class="chat-title" id="room-title">РљРѕРјРЅР°С‚Р°</h1>
-                    <span class="chat-status" id="room-meta">РљРѕРґ: вЂ”</span>
+                    <h1 class="chat-title" id="room-title">Комната</h1>
+                    <span class="chat-status" id="room-meta">Код: —</span>
                 </div>            </div>
 
             <div class="watch-header-actions">
                 <span class="room-live-badge" id="room-live-badge" hidden>
-                    <span class="room-live-dot" aria-hidden="true"></span>Р’С‹ РІ РєРѕРјРЅР°С‚Рµ
+                    <span class="room-live-dot" aria-hidden="true"></span>Вы в комнате
                 </span>
                 <span class="room-visibility-badge" id="room-visibility-badge" hidden></span>
-                <button type="button" id="invite-btn" class="watch-btn" title="РЎРєРѕРїРёСЂРѕРІР°С‚СЊ СЃСЃС‹Р»РєСѓ-РїСЂРёРіР»Р°С€РµРЅРёРµ">
+                <button type="button" id="invite-btn" class="watch-btn" title="Скопировать ссылку-приглашение">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M10 14a4 4 0 0 0 5.7.3l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2M14 10a4 4 0 0 0-5.7-.3l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2"
                               stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
-                    <span>РџСЂРёРіР»Р°СЃРёС‚СЊ</span>
+                    <span>Пригласить</span>
                 </button>
-                <button type="button" id="leave-room-btn" class="watch-btn danger">Р’С‹Р№С‚Рё</button>
+                <button type="button" id="leave-room-btn" class="watch-btn danger">Выйти</button>
             </div>
         </header>
 
@@ -153,16 +153,16 @@
                                 <path d="M10 8.5v7l6-3.5l-6-3.5Z" fill="currentColor"/>
                             </svg>
                         </span>
-                        <span>Р’РёРґРµРѕ РµС‰С‘ РЅРµ РґРѕР±Р°РІР»РµРЅРѕ</span>
-                        <span class="watch-player-empty-sub" id="player-empty-sub">РҐРѕСЃС‚ РјРѕР¶РµС‚ РІСЃС‚Р°РІРёС‚СЊ СЃСЃС‹Р»РєСѓ РЅРёР¶Рµ</span>
+                        <span>Видео ещё не добавлено</span>
+                        <span class="watch-player-empty-sub" id="player-empty-sub">Хост может вставить ссылку ниже</span>
                     </div>
                     <div class="watch-player-overlay" id="player-overlay" hidden>
-                        <button type="button" class="watch-btn primary" id="player-overlay-btn">в–¶ РќР°С‡Р°С‚СЊ РїСЂРѕСЃРјРѕС‚СЂ</button>
+                        <button type="button" class="watch-btn primary" id="player-overlay-btn">? Начать просмотр</button>
                     </div>
                     <div class="watch-embed-note" id="watch-embed-note" hidden>
-                        РЈРїСЂР°РІР»РµРЅРёРµ Сѓ СЌС‚РѕР№ РїР»Р°С‚С„РѕСЂРјС‹ РЅРµРґРѕСЃС‚СѓРїРЅРѕ вЂ” С…РѕСЃС‚ Р·Р°РїСѓСЃРєР°РµС‚ РІРёРґРµРѕ Сѓ РІСЃРµС… РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ. Р•СЃР»Рё Сѓ РІР°СЃ РІРёРґРµРѕ РЅРµ РїРѕРµС…Р°Р»Рѕ СЃР°РјРѕ, РЅР°Р¶РјРёС‚Рµ РѕРґРёРЅ СЂР°Р· РІ Р»СЋР±РѕРј РјРµСЃС‚Рµ СЃС‚СЂР°РЅРёС†С‹.
+                        Управление у этой платформы недоступно — хост запускает видео у всех одновременно. Если у вас видео не поехало само, нажмите один раз в любом месте страницы.
                     </div>
-                    <button type="button" class="watch-fs-btn" id="fullscreen-btn" title="РќР° РІРµСЃСЊ СЌРєСЂР°РЅ">
+                    <button type="button" class="watch-fs-btn" id="fullscreen-btn" title="На весь экран">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
@@ -171,73 +171,73 @@
                 </div>
 
                 <div class="watch-seek-row" id="seek-row" hidden>
-                    <input type="range" id="seek-bar" min="0" max="1000" value="0" step="1" disabled title="РџРµСЂРµРјРѕС‚Р°С‚СЊ (РґРѕСЃС‚СѓРїРЅРѕ С…РѕСЃС‚Сѓ)"/>
+                    <input type="range" id="seek-bar" min="0" max="1000" value="0" step="1" disabled title="Перемотать (доступно хосту)"/>
                     <span class="watch-seek-time" id="seek-time">0:00 / 0:00</span>
                 </div>
 
                 <div class="reaction-bar" id="reaction-bar">
-                    <span class="reaction-bar-label" title="Р РµР°РєС†РёСЏ вЂ” СѓРІРёРґРёС‚ РІСЃСЏ РєРѕРјРЅР°С‚Р°">Р РµР°РєС†РёРё</span>
-                    <button type="button" class="reaction-btn" data-emoji="рџ”Ґ" title="рџ”Ґ">рџ”Ґ</button>
-                    <button type="button" class="reaction-btn" data-emoji="рџ‚" title="рџ‚">рџ‚</button>
-                    <button type="button" class="reaction-btn" data-emoji="рџ®" title="рџ®">рџ®</button>
-                    <button type="button" class="reaction-btn" data-emoji="вќ¤пёЏ" title="вќ¤пёЏ">вќ¤пёЏ</button>
-                    <button type="button" class="reaction-btn" data-emoji="рџ‘Ќ" title="рџ‘Ќ">рџ‘Ќ</button>
-                    <button type="button" class="reaction-btn" data-emoji="рџ‘Џ" title="рџ‘Џ">рџ‘Џ</button>
+                    <span class="reaction-bar-label" title="Реакция — увидит вся комната">Реакции</span>
+                    <button type="button" class="reaction-btn" data-emoji="??" title="??">??</button>
+                    <button type="button" class="reaction-btn" data-emoji="??" title="??">??</button>
+                    <button type="button" class="reaction-btn" data-emoji="??" title="??">??</button>
+                    <button type="button" class="reaction-btn" data-emoji="??" title="??">??</button>
+                    <button type="button" class="reaction-btn" data-emoji="??" title="??">??</button>
+                    <button type="button" class="reaction-btn" data-emoji="??" title="??">??</button>
                 </div>
 
                 <div class="watch-controls">
                     <div class="watch-controls-row">
-                        <button type="button" id="play-btn" class="watch-btn" disabled title="Р’РѕСЃРїСЂРѕРёР·РІРµСЃС‚Рё">
+                        <button type="button" id="play-btn" class="watch-btn" disabled title="Воспроизвести">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                 <path d="M7 4.5v15l13-7.5L7 4.5Z"/>
                             </svg>
-                            <span>РРіСЂР°С‚СЊ</span>
+                            <span>Играть</span>
                         </button>
-                        <button type="button" id="pause-btn" class="watch-btn" disabled title="РџР°СѓР·Р°">
+                        <button type="button" id="pause-btn" class="watch-btn" disabled title="Пауза">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                 <path d="M6 4h4v16H6zM14 4h4v16h-4z"/>
                             </svg>
-                            <span>РџР°СѓР·Р°</span>
+                            <span>Пауза</span>
                         </button>
-                        <button type="button" id="next-btn" class="watch-btn" disabled title="РЎР»РµРґСѓСЋС‰РµРµ РІРёРґРµРѕ РёР· РѕС‡РµСЂРµРґРё">
+                        <button type="button" id="next-btn" class="watch-btn" disabled title="Следующее видео из очереди">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                 <path d="M6 18.5V5.5l10 6.5L6 18.5ZM16 5.5v13h3v-13h-3Z"/>
                             </svg>
-                            <span>Р”Р°Р»РµРµ</span>
+                            <span>Далее</span>
                         </button>
-                        <input type="url" id="video-url-input" placeholder="РЎСЃС‹Р»РєР°: YouTube, VK, Rutube, Vimeo РёР»Рё MP4/WebM" disabled/>
-                        <button type="button" id="set-url-btn" class="watch-btn" disabled>Р—Р°РіСЂСѓР·РёС‚СЊ</button>
+                        <input type="url" id="video-url-input" placeholder="Ссылка: YouTube, VK, Rutube, Vimeo или MP4/WebM" disabled/>
+                        <button type="button" id="set-url-btn" class="watch-btn" disabled>Загрузить</button>
                     </div>
-                    <span class="watch-hint" id="host-hint" hidden>Р’С‹ С…РѕСЃС‚ вЂ” СѓРїСЂР°РІР»СЏР№С‚Рµ РІРѕСЃРїСЂРѕРёР·РІРµРґРµРЅРёРµРј</span>
+                    <span class="watch-hint" id="host-hint" hidden>Вы хост — управляйте воспроизведением</span>
                 </div>
 
                 <div class="watch-playlist">
                     <div class="watch-playlist-head">
-                        <h2 class="watch-playlist-title">РћС‡РµСЂРµРґСЊ РІРёРґРµРѕ</h2>
-                        <span class="watch-hint" id="playlist-host-hint" hidden>РҐРѕСЃС‚ СѓРїСЂР°РІР»СЏРµС‚ РѕС‡РµСЂРµРґСЊСЋ</span>
+                        <h2 class="watch-playlist-title">Очередь видео</h2>
+                        <span class="watch-hint" id="playlist-host-hint" hidden>Хост управляет очередью</span>
                     </div>
                     <form id="playlist-add-form" class="watch-playlist-add">
-                        <input type="url" id="playlist-url-input" placeholder="РЎСЃС‹Р»РєР°: YouTube, VK, Rutube, Vimeo РёР»Рё MP4/WebM"
+                        <input type="url" id="playlist-url-input" placeholder="Ссылка: YouTube, VK, Rutube, Vimeo или MP4/WebM"
                                autocomplete="off"/>
-                        <input type="text" id="playlist-title-input" placeholder="РќР°Р·РІР°РЅРёРµ (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)"
+                        <input type="text" id="playlist-title-input" placeholder="Название (необязательно)"
                                maxlength="300" autocomplete="off"/>
-                        <button type="submit" class="watch-btn">Р’ РѕС‡РµСЂРµРґСЊ</button>
+                        <button type="submit" class="watch-btn">В очередь</button>
                     </form>
                     <div class="watch-playlist-list" id="playlist-list">
-                        <div class="sidebar-empty">РћС‡РµСЂРµРґСЊ РїСѓСЃС‚Р°</div>
+                        <div class="sidebar-empty">Очередь пуста</div>
                     </div>
                 </div>
             </div>
 
             <div class="watch-chat">
-                <h2 class="watch-chat-title">Р§Р°С‚ РєРѕРјРЅР°С‚С‹</h2>
+                <h2 class="watch-chat-title">Чат комнаты</h2>
                 <div class="watch-chat-messages" id="watch-chat-messages">
-                    <div class="sidebar-empty">РЎРѕРѕР±С‰РµРЅРёР№ РїРѕРєР° РЅРµС‚</div>
+                    <div class="sidebar-empty">Сообщений пока нет</div>
                 </div>
                 <form id="watch-chat-form" class="watch-chat-form">
-                    <input type="text" id="watch-chat-input" placeholder="РЎРѕРѕР±С‰РµРЅРёРµ..." maxlength="2000"
+                    <input type="text" id="watch-chat-input" placeholder="Сообщение..." maxlength="2000"
                            autocomplete="off"/>
-                    <button type="submit" class="watch-btn">РћС‚РїСЂР°РІРёС‚СЊ</button>
+                    <button type="submit" class="watch-btn">Отправить</button>
                 </form>
             </div>
         </div>
@@ -254,7 +254,7 @@
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 <script src="/js/hls.min.js"></script>
 <script th:src="@{/js/notifications.js(v=3)}"></script>
-<script th:src="@{/js/stickers.js(v=3)}"></script>
+<script th:src="@{/js/stickers.js(v=4)}"></script>
 <script th:src="@{/js/watch.js(v=44)}"></script>
 </body>
 </html>

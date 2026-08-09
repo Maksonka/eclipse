@@ -52,10 +52,10 @@ public class StickerService {
         this.stickerPackRepository = stickerPackRepository;
     }
 
-    public List<StickerPackDto> listPacks() {
+    public List<StickerPackDto> listPacks(String currentUsername) {
         List<StickerPackDto> result = new ArrayList<>();
         for (StickerPack pack : stickerPackRepository.findAllByOrderByCreatedAtAsc()) {
-            result.add(toPackDto(pack));
+            result.add(toPackDto(pack, currentUsername));
         }
         return result;
     }
@@ -73,12 +73,17 @@ public class StickerService {
         }
 
         StickerPack pack = stickerPackRepository.save(new StickerPack(clean, authorUsername));
-        return toPackDto(pack);
+        return toPackDto(pack, authorUsername);
     }
 
     public StickerPackDto addStickers(String authorUsername, Long packId, MultipartFile[] files) throws IOException {
         StickerPack pack = stickerPackRepository.findById(packId)
                 .orElseThrow(() -> new IllegalArgumentException("Набор стикеров не найден"));
+
+        String owner = pack.getAuthorUsername();
+        if (owner == null || owner.isBlank() || !owner.equals(authorUsername)) {
+            throw new IllegalArgumentException("Добавлять стикеры может только создатель набора");
+        }
 
         if (files == null || files.length == 0) {
             throw new IllegalArgumentException("Выберите хотя бы один стикер");
@@ -98,7 +103,7 @@ public class StickerService {
             pack.addSticker(sticker);
             stickerRepository.save(sticker);
         }
-        return toPackDto(pack);
+        return toPackDto(pack, authorUsername);
     }
 
     public Sticker findByCode(String code) {
@@ -115,16 +120,18 @@ public class StickerService {
         return new StickerDto(sticker.getId(), sticker.getCode(), sticker.getFilename());
     }
 
-    public StickerPackDto toPackDto(StickerPack pack) {
+    public StickerPackDto toPackDto(StickerPack pack, String currentUsername) {
         List<StickerDto> stickers = new ArrayList<>();
         for (Sticker sticker : pack.getStickers()) {
             stickers.add(toDto(sticker));
         }
+        String author = pack.getAuthorUsername();
         return new StickerPackDto(
                 pack.getId(),
                 pack.getName(),
-                pack.getAuthorUsername(),
-                pack.getAuthorUsername() == null || pack.getAuthorUsername().isBlank(),
+                author,
+                author == null || author.isBlank(),
+                author != null && author.equals(currentUsername),
                 stickers
         );
     }

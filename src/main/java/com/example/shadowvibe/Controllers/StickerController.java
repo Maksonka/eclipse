@@ -29,8 +29,8 @@ public class StickerController {
 
     @GetMapping("/stickers")
     @ResponseBody
-    public List<StickerPackDto> listPacks() {
-        return stickerService.listPacks();
+    public List<StickerPackDto> listPacks(Principal principal) {
+        return stickerService.listPacks(principal.getName());
     }
 
     @PostMapping("/sticker-packs")
