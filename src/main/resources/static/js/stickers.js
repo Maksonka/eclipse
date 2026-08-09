@@ -381,8 +381,11 @@ window.StickerUI = (function () {
         createButton(insertBeforeEl);
 
         document.addEventListener('click', function (e) {
-            if (!panel.hidden && !panel.contains(e.target) && !btn.contains(e.target)) {
-                closePanel();
+            if (!panel.hidden) {
+                var path = e.composedPath ? e.composedPath() : [];
+                if (path.indexOf(panel) === -1 && path.indexOf(btn) === -1) {
+                    closePanel();
+                }
             }
         });
         document.addEventListener('keydown', function (e) {
