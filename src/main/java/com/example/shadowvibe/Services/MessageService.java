@@ -5,6 +5,7 @@ import com.example.shadowvibe.DTO.ChatReadReceiptDto;
 import com.example.shadowvibe.DTO.ChatTypingDto;
 import com.example.shadowvibe.DTO.ConversationPreviewDto;
 import com.example.shadowvibe.Models.Message;
+import com.example.shadowvibe.Models.Sticker;
 import com.example.shadowvibe.Models.User;
 import com.example.shadowvibe.Repositories.MessageRepository;
 import jakarta.transaction.Transactional;
@@ -31,16 +32,19 @@ public class MessageService {
     private final UserService userService;
     private final SimpMessagingTemplate messagingTemplate;
     private final AttachmentService attachmentService;
+    private final StickerService stickerService;
 
 
     public MessageService(MessageRepository messageRepository,
                           UserService userService,
                           SimpMessagingTemplate messagingTemplate,
-                          AttachmentService attachmentService) {
+                          AttachmentService attachmentService,
+                          StickerService stickerService) {
         this.messageRepository = messageRepository;
         this.userService = userService;
         this.messagingTemplate = messagingTemplate;
         this.attachmentService = attachmentService;
+        this.stickerService = stickerService;
     }
 
 
@@ -86,6 +90,27 @@ public class MessageService {
         return messageRepository.save(message);
     }
 
+    public Message saveStickerMessage(String senderUsername, String receiverUsername, String stickerCode) {
+        Sticker sticker = stickerService.findByCode(stickerCode);
+        if (sticker == null) {
+            throw new RuntimeException("Стикер не найден");
+        }
+
+        User receiver = userService.findByUsername(receiverUsername)
+                .orElseThrow(() -> new RuntimeException("пользователь не найден"));
+        User sender = userService.findByUsername(senderUsername)
+                .orElseThrow(() -> new RuntimeException("пользователь не найден"));
+
+        Message message = new Message();
+        message.setSender(sender);
+        message.setReceiver(receiver);
+        message.setContent("");
+        message.setTimestamp(LocalDateTime.now());
+        message.setStickerCode(sticker.getCode());
+        message.setStickerUrl(sticker.getFilename());
+        return messageRepository.save(message);
+    }
+
     public ChatMessageDto broadcastDirectMessage(Message message) {
         ChatMessageDto dto = toDto(message);
 
@@ -123,7 +148,7 @@ public class MessageService {
                 ? message.getTimestamp().format(TIME_FORMATTER)
                 : "";
         boolean deleted = message.isDeletedBySender() && message.isDeletedByReceiver();
-        return new ChatMessageDto(
+        ChatMessageDto dto = new ChatMessageDto(
                 message.getId(),
                 message.getContent(),
                 message.getSender().getUsername(),
@@ -139,6 +164,9 @@ public class MessageService {
                 message.getReplyToSenderUsername(),
                 deleted
         );
+        dto.setStickerCode(message.getStickerCode());
+        dto.setStickerUrl(message.getStickerUrl());
+        return dto;
     }
 
     public List<ConversationPreviewDto> getConversations(String username) {
@@ -226,6 +254,8 @@ public class MessageService {
         message.setAttachmentType(null);
         message.setAttachmentOriginalName(null);
         message.setAttachmentSize(null);
+        message.setStickerCode(null);
+        message.setStickerUrl(null);
         message.setDeletedBySender(true);
         message.setDeletedByReceiver(true);
         messageRepository.save(message);
@@ -242,9 +272,10 @@ public class MessageService {
         String partner = partnerUser.getUsername();
         boolean outgoing = message.getSender().getUsername().equals(currentUsername);
 
-        String preview = message.getContent() != null && !message.getContent().isBlank()
-                ? message.getContent()
-                : AttachmentService.labelForType(message.getAttachmentType());
+        String preview = message.hasSticker() ? "Стикер"
+                : (message.getContent() != null && !message.getContent().isBlank()
+                        ? message.getContent()
+                        : AttachmentService.labelForType(message.getAttachmentType()));
         if (preview.length() > 48) {
             preview = preview.substring(0, 48) + "…";
         }

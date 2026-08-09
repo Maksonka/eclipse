@@ -59,6 +59,11 @@
                         <th:block th:if="${msg.attachmentFilename != null}"
                                   th:replace="~{fragments/attachment :: attachment(${msg})}"></th:block>
 
+                        <img class="sticker-image"
+                             th:if="${msg.stickerUrl != null}"
+                             th:src="${msg.stickerUrl}"
+                             th:alt="'Стикер от ' + ${msg.sender.username}"/>
+
                         <span class="content"
                               th:if="${msg.content != null and !msg.content.isEmpty()}"
                               th:text="${msg.content}"></span>
@@ -68,7 +73,12 @@
                                   th:if="${msg.sender.username == #authentication.name}"
                                   th:classappend="${msg.read} ? ' is-read' : ''"
                                   th:attr="aria-label=${msg.read} ? 'Прочитано' : 'Доставлено'"
-                                  title="Read receipt">✓✓</span>
+                                  title="Статус сообщения">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M2.5 12.5l4.5 4.5L16.5 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M10.5 17l2 2L22 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
                         </span>
                     </div>
                 </div>
@@ -134,7 +144,8 @@
     <button class="context-menu-item" data-action="delete-all">Удалить для всех</button>
 </div>
 <script th:src="@{/js/notifications.js(v=3)}"></script>
-<script th:src="@{/js/chat-direct.js(v=9)}"></script>
+<script th:src="@{/js/stickers.js(v=1)}"></script>
+<script th:src="@{/js/chat-direct.js(v=10)}"></script>
 <div id="lightbox" class="lightbox">
     <button class="lightbox-close" aria-label="Закрыть">&times;</button>
     <div class="lightbox-content"></div>

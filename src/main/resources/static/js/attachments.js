@@ -12,6 +12,9 @@ function formatAttachmentSize(bytes) {
 }
 
 function messagePreview(message) {
+    if (message.stickerUrl) {
+        return 'Стикер';
+    }
     if (message.content && message.content.trim()) {
         return message.content;
     }

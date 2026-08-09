@@ -6,6 +6,8 @@ public class WatchRoomChatMessageDto {
     private String content;
     private String senderUsername;
     private String timestamp;
+    private String stickerCode;
+    private String stickerUrl;
 
     public WatchRoomChatMessageDto() {
     }
@@ -58,4 +60,10 @@ public class WatchRoomChatMessageDto {
     public void setTimestamp(String timestamp) {
         this.timestamp = timestamp;
     }
+
+    public String getStickerCode() { return stickerCode; }
+    public void setStickerCode(String stickerCode) { this.stickerCode = stickerCode; }
+
+    public String getStickerUrl() { return stickerUrl; }
+    public void setStickerUrl(String stickerUrl) { this.stickerUrl = stickerUrl; }
 }

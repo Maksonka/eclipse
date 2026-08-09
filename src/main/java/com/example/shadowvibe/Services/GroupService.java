@@ -5,6 +5,7 @@ import com.example.shadowvibe.DTO.GroupPreviewDto;
 import com.example.shadowvibe.Models.ChatGroup;
 import com.example.shadowvibe.Models.GroupMembership;
 import com.example.shadowvibe.Models.GroupMessage;
+import com.example.shadowvibe.Models.Sticker;
 import com.example.shadowvibe.Models.User;
 import com.example.shadowvibe.Repositories.ChatGroupRepository;
 import com.example.shadowvibe.Repositories.GroupMembershipRepository;
@@ -49,6 +50,7 @@ public class GroupService {
     private final UserService userService;
     private final SimpMessagingTemplate messagingTemplate;
     private final AttachmentService attachmentService;
+    private final StickerService stickerService;
 
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
@@ -58,13 +60,15 @@ public class GroupService {
                         GroupMembershipRepository groupMembershipRepository,
                         UserService userService,
                         SimpMessagingTemplate messagingTemplate,
-                        AttachmentService attachmentService) {
+                        AttachmentService attachmentService,
+                        StickerService stickerService) {
         this.chatGroupRepository = chatGroupRepository;
         this.groupMessageRepository = groupMessageRepository;
         this.groupMembershipRepository = groupMembershipRepository;
         this.userService = userService;
         this.messagingTemplate = messagingTemplate;
         this.attachmentService = attachmentService;
+        this.stickerService = stickerService;
     }
 
     public ChatGroup createGroup(String creatorUsername, String name, String memberUsernames) {
@@ -129,7 +133,8 @@ public class GroupService {
         for (ChatGroup group : groups) {
             GroupMessage latest = latestByGroup.get(group.getId());
             String preview = latest != null
-                    ? (latest.getContent() != null && !latest.getContent().isBlank()
+                    ? (latest.hasSticker() ? "Стикер"
+                        : latest.getContent() != null && !latest.getContent().isBlank()
                         ? truncate(latest.getContent())
                         : AttachmentService.labelForType(latest.getAttachmentType()))
                     : "Нет сообщений";
@@ -195,6 +200,26 @@ public class GroupService {
         message.setAttachmentType(info.type());
         message.setAttachmentOriginalName(info.originalName());
         message.setAttachmentSize(info.size());
+        return groupMessageRepository.save(message);
+    }
+
+    public GroupMessage saveGroupStickerMessage(String senderUsername, Long groupId, String stickerCode) {
+        Sticker sticker = stickerService.findByCode(stickerCode);
+        if (sticker == null) {
+            throw new RuntimeException("Стикер не найден");
+        }
+
+        ChatGroup group = getGroupForMember(groupId, senderUsername);
+        User sender = userService.findByUsername(senderUsername)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+        GroupMessage message = new GroupMessage();
+        message.setContent("");
+        message.setSender(sender);
+        message.setGroup(group);
+        message.setTimestamp(LocalDateTime.now());
+        message.setStickerCode(sticker.getCode());
+        message.setStickerUrl(sticker.getFilename());
         return groupMessageRepository.save(message);
     }
 
@@ -323,7 +348,7 @@ public class GroupService {
         String time = message.getTimestamp() != null
                 ? message.getTimestamp().format(DateTimeFormatter.ofPattern("HH:mm"))
                 : "";
-        return new GroupMessageDto(
+        GroupMessageDto dto = new GroupMessageDto(
                 message.getId(),
                 message.getGroup().getId(),
                 message.getContent(),
@@ -338,6 +363,9 @@ public class GroupService {
                 message.getReplyToSenderUsername(),
                 message.getDeletedByUserIds()
         );
+        dto.setStickerCode(message.getStickerCode());
+        dto.setStickerUrl(message.getStickerUrl());
+        return dto;
     }
 
     public GroupMessageDto deleteGroupMessageForMe(Long messageId, String username) {
@@ -364,6 +392,8 @@ public class GroupService {
         message.setAttachmentType(null);
         message.setAttachmentOriginalName(null);
         message.setAttachmentSize(null);
+        message.setStickerCode(null);
+        message.setStickerUrl(null);
         groupMessageRepository.save(message);
         return toDto(message);
     }

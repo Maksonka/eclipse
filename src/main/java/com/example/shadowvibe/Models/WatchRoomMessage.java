@@ -18,6 +18,12 @@ public class WatchRoomMessage {
     @Column(name = "sent_at", nullable = false)
     private LocalDateTime timestamp;
 
+    @Column(name = "sticker_code", length = 80)
+    private String stickerCode;
+
+    @Column(name = "sticker_url", length = 255)
+    private String stickerUrl;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
@@ -64,4 +70,12 @@ public class WatchRoomMessage {
     public void setRoom(WatchRoom room) {
         this.room = room;
     }
+
+    public String getStickerCode() { return stickerCode; }
+    public void setStickerCode(String stickerCode) { this.stickerCode = stickerCode; }
+
+    public String getStickerUrl() { return stickerUrl; }
+    public void setStickerUrl(String stickerUrl) { this.stickerUrl = stickerUrl; }
+
+    public boolean hasSticker() { return stickerUrl != null && !stickerUrl.isBlank(); }
 }

@@ -15,6 +15,8 @@ public class ChatMessageDto {
     private String replyToContent;
     private String replyToSenderUsername;
     private boolean deleted;
+    private String stickerCode;
+    private String stickerUrl;
 
     public ChatMessageDto() {
     }
@@ -130,4 +132,10 @@ public class ChatMessageDto {
 
     public boolean isDeleted() { return deleted; }
     public void setDeleted(boolean deleted) { this.deleted = deleted; }
+
+    public String getStickerCode() { return stickerCode; }
+    public void setStickerCode(String stickerCode) { this.stickerCode = stickerCode; }
+
+    public String getStickerUrl() { return stickerUrl; }
+    public void setStickerUrl(String stickerUrl) { this.stickerUrl = stickerUrl; }
 }

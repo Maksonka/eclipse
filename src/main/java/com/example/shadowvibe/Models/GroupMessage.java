@@ -41,6 +41,12 @@ public class GroupMessage {
     @Column(name = "reply_to_sender")
     private String replyToSenderUsername;
 
+    @Column(name = "sticker_code", length = 80)
+    private String stickerCode;
+
+    @Column(name = "sticker_url", length = 255)
+    private String stickerUrl;
+
     @ElementCollection
     @CollectionTable(name = "group_message_deletions", joinColumns = @JoinColumn(name = "message_id"))
     @Column(name = "user_id")
@@ -143,4 +149,12 @@ public class GroupMessage {
 
     public boolean isDeletedByUser(Long userId) { return deletedByUserIds.contains(userId); }
     public void addDeletion(Long userId) { deletedByUserIds.add(userId); }
+
+    public String getStickerCode() { return stickerCode; }
+    public void setStickerCode(String stickerCode) { this.stickerCode = stickerCode; }
+
+    public String getStickerUrl() { return stickerUrl; }
+    public void setStickerUrl(String stickerUrl) { this.stickerUrl = stickerUrl; }
+
+    public boolean hasSticker() { return stickerUrl != null && !stickerUrl.isBlank(); }
 }

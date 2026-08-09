@@ -51,6 +51,11 @@
                         <th:block th:if="${msg.attachmentFilename != null}"
                                   th:replace="~{fragments/attachment :: attachment(${msg})}"></th:block>
 
+                        <img class="sticker-image"
+                             th:if="${msg.stickerUrl != null}"
+                             th:src="${msg.stickerUrl}"
+                             th:alt="'Стикер от ' + ${msg.sender.username}"/>
+
                         <span class="content"
                               th:if="${msg.content != null and !msg.content.isEmpty()}"
                               th:text="${msg.content}"></span>
@@ -112,7 +117,8 @@
     <button class="context-menu-item" data-action="delete-all">Удалить для всех</button>
 </div>
 <script th:src="@{/js/notifications.js(v=3)}"></script>
-<script th:src="@{/js/chat-group.js(v=7)}"></script>
+<script th:src="@{/js/stickers.js(v=1)}"></script>
+<script th:src="@{/js/chat-group.js(v=8)}"></script>
 <div id="lightbox" class="lightbox">
     <button class="lightbox-close" aria-label="Закрыть">&times;</button>
     <div class="lightbox-content"></div>

@@ -263,8 +263,11 @@ function scrollToBottom() {
 function createReadReceiptElement(isRead) {
     const receipt = document.createElement('span');
     receipt.className = 'read-receipt' + (isRead ? ' is-read' : '');
-    receipt.textContent = '✓✓';
     receipt.title = isRead ? 'Прочитано' : 'Доставлено';
+    receipt.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+        '<path d="M2.5 12.5l4.5 4.5L16.5 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M10.5 17l2 2L22 8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '</svg>';
     return receipt;
 }
 
@@ -313,6 +316,19 @@ function buildMessageRow(message) {
     var attachmentEl = createAttachmentElement(message);
     if (attachmentEl) {
         bubbleEl.appendChild(attachmentEl);
+    }
+
+    if (message.stickerUrl) {
+        var stickerEl = window.StickerUI
+            ? StickerUI.createStickerImage(message.stickerUrl)
+            : (function () {
+                var img = document.createElement('img');
+                img.className = 'sticker-image';
+                img.src = message.stickerUrl;
+                img.alt = 'Стикер';
+                return img;
+            })();
+        bubbleEl.appendChild(stickerEl);
     }
 
     if (message.content) {
@@ -718,3 +734,18 @@ document.addEventListener('keydown', function (e) {
 });
 
 initLightbox();
+
+if (window.StickerUI) {
+    StickerUI.init({
+        attachSelector: '#attach-button',
+        onPick: function (stickerCode) {
+            if (!stickerCode || !stompClient.connected || !activeChatUsername) {
+                return;
+            }
+            var payload = { receiverUsername: activeChatUsername, stickerCode: stickerCode };
+            stompClient.send('/app/chat.send', {}, JSON.stringify(payload));
+            hidePeerTyping();
+            clearReplyPreview();
+        }
+    });
+}

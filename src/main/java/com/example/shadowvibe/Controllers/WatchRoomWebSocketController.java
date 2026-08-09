@@ -74,7 +74,8 @@ public class WatchRoomWebSocketController {
         }
         Long roomId = Long.valueOf(request.get("roomId").toString());
         String content = request.get("content") != null ? request.get("content").toString() : null;
-        watchRoomService.sendChatMessage(principal.getName(), roomId, content);
+        String stickerCode = request.get("stickerCode") != null ? request.get("stickerCode").toString() : null;
+        watchRoomService.sendChatMessage(principal.getName(), roomId, content, stickerCode);
     }
 
     @MessageMapping("/room.react")

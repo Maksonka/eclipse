@@ -13,6 +13,8 @@ public class GroupMessageDto {
     private Long replyToMessageId;
     private String replyToContent;
     private String replyToSenderUsername;
+    private String stickerCode;
+    private String stickerUrl;
     private java.util.Set<Long> deletedByUserIds = new java.util.HashSet<>();
 
     public GroupMessageDto() {
@@ -121,4 +123,10 @@ public class GroupMessageDto {
 
     public java.util.Set<Long> getDeletedByUserIds() { return deletedByUserIds; }
     public void setDeletedByUserIds(java.util.Set<Long> deletedByUserIds) { this.deletedByUserIds = deletedByUserIds; }
+
+    public String getStickerCode() { return stickerCode; }
+    public void setStickerCode(String stickerCode) { this.stickerCode = stickerCode; }
+
+    public String getStickerUrl() { return stickerUrl; }
+    public void setStickerUrl(String stickerUrl) { this.stickerUrl = stickerUrl; }
 }

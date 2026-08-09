@@ -4,6 +4,7 @@ public class GroupMessageRequest {
     private Long groupId;
     private String content;
     private Long replyToMessageId;
+    private String stickerCode;
 
     public GroupMessageRequest() {
     }
@@ -16,4 +17,7 @@ public class GroupMessageRequest {
 
     public Long getReplyToMessageId() { return replyToMessageId; }
     public void setReplyToMessageId(Long replyToMessageId) { this.replyToMessageId = replyToMessageId; }
+
+    public String getStickerCode() { return stickerCode; }
+    public void setStickerCode(String stickerCode) { this.stickerCode = stickerCode; }
 }

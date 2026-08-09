@@ -55,6 +55,19 @@ function buildGroupMessageRow(message) {
         bubbleEl.appendChild(attachmentEl);
     }
 
+    if (message.stickerUrl) {
+        var stickerEl = window.StickerUI
+            ? StickerUI.createStickerImage(message.stickerUrl)
+            : (function () {
+                var img = document.createElement('img');
+                img.className = 'sticker-image';
+                img.src = message.stickerUrl;
+                img.alt = 'Стикер';
+                return img;
+            })();
+        bubbleEl.appendChild(stickerEl);
+    }
+
     if (message.content) {
         var contentEl = document.createElement('span');
         contentEl.className = 'content';
@@ -263,3 +276,17 @@ if (messageForm) {
 }
 
 initLightbox();
+
+if (window.StickerUI) {
+    StickerUI.init({
+        attachSelector: '#attach-button',
+        onPick: function (stickerCode) {
+            var groupId = groupIdInput ? parseInt(groupIdInput.value, 10) : activeGroupId;
+            if (!stickerCode || !stompClient.connected || !groupId) {
+                return;
+            }
+            stompClient.send('/app/group.send', {}, JSON.stringify({ groupId: groupId, stickerCode: stickerCode }));
+            clearReplyPreview();
+        }
+    });
+}

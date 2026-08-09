@@ -34,16 +34,32 @@ public class ChatWebSocketController {
 
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload ChatMessageRequest request, Principal principal) {
-        if (principal == null || request.getContent() == null || request.getContent().isBlank()) {
+        if (principal == null || request.getReceiverUsername() == null || request.getReceiverUsername().isBlank()) {
             return;
         }
 
-        Message saved = messageService.saveMessage(
-                principal.getName(),
-                request.getReceiverUsername(),
-                request.getContent().trim(),
-                request.getReplyToMessageId()
-        );
+        boolean hasSticker = request.getStickerCode() != null && !request.getStickerCode().isBlank();
+        if (request.getContent() == null || request.getContent().isBlank()) {
+            if (!hasSticker) {
+                return;
+            }
+        }
+
+        Message saved;
+        if (hasSticker) {
+            saved = messageService.saveStickerMessage(
+                    principal.getName(),
+                    request.getReceiverUsername(),
+                    request.getStickerCode().trim()
+            );
+        } else {
+            saved = messageService.saveMessage(
+                    principal.getName(),
+                    request.getReceiverUsername(),
+                    request.getContent().trim(),
+                    request.getReplyToMessageId()
+            );
+        }
 
         messageService.broadcastDirectMessage(saved);
     }
@@ -85,16 +101,32 @@ public class ChatWebSocketController {
 
     @MessageMapping("/group.send")
     public void sendGroupMessage(@Payload GroupMessageRequest request, Principal principal) {
-        if (principal == null || request.getGroupId() == null || request.getContent() == null || request.getContent().isBlank()) {
+        if (principal == null || request.getGroupId() == null) {
             return;
         }
 
-        GroupMessage saved = groupService.saveGroupMessage(
-                principal.getName(),
-                request.getGroupId(),
-                request.getContent().trim(),
-                request.getReplyToMessageId()
-        );
+        boolean hasSticker = request.getStickerCode() != null && !request.getStickerCode().isBlank();
+        if (request.getContent() == null || request.getContent().isBlank()) {
+            if (!hasSticker) {
+                return;
+            }
+        }
+
+        GroupMessage saved;
+        if (hasSticker) {
+            saved = groupService.saveGroupStickerMessage(
+                    principal.getName(),
+                    request.getGroupId(),
+                    request.getStickerCode().trim()
+            );
+        } else {
+            saved = groupService.saveGroupMessage(
+                    principal.getName(),
+                    request.getGroupId(),
+                    request.getContent().trim(),
+                    request.getReplyToMessageId()
+            );
+        }
 
         groupService.broadcastGroupMessage(saved);
     }

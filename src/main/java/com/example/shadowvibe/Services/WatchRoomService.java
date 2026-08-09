@@ -13,6 +13,7 @@ import com.example.shadowvibe.Models.User;
 import com.example.shadowvibe.Models.WatchRoom;
 import com.example.shadowvibe.Models.WatchRoomMessage;
 import com.example.shadowvibe.Models.WatchRoomPlaylistItem;
+import com.example.shadowvibe.Models.Sticker;
 import com.example.shadowvibe.Repositories.WatchRoomMessageRepository;
 import com.example.shadowvibe.Repositories.WatchRoomPlaylistItemRepository;
 import com.example.shadowvibe.Repositories.WatchRoomRepository;
@@ -47,6 +48,7 @@ public class WatchRoomService {
     private final UserService userService;
     private final SimpMessagingTemplate messagingTemplate;
     private final VideoMetadataService videoMetadataService;
+    private final StickerService stickerService;
 
     /**
      * Живое состояние комнат. Комната-источник правды для синхронизации:
@@ -59,13 +61,15 @@ public class WatchRoomService {
                             WatchRoomPlaylistItemRepository playlistItemRepository,
                             UserService userService,
                             SimpMessagingTemplate messagingTemplate,
-                            VideoMetadataService videoMetadataService) {
+                            VideoMetadataService videoMetadataService,
+                            StickerService stickerService) {
         this.roomRepository = roomRepository;
         this.messageRepository = messageRepository;
         this.playlistItemRepository = playlistItemRepository;
         this.userService = userService;
         this.messagingTemplate = messagingTemplate;
         this.videoMetadataService = videoMetadataService;
+        this.stickerService = stickerService;
     }
 
     @Transactional
@@ -215,15 +219,20 @@ public class WatchRoomService {
 
     @Transactional
     public WatchRoomChatMessageDto sendChatMessage(String username, Long roomId, String content) {
+        return sendChatMessage(username, roomId, content, null);
+    }
+
+    @Transactional
+    public WatchRoomChatMessageDto sendChatMessage(String username, Long roomId, String content, String stickerCode) {
         WatchRoom room = getRoom(roomId);
         if (!room.isMember(username)) {
             throw new IllegalArgumentException("Вы не в этой комнате");
         }
-        if (content == null || content.isBlank()) {
+        if ((content == null || content.isBlank()) && (stickerCode == null || stickerCode.isBlank())) {
             throw new IllegalArgumentException("Сообщение не может быть пустым");
         }
 
-        String text = content.trim();
+        String text = content != null ? content.trim() : "";
         if (text.length() > 2000) {
             text = text.substring(0, 2000);
         }
@@ -236,6 +245,15 @@ public class WatchRoomService {
         message.setSender(sender);
         message.setRoom(room);
         message.setTimestamp(LocalDateTime.now());
+
+        if (stickerCode != null && !stickerCode.isBlank()) {
+            Sticker sticker = stickerService.findByCode(stickerCode);
+            if (sticker == null) {
+                throw new IllegalArgumentException("Стикер не найден");
+            }
+            message.setStickerCode(sticker.getCode());
+            message.setStickerUrl(sticker.getFilename());
+        }
 
         WatchRoomChatMessageDto dto = toMessageDto(messageRepository.save(message));
         sendAfterCommit(() -> messagingTemplate.convertAndSend("/topic/room." + roomId + ".chat", dto));
@@ -277,13 +295,16 @@ public class WatchRoomService {
         String time = message.getTimestamp() != null
                 ? message.getTimestamp().format(DateTimeFormatter.ofPattern("HH:mm"))
                 : "";
-        return new WatchRoomChatMessageDto(
+        WatchRoomChatMessageDto dto = new WatchRoomChatMessageDto(
                 message.getId(),
                 message.getRoom().getId(),
                 message.getContent(),
                 message.getSender().getUsername(),
                 time
         );
+        dto.setStickerCode(message.getStickerCode());
+        dto.setStickerUrl(message.getStickerUrl());
+        return dto;
     }
 
     @Transactional

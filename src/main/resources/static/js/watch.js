@@ -840,16 +840,24 @@ function appendChatMessage(msg, notify) {
     sender.className = 'chat-msg-sender';
     sender.textContent = msg.senderUsername;
 
-    var content = document.createElement('span');
-    content.className = 'chat-msg-content';
-    content.textContent = msg.content;
+    if (msg.stickerUrl) {
+        var stickerImg = document.createElement('img');
+        stickerImg.className = 'chat-msg-content sticker-image';
+        stickerImg.src = msg.stickerUrl;
+        stickerImg.alt = 'Стикер';
+        row.appendChild(stickerImg);
+    } else {
+        var content = document.createElement('span');
+        content.className = 'chat-msg-content';
+        content.textContent = msg.content;
+        row.appendChild(content);
+    }
 
     var meta = document.createElement('time');
     meta.className = 'chat-msg-time';
     meta.textContent = msg.timestamp || '';
 
     row.appendChild(sender);
-    row.appendChild(content);
     row.appendChild(meta);
     chatMessages.appendChild(row);
     scrollChat();
@@ -858,7 +866,7 @@ function appendChatMessage(msg, notify) {
         MessageNotifications.show({
             sender: msg.senderUsername,
             title: msg.senderUsername,
-            text: msg.content || 'Файл',
+            text: msg.stickerUrl ? 'Стикер' : (msg.content || 'Файл'),
             href: '/watch?room=' + activeRoom.roomId
         });
     }
@@ -1477,3 +1485,14 @@ setInterval(function () {
         fullscreenBtn.style.opacity = '1';
     }
 })();
+
+/* ===== Stickers ===== */
+if (window.StickerUI) {
+    StickerUI.init({
+        attachSelector: '#watch-chat-input',
+        onPick: function (stickerCode) {
+            if (!activeRoom || !stompClient.connected) return;
+            stompClient.send('/app/room.message', {}, JSON.stringify({ roomId: activeRoom.roomId, stickerCode: stickerCode }));
+        }
+    });
+}
