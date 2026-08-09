@@ -5,6 +5,8 @@ import com.example.shadowvibe.Repositories.UserRepository;
 import com.example.shadowvibe.Services.UserService;
 
 import com.example.shadowvibe.enums.UserRole;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,6 +29,15 @@ public class AuthController {
         this.passwordEncoder = passwordEncoder;
     }
 
+
+    @GetMapping("/")
+    public String home(Authentication authentication) {
+        if (authentication != null && authentication.isAuthenticated()
+                && authentication.getPrincipal() instanceof UserDetails) {
+            return "redirect:/chat";
+        }
+        return "home";
+    }
 
     @GetMapping("/register")
     public String registerForm() {

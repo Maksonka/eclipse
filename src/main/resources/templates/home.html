@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>ShadowVibe — смотрите и общайтесь вместе</title>
+    <link rel="icon" type="image/png" th:href="@{/img/favicon.png}"/>
+    <link rel="apple-touch-icon" th:href="@{/img/apple-touch-icon.png}"/>
+    <link rel="stylesheet" th:href="@{/css/style.css?v=29}"/>
+    <script th:src="@{/js/theme.js}"></script>
+</head>
+<body class="auth-page">
+
+<div class="auth-shell">
+    <div class="auth-card home-card">
+        <div class="auth-brand home-brand">
+            <div class="auth-logo home-logo">
+                <img th:src="@{/img/favicon.png}" alt="ShadowVibe"/>
+            </div>
+            <h1>ShadowVibe</h1>
+            <p>Место, где можно посмотреть кино, послушать музыку и поболтать с друзьями, даже если вы далеко друг от друга</p>
+        </div>
+
+        <ul class="home-features">
+            <li>
+                <span class="home-feature-icon">&#9654;</span>
+                <div class="home-feature-text">
+                    <strong>Смотрите вместе</strong>
+                    <span>Запускайте видео и делитесь впечатлениями прямо во время просмотра</span>
+                </div>
+            </li>
+            <li>
+                <span class="home-feature-icon">&#9993;</span>
+                <div class="home-feature-text">
+                    <strong>Общайтесь</strong>
+                    <span>Личные сообщения и чаты на любую тему</span>
+                </div>
+            </li>
+            <li>
+                <span class="home-feature-icon">&#128257;</span>
+                <div class="home-feature-text">
+                    <strong>Делитесь впечатлениями</strong>
+                    <span>Реагируйте и оставляйте комментарии, как в живом общении</span>
+                </div>
+            </li>
+            <li>
+                <span class="home-feature-icon">&#127912;</span>
+                <div class="home-feature-text">
+                    <strong>Показывайте себя</strong>
+                    <span>Свой профиль, аватарка и удобная тема под настроение</span>
+                </div>
+            </li>
+        </ul>
+
+        <div class="home-actions">
+            <a class="btn-primary" th:href="@{/login}">Войти</a>
+            <a class="btn-secondary" th:href="@{/register}">Зарегистрироваться</a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

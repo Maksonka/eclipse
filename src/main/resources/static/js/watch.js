@@ -816,7 +816,9 @@ function loadChatHistory(roomId) {
     }).then(function (messages) {
         chatMessages.innerHTML = '';
         if (Array.isArray(messages) && messages.length) {
-            messages.forEach(appendChatMessage);
+            messages.forEach(function (m) {
+                appendChatMessage(m, false);
+            });
             scrollChat();
         } else {
             chatMessages.innerHTML = '<div class="sidebar-empty">Сообщений пока нет</div>';
@@ -826,7 +828,7 @@ function loadChatHistory(roomId) {
     });
 }
 
-function appendChatMessage(msg) {
+function appendChatMessage(msg, notify) {
     var empty = chatMessages.querySelector('.sidebar-empty');
     if (empty) empty.remove();
 
@@ -851,6 +853,15 @@ function appendChatMessage(msg) {
     row.appendChild(meta);
     chatMessages.appendChild(row);
     scrollChat();
+
+    if (msg.senderUsername !== currentUsername && activeRoom && notify !== false && window.MessageNotifications) {
+        MessageNotifications.show({
+            sender: msg.senderUsername,
+            title: msg.senderUsername,
+            text: msg.content || 'Файл',
+            href: '/watch?room=' + activeRoom.roomId
+        });
+    }
 }
 
 /* ===== Reactions ===== */

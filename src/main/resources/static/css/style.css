@@ -113,6 +113,112 @@ body.auth-page {
     line-height: 1.5;
 }
 
+.auth-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-full);
+}
+
+.home-card {
+    width: min(720px, 100%);
+    padding: 44px;
+}
+
+.home-brand {
+    margin-bottom: 32px;
+}
+
+.home-brand h1 {
+    font-size: 2.2rem;
+}
+
+.home-brand p {
+    max-width: 420px;
+    margin: 0 auto;
+    font-size: 1.02rem;
+}
+
+.home-logo {
+    width: 72px;
+    height: 72px;
+}
+
+.home-features {
+    margin: 0 0 28px;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 12px;
+}
+
+.home-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.home-features li:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-strong);
+}
+
+.home-feature-icon {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-full);
+    background: linear-gradient(145deg, var(--purple-700), var(--purple-500));
+    color: #fff;
+    font-size: 1rem;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+}
+
+.home-feature-text {
+    display: grid;
+    gap: 3px;
+}
+
+.home-feature-text strong {
+    font-size: 0.98rem;
+    font-weight: 600;
+}
+
+.home-feature-text span {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.home-actions {
+    display: grid;
+    gap: 12px;
+}
+
+@media (min-width: 560px) {
+    .home-features {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .home-actions {
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+    }
+}
+
+.home-footer {
+    margin-top: 24px;
+}
+
+
+
 .auth-alert {
     padding: 12px 14px;
     border-radius: var(--radius-sm);
@@ -3900,4 +4006,127 @@ html, body {
 /* hidden-атрибут всегда должен перебивать заданный display (flex/grid/inline-flex) */
 [hidden] {
     display: none !important;
+}
+
+/* ===== MESSAGE NOTIFICATIONS (bottom-right toasts) ===== */
+
+.notification-toasts {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    z-index: 9999;
+    display: grid;
+    gap: 10px;
+    width: min(340px, calc(100vw - 24px));
+    max-width: 340px;
+    pointer-events: none;
+}
+
+.notification-toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow);
+    opacity: 0;
+    transform: translateX(16px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.notification-toast.is-visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.notification-toast.is-clickable {
+    cursor: pointer;
+}
+
+.notification-toast.is-clickable:hover {
+    border-color: var(--border-strong);
+}
+
+.notification-toast-avatar {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-full);
+    background: linear-gradient(145deg, var(--purple-700), var(--purple-500));
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.notification-toast-body {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+    padding-top: 2px;
+}
+
+.notification-toast-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.notification-toast-text {
+    font-size: 0.84rem;
+    line-height: 1.4;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.notification-toast-close {
+    flex: 0 0 auto;
+    margin: -4px -6px 0 0;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: var(--radius-full);
+}
+
+.notification-toast-close:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+@supports (padding: max(0px)) {
+    .notification-toasts {
+        right: max(12px, env(safe-area-inset-right));
+        bottom: max(12px, env(safe-area-inset-bottom));
+    }
+}
+
+@media (max-width: 380px) {
+    .notification-toasts {
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-width: none;
+    }
+
+    .notification-toast {
+        padding: 10px 12px;
+    }
 }

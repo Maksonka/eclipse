@@ -102,6 +102,15 @@ function appendGroupMessage(message) {
 
     messagesContainer.appendChild(buildGroupMessageRow(message));
     scrollToBottom();
+
+    if (message.senderUsername !== currentUsername && document.hidden && window.MessageNotifications) {
+        MessageNotifications.show({
+            sender: message.senderUsername,
+            title: message.senderUsername,
+            text: message.content || messagePreview(message) || 'Сообщение',
+            href: '/chat/group/' + activeGroupId
+        });
+    }
 }
 
 var replyState = null;

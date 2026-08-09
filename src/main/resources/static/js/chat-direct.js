@@ -391,6 +391,15 @@ function handleIncomingMessage(message) {
             sendMarkAsRead();
         }
     }
+
+    if (isIncoming && window.MessageNotifications && (!inActiveChat || document.hidden)) {
+        MessageNotifications.show({
+            sender: message.senderUsername,
+            title: message.senderUsername,
+            text: truncatePreview(messagePreview(message)),
+            href: '/chat/' + encodeURIComponent(partner)
+        });
+    }
 }
 
 function sendTypingState(typing) {
