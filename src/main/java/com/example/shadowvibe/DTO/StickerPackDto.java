@@ -9,17 +9,19 @@ public class StickerPackDto {
     private String authorUsername;
     private boolean system;
     private boolean mine;
+    private boolean added;
     private List<StickerDto> stickers = new ArrayList<>();
 
     public StickerPackDto() {
     }
 
-    public StickerPackDto(Long id, String name, String authorUsername, boolean system, boolean mine, List<StickerDto> stickers) {
+    public StickerPackDto(Long id, String name, String authorUsername, boolean system, boolean mine, boolean added, List<StickerDto> stickers) {
         this.id = id;
         this.name = name;
         this.authorUsername = authorUsername;
         this.system = system;
         this.mine = mine;
+        this.added = added;
         this.stickers = stickers;
     }
 
@@ -61,6 +63,14 @@ public class StickerPackDto {
 
     public void setMine(boolean mine) {
         this.mine = mine;
+    }
+
+    public boolean isAdded() {
+        return added;
+    }
+
+    public void setAdded(boolean added) {
+        this.added = added;
     }
 
     public List<StickerDto> getStickers() {

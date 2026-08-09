@@ -361,6 +361,7 @@ window.StickerUI = (function () {
         }
         buildPanel();
         createButton(insertBeforeEl);
+        registerStickerClickHandler();
 
         document.addEventListener('click', function (e) {
             if (!panel.hidden) {
@@ -382,12 +383,152 @@ window.StickerUI = (function () {
         });
     }
 
-    function createStickerImage(stickerUrl) {
+    function createStickerImage(stickerUrl, stickerCode, outgoing) {
         var img = document.createElement('img');
         img.className = 'sticker-image';
         img.src = stickerUrl;
         img.alt = 'Стикер';
+        if (stickerCode) {
+            img.setAttribute('data-sticker-code', stickerCode);
+        }
+        if (outgoing) {
+            img.setAttribute('data-outgoing', '1');
+        }
         return img;
+    }
+
+    var previewModal = null;
+    var previewHandlerRegistered = false;
+
+    function registerStickerClickHandler() {
+        if (previewHandlerRegistered) {
+            return;
+        }
+        previewHandlerRegistered = true;
+        document.addEventListener('click', function (e) {
+            var target = e.target;
+            if (!target || !target.closest) {
+                return;
+            }
+            if (target.closest('.sticker-preview')) {
+                return;
+            }
+            var img = target.closest('.sticker-image[data-sticker-code]');
+            if (!img || img.hasAttribute('data-outgoing')) {
+                return;
+            }
+            previewStickerPack(img.getAttribute('data-sticker-code'));
+        });
+    }
+
+    function previewStickerPack(code) {
+        fetch('/api/sticker-packs/by-code/' + encodeURIComponent(code))
+            .then(function (r) {
+                return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+            })
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.id || res.data.added) {
+                    return;
+                }
+                showPreviewModal(res.data);
+            })
+            .catch(function () {
+            });
+    }
+
+    function showPreviewModal(pack) {
+        if (previewModal) {
+            previewModal.remove();
+            previewModal = null;
+        }
+
+        var overlay = document.createElement('div');
+        overlay.className = 'sticker-preview-overlay';
+
+        var modal = document.createElement('div');
+        modal.className = 'sticker-preview';
+
+        var header = document.createElement('div');
+        header.className = 'sticker-preview-header';
+
+        var title = document.createElement('div');
+        title.className = 'sticker-preview-title';
+        title.textContent = pack.name || 'Набор стикеров';
+
+        var closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'sticker-close';
+        closeBtn.setAttribute('aria-label', 'Закрыть');
+        closeBtn.textContent = '\u00d7';
+        closeBtn.addEventListener('click', function () {
+            closePreviewModal();
+        });
+
+        header.appendChild(title);
+        header.appendChild(closeBtn);
+
+        var grid = document.createElement('div');
+        grid.className = 'sticker-preview-grid';
+        if (pack.stickers && pack.stickers.length) {
+            pack.stickers.forEach(function (sticker) {
+                var img = document.createElement('img');
+                img.src = sticker.url;
+                img.alt = '';
+                grid.appendChild(img);
+            });
+        } else {
+            var empty = document.createElement('div');
+            empty.className = 'sticker-empty';
+            empty.textContent = 'В этом наборе пока нет стикеров';
+            grid.appendChild(empty);
+        }
+
+        var addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'btn-primary sticker-preview-add';
+        addBtn.textContent = 'Добавить набор';
+        addBtn.addEventListener('click', function () {
+            fetch('/api/sticker-packs/' + pack.id + '/subscribe', { method: 'POST' })
+                .then(function (r) {
+                    return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+                })
+                .then(function (res) {
+                    if (!res.ok || !res.data || !res.data.success || !res.data.pack || !res.data.pack.added) {
+                        throw new Error(res.data && res.data.error ? res.data.error : 'Не удалось добавить набор');
+                    }
+                    addBtn.textContent = '\u2713 Набор добавлен';
+                    addBtn.disabled = true;
+                    if (panel && !panel.hidden) {
+                        loadPacks(pack.id);
+                    }
+                    setTimeout(closePreviewModal, 900);
+                })
+                .catch(function (e) {
+                    addBtn.textContent = e.message || 'Не удалось добавить набор';
+                    addBtn.disabled = false;
+                });
+        });
+
+        modal.appendChild(header);
+        modal.appendChild(grid);
+        modal.appendChild(addBtn);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) {
+                closePreviewModal();
+            }
+        });
+
+        previewModal = overlay;
+    }
+
+    function closePreviewModal() {
+        if (previewModal) {
+            previewModal.remove();
+            previewModal = null;
+        }
     }
 
     return {

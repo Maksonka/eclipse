@@ -846,6 +846,12 @@ function appendChatMessage(msg, notify) {
         stickerImg.className = 'chat-msg-content sticker-image';
         stickerImg.src = msg.stickerUrl;
         stickerImg.alt = 'Стикер';
+        if (msg.stickerCode) {
+            stickerImg.setAttribute('data-sticker-code', msg.stickerCode);
+        }
+        if (msg.senderUsername === currentUsername) {
+            stickerImg.setAttribute('data-outgoing', '1');
+        }
         row.appendChild(sender);
         row.appendChild(stickerImg);
     } else {

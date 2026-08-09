@@ -323,12 +323,18 @@ function buildMessageRow(message) {
 
     if (message.stickerUrl) {
         var stickerEl = window.StickerUI
-            ? StickerUI.createStickerImage(message.stickerUrl)
+            ? StickerUI.createStickerImage(message.stickerUrl, message.stickerCode, isOutgoing)
             : (function () {
                 var img = document.createElement('img');
                 img.className = 'sticker-image';
                 img.src = message.stickerUrl;
                 img.alt = 'Стикер';
+                if (message.stickerCode) {
+                    img.setAttribute('data-sticker-code', message.stickerCode);
+                }
+                if (isOutgoing) {
+                    img.setAttribute('data-outgoing', '1');
+                }
                 return img;
             })();
         bubbleEl.appendChild(stickerEl);

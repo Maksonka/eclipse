@@ -33,6 +33,27 @@ public class StickerController {
         return stickerService.listPacks(principal.getName());
     }
 
+    @GetMapping("/sticker-packs/by-code/{code}")
+    @ResponseBody
+    public ResponseEntity<?> getPackByStickerCode(Principal principal, @PathVariable String code) {
+        StickerPackDto pack = stickerService.getPackByStickerCode(code, principal.getName());
+        if (pack == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(pack);
+    }
+
+    @PostMapping("/sticker-packs/{packId}/subscribe")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> subscribePack(Principal principal, @PathVariable Long packId) {
+        try {
+            StickerPackDto pack = stickerService.subscribePack(principal.getName(), packId);
+            return ResponseEntity.ok(Map.of("success", true, "pack", pack));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PostMapping("/sticker-packs")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> createPack(Principal principal,

@@ -4,8 +4,12 @@ import com.example.shadowvibe.DTO.StickerDto;
 import com.example.shadowvibe.DTO.StickerPackDto;
 import com.example.shadowvibe.Models.Sticker;
 import com.example.shadowvibe.Models.StickerPack;
+import com.example.shadowvibe.Models.User;
+import com.example.shadowvibe.Models.UserStickerPack;
 import com.example.shadowvibe.Repositories.StickerPackRepository;
 import com.example.shadowvibe.Repositories.StickerRepository;
+import com.example.shadowvibe.Repositories.UserRepository;
+import com.example.shadowvibe.Repositories.UserStickerPackRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -17,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,22 +47,70 @@ public class StickerService {
 
     private final StickerRepository stickerRepository;
     private final StickerPackRepository stickerPackRepository;
+    private final UserRepository userRepository;
+    private final UserStickerPackRepository userStickerPackRepository;
 
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
 
     public StickerService(StickerRepository stickerRepository,
-                          StickerPackRepository stickerPackRepository) {
+                          StickerPackRepository stickerPackRepository,
+                          UserRepository userRepository,
+                          UserStickerPackRepository userStickerPackRepository) {
         this.stickerRepository = stickerRepository;
         this.stickerPackRepository = stickerPackRepository;
+        this.userRepository = userRepository;
+        this.userStickerPackRepository = userStickerPackRepository;
     }
 
     public List<StickerPackDto> listPacks(String currentUsername) {
+        long userId = resolveUserId(currentUsername);
+        Set<Long> subscribed = userId > 0
+                ? userStickerPackRepository.findPackIdsByUserId(userId)
+                : new HashSet<>();
         List<StickerPackDto> result = new ArrayList<>();
         for (StickerPack pack : stickerPackRepository.findAllByOrderByCreatedAtAsc()) {
-            result.add(toPackDto(pack, currentUsername));
+            String author = pack.getAuthorUsername();
+            boolean system = author == null || author.isBlank();
+            boolean mine = author != null && author.equals(currentUsername);
+            if (system || mine || subscribed.contains(pack.getId())) {
+                result.add(toPackDto(pack, currentUsername, subscribed));
+            }
         }
         return result;
+    }
+
+    public StickerPackDto getPackByStickerCode(String code, String currentUsername) {
+        Sticker sticker = stickerRepository.findByCode(code).orElse(null);
+        if (sticker == null || sticker.getPack() == null) {
+            return null;
+        }
+        return toPackDto(sticker.getPack(), currentUsername);
+    }
+
+    public StickerPackDto subscribePack(String currentUsername, Long packId) {
+        StickerPack pack = stickerPackRepository.findById(packId)
+                .orElseThrow(() -> new IllegalArgumentException("Набор стикеров не найден"));
+
+        String author = pack.getAuthorUsername();
+        boolean system = author == null || author.isBlank();
+        if (system || (author != null && author.equals(currentUsername))) {
+            return toPackDto(pack, currentUsername);
+        }
+
+        User user = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден"));
+        if (!userStickerPackRepository.existsByUserIdAndPackId(user.getId(), packId)) {
+            userStickerPackRepository.save(new UserStickerPack(user, pack));
+        }
+        return toPackDto(pack, currentUsername);
+    }
+
+    private long resolveUserId(String username) {
+        if (username == null || username.isBlank()) {
+            return 0;
+        }
+        return userRepository.findByUsername(username).map(User::getId).orElse(0L);
     }
 
     public StickerPackDto createPack(String authorUsername, String name) {
@@ -121,17 +174,29 @@ public class StickerService {
     }
 
     public StickerPackDto toPackDto(StickerPack pack, String currentUsername) {
+        long userId = resolveUserId(currentUsername);
+        Set<Long> subscribed = userId > 0
+                ? userStickerPackRepository.findPackIdsByUserId(userId)
+                : new HashSet<>();
+        return toPackDto(pack, currentUsername, subscribed);
+    }
+
+    public StickerPackDto toPackDto(StickerPack pack, String currentUsername, Set<Long> subscribedPackIds) {
         List<StickerDto> stickers = new ArrayList<>();
         for (Sticker sticker : pack.getStickers()) {
             stickers.add(toDto(sticker));
         }
         String author = pack.getAuthorUsername();
+        boolean system = author == null || author.isBlank();
+        boolean mine = author != null && author.equals(currentUsername);
+        boolean added = system || mine || subscribedPackIds.contains(pack.getId());
         return new StickerPackDto(
                 pack.getId(),
                 pack.getName(),
                 author,
-                author == null || author.isBlank(),
-                author != null && author.equals(currentUsername),
+                system,
+                mine,
+                added,
                 stickers
         );
     }
