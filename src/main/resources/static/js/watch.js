@@ -1490,6 +1490,7 @@ setInterval(function () {
 if (window.StickerUI) {
     StickerUI.init({
         attachSelector: '#watch-chat-input',
+        composerSelector: '#watch-chat-form',
         onPick: function (stickerCode) {
             if (!activeRoom || !stompClient.connected) return;
             stompClient.send('/app/room.message', {}, JSON.stringify({ roomId: activeRoom.roomId, stickerCode: stickerCode }));

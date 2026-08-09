@@ -46,7 +46,8 @@
                      th:each="msg : ${messages}"
                      th:if="${!((msg.sender.username == #authentication.name and msg.deletedBySender) or (msg.sender.username != #authentication.name and msg.deletedByReceiver))}"
                      th:attr="data-message-id=${msg.id}">
-                    <div class="message-bubble">
+                    <div class="message-bubble"
+                         th:classappend="${msg.stickerUrl != null} ? 'bubble-none' : ''">
                         <span class="sender"
                               th:if="${msg.sender.username != #authentication.name}"
                               th:text="${msg.sender.username}"></span>
@@ -144,8 +145,8 @@
     <button class="context-menu-item" data-action="delete-all">Удалить для всех</button>
 </div>
 <script th:src="@{/js/notifications.js(v=3)}"></script>
-<script th:src="@{/js/stickers.js(v=1)}"></script>
-<script th:src="@{/js/chat-direct.js(v=10)}"></script>
+<script th:src="@{/js/stickers.js(v=2)}"></script>
+<script th:src="@{/js/chat-direct.js(v=11)}"></script>
 <div id="lightbox" class="lightbox">
     <button class="lightbox-close" aria-label="Закрыть">&times;</button>
     <div class="lightbox-content"></div>

@@ -339,21 +339,24 @@ window.StickerUI = (function () {
     }
 
     function positionPanel() {
-        if (!btn) {
-            return;
+        var bottomOffset = 72;
+        var composer = null;
+        if (opts && opts.composerSelector) {
+            composer = document.querySelector(opts.composerSelector);
         }
-        var rect = btn.getBoundingClientRect();
-        var panelRect = panel.getBoundingClientRect();
-        var left = Math.min(Math.max(12, rect.left), window.innerWidth - panelRect.width - 12);
-        var bottom = window.innerHeight - rect.top + 10;
-        var top = Math.max(12, bottom - panelRect.height);
-        if (bottom - 12 - panelRect.height < 12) {
-            top = 12;
-        } else {
-            top = bottom - panelRect.height;
+        if (!composer && btn) {
+            composer = btn.closest('form');
         }
-        panel.style.left = left + 'px';
-        panel.style.top = top + 'px';
+        if (composer) {
+            var rect = composer.getBoundingClientRect();
+            if (rect && rect.height > 0 && rect.top > 0 && rect.top <= window.innerHeight) {
+                bottomOffset = Math.max(8, window.innerHeight - rect.top + 8);
+            }
+        }
+        panel.style.bottom = bottomOffset + 'px';
+        panel.style.top = 'auto';
+        panel.style.left = '50%';
+        panel.style.transform = 'translateX(-50%)';
     }
 
     function closePanel() {
@@ -385,6 +388,11 @@ window.StickerUI = (function () {
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape' && !panel.hidden) {
                 closePanel();
+            }
+        });
+        window.addEventListener('resize', function () {
+            if (!panel.hidden) {
+                positionPanel();
             }
         });
     }

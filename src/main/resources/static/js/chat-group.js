@@ -37,6 +37,9 @@ function buildGroupMessageRow(message) {
     if (isOutgoing) {
         bubbleEl.setAttribute('data-sender', currentUsername);
     }
+    if (message.stickerUrl && !message.content) {
+        bubbleEl.classList.add('bubble-none');
+    }
 
     if (!isOutgoing) {
         var senderEl = document.createElement('span');
@@ -280,6 +283,7 @@ initLightbox();
 if (window.StickerUI) {
     StickerUI.init({
         attachSelector: '#attach-button',
+        composerSelector: '.chat-composer',
         onPick: function (stickerCode) {
             var groupId = groupIdInput ? parseInt(groupIdInput.value, 10) : activeGroupId;
             if (!stickerCode || !stompClient.connected || !groupId) {
