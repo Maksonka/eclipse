@@ -3336,7 +3336,7 @@ body.watch-page {
 }
 
 .chat-msg.chat-msg-sticker .chat-msg-sender {
-    display: none;
+    margin-bottom: 3px;
 }
 
 .watch-chat-form {
@@ -4180,7 +4180,7 @@ html, body {
 }
 
 .message-bubble.bubble-none .sender {
-    display: none;
+    margin-bottom: 5px;
 }
 
 .watch-chat .sticker-image,

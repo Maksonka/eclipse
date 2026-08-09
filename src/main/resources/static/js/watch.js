@@ -846,11 +846,13 @@ function appendChatMessage(msg, notify) {
         stickerImg.className = 'chat-msg-content sticker-image';
         stickerImg.src = msg.stickerUrl;
         stickerImg.alt = 'Стикер';
+        row.appendChild(sender);
         row.appendChild(stickerImg);
     } else {
         var content = document.createElement('span');
         content.className = 'chat-msg-content';
         content.textContent = msg.content;
+        row.appendChild(sender);
         row.appendChild(content);
     }
 
@@ -858,7 +860,6 @@ function appendChatMessage(msg, notify) {
     meta.className = 'chat-msg-time';
     meta.textContent = msg.timestamp || '';
 
-    row.appendChild(sender);
     row.appendChild(meta);
     chatMessages.appendChild(row);
     scrollChat();
