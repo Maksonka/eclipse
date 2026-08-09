@@ -841,6 +841,7 @@ function appendChatMessage(msg, notify) {
     sender.textContent = msg.senderUsername;
 
     if (msg.stickerUrl) {
+        row.classList.add('chat-msg-sticker');
         var stickerImg = document.createElement('img');
         stickerImg.className = 'chat-msg-content sticker-image';
         stickerImg.src = msg.stickerUrl;

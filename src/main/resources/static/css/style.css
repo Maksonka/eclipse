@@ -3330,6 +3330,15 @@ body.watch-page {
     color: var(--text-dim);
 }
 
+.chat-msg.chat-msg-sticker {
+    background: transparent;
+    padding: 4px 0;
+}
+
+.chat-msg.chat-msg-sticker .chat-msg-sender {
+    display: none;
+}
+
 .watch-chat-form {
     display: flex;
     gap: 8px;
@@ -4157,11 +4166,21 @@ html, body {
     margin: 2px 0;
 }
 
-.message-bubble.bubble-none {
+.message-row.incoming .message-bubble.bubble-none,
+.message-row.outgoing .message-bubble.bubble-none {
     background: transparent;
     border: none;
     box-shadow: none;
     padding: 0;
+}
+
+.message-row.incoming .message-bubble.bubble-none .message-time,
+.message-row.outgoing .message-bubble.bubble-none .message-time {
+    color: var(--text-dim);
+}
+
+.message-bubble.bubble-none .sender {
+    display: none;
 }
 
 .watch-chat .sticker-image,
