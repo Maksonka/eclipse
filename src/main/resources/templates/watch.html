@@ -239,11 +239,36 @@
             </div>
 
             <div class="watch-chat">
-                <h2 class="watch-chat-title">Чат комнаты</h2>
+                <div class="watch-chat-head">
+                    <h2 class="watch-chat-title">Чат комнаты</h2>
+                    <button type="button" id="voice-join-btn" class="watch-btn small voice-join-btn"
+                            title="Войти в голосовой чат с участниками комнаты">🎙 Голосовой чат</button>
+                </div>
+                <div class="watch-voice-chat" id="watch-voice-chat" hidden>
+                    <div class="watch-voice-chat-head">
+                        <span class="watch-voice-chat-title">
+                            <span class="watch-voice-live-dot" aria-hidden="true"></span>
+                            Голосовой чат
+                        </span>
+                        <span class="watch-voice-chat-status" id="voice-chat-status">Соединение…</span>
+                        <button type="button" id="voice-mute-btn" class="watch-btn small" title="Заглушить микрофон">🔇</button>
+                        <button type="button" id="voice-leave-btn" class="watch-btn small danger" title="Покинуть голосовой чат">Покинуть</button>
+                    </div>
+                    <div class="watch-voice-members" id="voice-members"></div>
+                </div>
                 <div class="watch-chat-messages" id="watch-chat-messages">
                     <div class="sidebar-empty">Сообщений пока нет</div>
                 </div>
+                <div class="voice-msg-rec" id="voice-msg-rec" hidden>
+                    <span class="voice-msg-rec-dot" aria-hidden="true"></span>
+                    <span>Запись…</span>
+                    <span class="voice-msg-timer" id="voice-msg-timer">0:00</span>
+                    <span class="voice-msg-timer-max">(макс. 1 мин)</span>
+                    <button type="button" id="voice-msg-send" class="watch-btn small primary">Отправить</button>
+                    <button type="button" id="voice-msg-cancel" class="watch-btn small danger">Отмена</button>
+                </div>
                 <form id="watch-chat-form" class="watch-chat-form">
+                    <button type="button" id="voice-msg-btn" class="watch-btn voice-msg-btn" title="Записать голосовое сообщение">🎤</button>
                     <input type="text" id="watch-chat-input" placeholder="Сообщение..." maxlength="2000"
                            autocomplete="off"/>
                     <button type="submit" class="watch-btn">Отправить</button>
@@ -281,6 +306,6 @@
 <script src="/js/hls.min.js"></script>
 <script th:src="@{/js/notifications.js(v=3)}"></script>
  <script th:src="@{/js/stickers.js(v=11)}"></script>
-<script th:src="@{/js/watch.js(v=49)}"></script>
+<script th:src="@{/js/watch.js(v=50)}"></script>
 </body>
 </html>

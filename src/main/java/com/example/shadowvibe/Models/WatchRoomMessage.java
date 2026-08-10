@@ -24,6 +24,9 @@ public class WatchRoomMessage {
     @Column(name = "sticker_url", length = 255)
     private String stickerUrl;
 
+    @Column(name = "audio_url", length = 500)
+    private String audioUrl;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
@@ -77,5 +80,9 @@ public class WatchRoomMessage {
     public String getStickerUrl() { return stickerUrl; }
     public void setStickerUrl(String stickerUrl) { this.stickerUrl = stickerUrl; }
 
+    public String getAudioUrl() { return audioUrl; }
+    public void setAudioUrl(String audioUrl) { this.audioUrl = audioUrl; }
+
     public boolean hasSticker() { return stickerUrl != null && !stickerUrl.isBlank(); }
+    public boolean hasAudio() { return audioUrl != null && !audioUrl.isBlank(); }
 }

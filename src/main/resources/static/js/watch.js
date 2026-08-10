@@ -37,6 +37,17 @@ var videoSearchResults = document.getElementById('video-search-results');
 var chatMessages = document.getElementById('watch-chat-messages');
 var chatForm = document.getElementById('watch-chat-form');
 var chatInput = document.getElementById('watch-chat-input');
+var voiceMsgBtn = document.getElementById('voice-msg-btn');
+var voiceMsgRec = document.getElementById('voice-msg-rec');
+var voiceMsgTimer = document.getElementById('voice-msg-timer');
+var voiceMsgSend = document.getElementById('voice-msg-send');
+var voiceMsgCancel = document.getElementById('voice-msg-cancel');
+var voiceJoinBtn = document.getElementById('voice-join-btn');
+var voiceChatPanel = document.getElementById('watch-voice-chat');
+var voiceMembersEl = document.getElementById('voice-members');
+var voiceMuteBtn = document.getElementById('voice-mute-btn');
+var voiceLeaveBtn = document.getElementById('voice-leave-btn');
+var voiceChatStatus = document.getElementById('voice-chat-status');
 var toast = document.getElementById('watch-toast');
 var seekRow = document.getElementById('seek-row');
 var seekBar = document.getElementById('seek-bar');
@@ -64,6 +75,24 @@ var fullscreenBtn = document.getElementById('fullscreen-btn');
 var playlist = { currentItemId: null, items: [] };
 var didInitialJoin = false;
 var connectErrorShown = false;
+
+/* ===== Voice ===== */
+var voiceState = {
+    joined: false,
+    stream: null,
+    pcs: {},
+    audioEls: {},
+    participants: [],
+    muted: false
+};
+var voiceSub = null;
+var voiceQueueSub = null;
+var RTC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+var voiceRecorder = null;
+var voiceChunks = [];
+var voiceRecTimer = null;
+var voiceRecStarted = 0;
+var VOICE_REC_MAX = 60 * 1000;
 
 /* Player adapter: html5 | youtube | embed */
 var playerMode = null;
@@ -362,6 +391,10 @@ function resetRoomView() {
     if (chatSub) { try { chatSub.unsubscribe(); } catch (e) {} chatSub = null; }
     if (playlistSub) { try { playlistSub.unsubscribe(); } catch (e) {} playlistSub = null; }
     if (reactionSub) { try { reactionSub.unsubscribe(); } catch (e) {} reactionSub = null; }
+    if (voiceSub) { try { voiceSub.unsubscribe(); } catch (e) {} voiceSub = null; }
+    if (voiceQueueSub) { try { voiceQueueSub.unsubscribe(); } catch (e) {} voiceQueueSub = null; }
+    cancelVoiceRecording();
+    leaveVoiceChat(false);
     clearReactions();
     resetPlayer();
     activeRoom = null;
@@ -796,6 +829,8 @@ function onRoomJoined(room) {
     if (chatSub) { try { chatSub.unsubscribe(); } catch (e) {} }
     if (playlistSub) { try { playlistSub.unsubscribe(); } catch (e) {} }
     if (reactionSub) { try { reactionSub.unsubscribe(); } catch (e) {} }
+    if (voiceSub) { try { voiceSub.unsubscribe(); } catch (e) {} }
+    if (voiceQueueSub) { try { voiceQueueSub.unsubscribe(); } catch (e) {} }
     syncSub = stompClient.subscribe('/topic/room.' + room.roomId, function (payload) {
         applyRoomUpdate(JSON.parse(payload.body));
     });
@@ -808,6 +843,12 @@ function onRoomJoined(room) {
     reactionSub = stompClient.subscribe('/topic/room.' + room.roomId + '.reactions', function (payload) {
         var r = JSON.parse(payload.body);
         if (r && r.emoji) spawnReaction(r.emoji, r.username);
+    });
+    voiceSub = stompClient.subscribe('/topic/room.' + room.roomId + '.voice', function (payload) {
+        onVoiceMembers(JSON.parse(payload.body));
+    });
+    voiceQueueSub = stompClient.subscribe('/user/queue/voice', function (payload) {
+        handleVoiceSignal(JSON.parse(payload.body));
     });
 
     loadChatHistory(room.roomId);
@@ -861,6 +902,24 @@ function appendChatMessage(msg, notify) {
         }
         row.appendChild(sender);
         row.appendChild(stickerImg);
+    } else if (msg.audioUrl) {
+        row.classList.add('chat-msg-audio');
+        var audioWrap = document.createElement('div');
+        audioWrap.className = 'chat-msg-content chat-msg-audio-wrap';
+        var audio = document.createElement('audio');
+        audio.controls = true;
+        audio.preload = 'metadata';
+        audio.src = msg.audioUrl;
+        audio.setAttribute('data-audio-url', msg.audioUrl);
+        audioWrap.appendChild(audio);
+        if (msg.content) {
+            var audioText = document.createElement('span');
+            audioText.className = 'chat-msg-audio-text';
+            audioText.textContent = msg.content;
+            audioWrap.appendChild(audioText);
+        }
+        row.appendChild(sender);
+        row.appendChild(audioWrap);
     } else {
         var content = document.createElement('span');
         content.className = 'chat-msg-content';
@@ -881,10 +940,396 @@ function appendChatMessage(msg, notify) {
         MessageNotifications.show({
             sender: msg.senderUsername,
             title: msg.senderUsername,
-            text: msg.stickerUrl ? 'Стикер' : (msg.content || 'Файл'),
+            text: msg.stickerUrl ? 'Стикер' : (msg.audioUrl ? 'Голосовое сообщение' : (msg.content || 'Файл')),
             href: '/watch?room=' + activeRoom.roomId
         });
     }
+}
+
+/* ===== Voice messages ===== */
+
+function formatVoiceTime(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000));
+    var m = Math.floor(s / 60);
+    s = s % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function updateVoiceRecTimer() {
+    if (!voiceMsgTimer) return;
+    var elapsed = Date.now() - voiceRecStarted;
+    voiceMsgTimer.textContent = formatVoiceTime(elapsed);
+    if (elapsed >= VOICE_REC_MAX) {
+        finishVoiceRecording();
+    }
+}
+
+function startVoiceRecording() {
+    if (!activeRoom) { showToast('Сначала войдите в комнату'); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+        showToast('Запись голоса не поддерживается этим браузером');
+        return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        var mime = 'audio/webm';
+        if (!window.MediaRecorder.isTypeSupported(mime)) mime = '';
+        try {
+            voiceRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+        } catch (e) {
+            stream.getTracks().forEach(function (t) { t.stop(); });
+            showToast('Не удалось запустить запись');
+            return;
+        }
+        voiceChunks = [];
+        voiceRecorder.ondataavailable = function (e) {
+            if (e.data && e.data.size) voiceChunks.push(e.data);
+        };
+        voiceRecorder.onstop = function () {
+            stream.getTracks().forEach(function (t) { t.stop(); });
+            uploadVoiceRecording();
+        };
+        voiceRecorder.onerror = function () {
+            showToast('Ошибка записи');
+            if (voiceMsgRec) voiceMsgRec.hidden = true;
+            if (voiceMsgBtn) voiceMsgBtn.disabled = false;
+        };
+        voiceRecorder.start();
+        voiceRecStarted = Date.now();
+        if (voiceMsgRec) voiceMsgRec.hidden = false;
+        if (voiceMsgBtn) voiceMsgBtn.disabled = true;
+        updateVoiceRecTimer();
+        voiceRecTimer = setInterval(updateVoiceRecTimer, 250);
+    }).catch(function () {
+        showToast('Нет доступа к микрофону');
+    });
+}
+
+function cancelVoiceRecording() {
+    voiceChunks = [];
+    if (voiceRecTimer) { clearInterval(voiceRecTimer); voiceRecTimer = null; }
+    if (voiceRecorder) {
+        try {
+            voiceRecorder.onstop = null;
+            if (voiceRecorder.state !== 'inactive') voiceRecorder.stop();
+        } catch (e) {}
+        voiceRecorder = null;
+    }
+    if (voiceMsgRec) voiceMsgRec.hidden = true;
+    if (voiceMsgBtn) voiceMsgBtn.disabled = false;
+}
+
+function finishVoiceRecording() {
+    if (voiceRecTimer) { clearInterval(voiceRecTimer); voiceRecTimer = null; }
+    if (voiceMsgRec) voiceMsgRec.hidden = true;
+    if (voiceMsgBtn) voiceMsgBtn.disabled = false;
+    if (voiceRecorder && voiceRecorder.state !== 'inactive') {
+        try { voiceRecorder.stop(); } catch (e) {}
+    }
+}
+
+function uploadVoiceRecording() {
+    if (!voiceChunks.length || !activeRoom) {
+        showToast('Запись пустая — ничего не отправлено');
+        return;
+    }
+    var blob = new Blob(voiceChunks, { type: 'audio/webm' });
+    var durationMs = Date.now() - voiceRecStarted;
+    var fd = new FormData();
+    fd.append('file', blob, 'voice.webm');
+    fd.append('durationMs', String(durationMs));
+    fetch('/api/voice/upload', { method: 'POST', body: fd })
+        .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+        })
+        .then(function (res) {
+            if (!res.ok || !res.data || !res.data.url) {
+                showToast('Не удалось отправить голосовое сообщение');
+                return;
+            }
+            if (!activeRoom || !stompClient.connected) {
+                showToast('Нет соединения — голосовое не отправлено');
+                return;
+            }
+            stompClient.send('/app/room.message', {}, JSON.stringify({
+                roomId: activeRoom.roomId,
+                audioUrl: res.data.url
+            }));
+        })
+        .catch(function () {
+            showToast('Ошибка сети при отправке голосового');
+        });
+}
+
+/* ===== Voice chat (WebRTC mesh) ===== */
+
+function voiceConnected() {
+    return voiceState.joined && voiceState.stream && voiceState.stream.getAudioTracks().length > 0;
+}
+
+function joinVoiceChat() {
+    if (!activeRoom || !stompClient.connected) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.RTCPeerConnection) {
+        showToast('Голосовой чат не поддерживается этим браузером');
+        return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        voiceState.stream = stream;
+        voiceState.joined = true;
+        voiceState.muted = false;
+        stream.getAudioTracks().forEach(function (t) { t.enabled = true; });
+        if (voiceChatPanel) voiceChatPanel.hidden = false;
+        if (voiceJoinBtn) voiceJoinBtn.hidden = true;
+        setVoiceMuteUi();
+        setVoiceStatus('Вход в голосовой чат…');
+        stompClient.send('/app/room.voice.join', {}, JSON.stringify({ roomId: activeRoom.roomId }));
+        monitorSelfSpeaking();
+    }).catch(function () {
+        showToast('Нет доступа к микрофону — голосовой чат недоступен');
+    });
+}
+
+function leaveVoiceChat(notify) {
+    if (voiceState.joined && activeRoom && stompClient.connected && notify !== false) {
+        try {
+            stompClient.send('/app/room.voice.leave', {}, JSON.stringify({ roomId: activeRoom.roomId }));
+        } catch (e) {}
+    }
+    closeAllPeers();
+    if (voiceState.stream) {
+        voiceState.stream.getTracks().forEach(function (t) { t.stop(); });
+    }
+    voiceState.stream = null;
+    voiceState.joined = false;
+    voiceState.muted = false;
+    voiceState.participants = [];
+    if (voiceMembersEl) voiceMembersEl.innerHTML = '';
+    if (voiceChatPanel) voiceChatPanel.hidden = true;
+    if (voiceJoinBtn) voiceJoinBtn.hidden = false;
+}
+
+function setVoiceStatus(text) {
+    if (voiceChatStatus) voiceChatStatus.textContent = text || '';
+}
+
+function setVoiceMuteUi() {
+    if (!voiceMuteBtn) return;
+    var muted = voiceState.muted || !voiceConnected();
+    voiceMuteBtn.textContent = muted ? '🔇' : '🔊';
+    voiceMuteBtn.title = muted ? 'Включить микрофон' : 'Заглушить микрофон';
+    voiceMuteBtn.disabled = !voiceConnected();
+}
+
+function sendVoiceSignal(to, type, payload) {
+    if (!activeRoom || !stompClient.connected) return;
+    var msg = { roomId: activeRoom.roomId, to: to, type: type };
+    if (payload) {
+        if (payload.sdp) msg.sdp = payload.sdp;
+        if (payload.candidate) msg.candidate = payload.candidate;
+    }
+    stompClient.send('/app/room.voice.signal', {}, JSON.stringify(msg));
+}
+
+function onVoiceMembers(members) {
+    if (!voiceState.joined) return;
+    voiceState.participants = members || [];
+    renderVoiceMembers();
+    var present = {};
+    voiceState.participants.forEach(function (u) { present[u] = true; });
+    Object.keys(voiceState.pcs).forEach(function (u) {
+        if (u !== currentUsername && !present[u]) closePeer(u);
+    });
+    if (!voiceState.participants.length) {
+        setVoiceStatus('Вы один в голосовом чате');
+        return;
+    }
+    setVoiceStatus('Участников: ' + voiceState.participants.length);
+    voiceState.participants.forEach(function (u) {
+        if (u !== currentUsername && !voiceState.pcs[u]) createPeer(u);
+    });
+}
+
+function renderVoiceMembers() {
+    if (!voiceMembersEl) return;
+    voiceMembersEl.innerHTML = '';
+    if (!voiceState.participants.length) {
+        var empty = document.createElement('span');
+        empty.className = 'watch-voice-empty';
+        empty.textContent = 'Пока только вы в голосовом чате';
+        voiceMembersEl.appendChild(empty);
+        return;
+    }
+    voiceState.participants.forEach(function (u) {
+        var item = document.createElement('span');
+        item.className = 'watch-voice-member' + (u === currentUsername ? ' is-self' : '');
+        item.textContent = u === currentUsername ? 'Вы' : u;
+        item.setAttribute('data-voice-user', u);
+        voiceMembersEl.appendChild(item);
+    });
+}
+
+function setSpeakingClass(u, speaking) {
+    if (!voiceMembersEl) return;
+    var items = voiceMembersEl.querySelectorAll('.watch-voice-member');
+    for (var i = 0; i < items.length; i++) {
+        if (items[i].getAttribute('data-voice-user') === u) {
+            items[i].classList.toggle('is-speaking', !!speaking);
+        }
+    }
+}
+
+function createPeer(u) {
+    if (!voiceState.stream) return;
+    var pc = new RTCPeerConnection(RTC_CONFIG);
+    voiceState.pcs[u] = pc;
+    voiceState.stream.getTracks().forEach(function (t) { pc.addTrack(t, voiceState.stream); });
+    pc.onicecandidate = function (e) {
+        if (e.candidate) sendVoiceSignal(u, 'ice', { candidate: e.candidate });
+    };
+    pc.ontrack = function (e) {
+        var stream = e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track]);
+        attachRemoteAudio(u, stream);
+    };
+    pc.onconnectionstatechange = function () {
+        if (pc.connectionState === 'failed' || pc.connectionState === 'closed') closePeer(u);
+    };
+    pc.createOffer().then(function (offer) {
+        return pc.setLocalDescription(offer);
+    }).then(function () {
+        if (pc.localDescription) sendVoiceSignal(u, 'offer', { sdp: pc.localDescription });
+    }).catch(function () {
+        closePeer(u);
+    });
+}
+
+function attachRemoteAudio(u, stream) {
+    var audioEl = voiceState.audioEls[u];
+    if (!audioEl) {
+        audioEl = document.createElement('audio');
+        audioEl.autoplay = true;
+        audioEl.setAttribute('data-remote-audio', u);
+        audioEl.style.display = 'none';
+        document.body.appendChild(audioEl);
+        voiceState.audioEls[u] = audioEl;
+        monitorSpeaking(u, stream);
+    }
+    try { audioEl.srcObject = stream; } catch (e) {}
+    var p = audioEl.play();
+    if (p && p.catch) p.catch(function () {});
+}
+
+function monitorSpeaking(u, stream) {
+    try {
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        var ctx = new Ctx();
+        var src = ctx.createMediaStreamSource(stream);
+        var analyser = ctx.createAnalyser();
+        analyser.fftSize = 512;
+        src.connect(analyser);
+        var buf = new Uint8Array(analyser.fftSize);
+        (function tick() {
+            if (!voiceState.audioEls[u]) return;
+            analyser.getByteTimeDomainData(buf);
+            var sum = 0;
+            for (var i = 0; i < buf.length; i++) {
+                var v = buf[i] - 128;
+                sum += v * v;
+            }
+            var rms = Math.sqrt(sum / buf.length);
+            setSpeakingClass(u, rms > 12);
+            requestAnimationFrame(tick);
+        })();
+    } catch (e) {}
+}
+
+function monitorSelfSpeaking() {
+    if (!voiceState.stream) return;
+    try {
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        var ctx = new Ctx();
+        var src = ctx.createMediaStreamSource(voiceState.stream);
+        var analyser = ctx.createAnalyser();
+        analyser.fftSize = 512;
+        src.connect(analyser);
+        var buf = new Uint8Array(analyser.fftSize);
+        (function tick() {
+            if (!voiceState.joined || !voiceState.stream) return;
+            analyser.getByteTimeDomainData(buf);
+            var sum = 0;
+            for (var i = 0; i < buf.length; i++) {
+                var v = buf[i] - 128;
+                sum += v * v;
+            }
+            var rms = Math.sqrt(sum / buf.length);
+            setSpeakingClass(currentUsername, rms > 12);
+            requestAnimationFrame(tick);
+        })();
+    } catch (e) {}
+}
+
+function handleVoiceSignal(sig) {
+    if (!voiceState.joined || !sig || !sig.from || !sig.type) return;
+    if (sig.type === 'offer') {
+        var u = sig.from;
+        var pc = voiceState.pcs[u];
+        if (!pc) {
+            pc = new RTCPeerConnection(RTC_CONFIG);
+            voiceState.pcs[u] = pc;
+            pc.onicecandidate = function (e) {
+                if (e.candidate) sendVoiceSignal(u, 'ice', { candidate: e.candidate });
+            };
+            pc.ontrack = function (e) {
+                var stream = e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track]);
+                attachRemoteAudio(u, stream);
+            };
+            pc.onconnectionstatechange = function () {
+                if (pc.connectionState === 'failed' || pc.connectionState === 'closed') closePeer(u);
+            };
+            voiceState.stream.getTracks().forEach(function (t) { pc.addTrack(t, voiceState.stream); });
+        }
+        var applyOffer = function () {
+            return pc.setRemoteDescription(new RTCSessionDescription(sig.sdp));
+        };
+        var p;
+        if (pc.signalingState === 'have-local-offer') {
+            p = pc.setLocalDescription({ type: 'rollback' }).then(applyOffer);
+        } else {
+            p = applyOffer();
+        }
+        p.then(function () {
+            return pc.createAnswer();
+        }).then(function (answer) {
+            return pc.setLocalDescription(answer);
+        }).then(function () {
+            if (pc.localDescription) sendVoiceSignal(u, 'answer', { sdp: pc.localDescription });
+        }).catch(function () {});
+    } else if (sig.type === 'answer') {
+        var pcA = voiceState.pcs[sig.from];
+        if (pcA && pcA.signalingState === 'have-local-offer') {
+            pcA.setRemoteDescription(new RTCSessionDescription(sig.sdp)).catch(function () {});
+        }
+    } else if (sig.type === 'ice') {
+        var pcI = voiceState.pcs[sig.from];
+        if (pcI && sig.candidate) {
+            pcI.addIceCandidate(new RTCIceCandidate(sig.candidate)).catch(function () {});
+        }
+    }
+}
+
+function closePeer(u) {
+    var pc = voiceState.pcs[u];
+    if (pc) { try { pc.close(); } catch (e) {} }
+    delete voiceState.pcs[u];
+    var el = voiceState.audioEls[u];
+    if (el) {
+        try { el.srcObject = null; } catch (e) {}
+        el.remove();
+    }
+    delete voiceState.audioEls[u];
+    setSpeakingClass(u, false);
+}
+
+function closeAllPeers() {
+    Object.keys(voiceState.pcs).forEach(closePeer);
 }
 
 /* ===== Reactions ===== */
@@ -1546,6 +1991,54 @@ if (chatForm) {
         chatInput.focus();
     });
 }
+
+/* ===== Voice listeners ===== */
+
+if (voiceMsgBtn) {
+    voiceMsgBtn.addEventListener('click', function () {
+        if (voiceMsgBtn.disabled) {
+            finishVoiceRecording();
+        } else {
+            startVoiceRecording();
+        }
+    });
+}
+if (voiceMsgCancel) {
+    voiceMsgCancel.addEventListener('click', function () {
+        cancelVoiceRecording();
+    });
+}
+if (voiceMsgSend) {
+    voiceMsgSend.addEventListener('click', function () {
+        finishVoiceRecording();
+    });
+}
+if (voiceJoinBtn) {
+    voiceJoinBtn.addEventListener('click', function () {
+        if (voiceState.joined) {
+            leaveVoiceChat();
+        } else {
+            joinVoiceChat();
+        }
+    });
+}
+if (voiceLeaveBtn) {
+    voiceLeaveBtn.addEventListener('click', function () {
+        leaveVoiceChat();
+    });
+}
+if (voiceMuteBtn) {
+    voiceMuteBtn.addEventListener('click', function () {
+        if (!voiceConnected()) return;
+        voiceState.muted = !voiceState.muted;
+        voiceState.stream.getAudioTracks().forEach(function (t) { t.enabled = !voiceState.muted; });
+        setVoiceMuteUi();
+    });
+}
+
+window.addEventListener('beforeunload', function () {
+    leaveVoiceChat(false);
+});
 
 /* ===== Connect ===== */
 

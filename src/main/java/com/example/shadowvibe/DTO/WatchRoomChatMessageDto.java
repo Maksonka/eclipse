@@ -8,6 +8,7 @@ public class WatchRoomChatMessageDto {
     private String timestamp;
     private String stickerCode;
     private String stickerUrl;
+    private String audioUrl;
 
     public WatchRoomChatMessageDto() {
     }
@@ -66,4 +67,7 @@ public class WatchRoomChatMessageDto {
 
     public String getStickerUrl() { return stickerUrl; }
     public void setStickerUrl(String stickerUrl) { this.stickerUrl = stickerUrl; }
+
+    public String getAudioUrl() { return audioUrl; }
+    public void setAudioUrl(String audioUrl) { this.audioUrl = audioUrl; }
 }

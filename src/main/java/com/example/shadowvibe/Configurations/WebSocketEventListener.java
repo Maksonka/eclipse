@@ -1,6 +1,7 @@
 package com.example.shadowvibe.Configurations;
 
 import com.example.shadowvibe.Services.PresenceService;
+import com.example.shadowvibe.Services.WatchRoomService;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
@@ -13,9 +14,11 @@ import java.security.Principal;
 public class WebSocketEventListener {
 
     private final PresenceService presenceService;
+    private final WatchRoomService watchRoomService;
 
-    public WebSocketEventListener(PresenceService presenceService) {
+    public WebSocketEventListener(PresenceService presenceService, WatchRoomService watchRoomService) {
         this.presenceService = presenceService;
+        this.watchRoomService = watchRoomService;
     }
 
     @EventListener
@@ -33,6 +36,7 @@ public class WebSocketEventListener {
         Principal user = accessor.getUser();
         if (user != null) {
             presenceService.userDisconnected(user.getName());
+            watchRoomService.voiceDisconnect(user.getName());
         }
     }
 }

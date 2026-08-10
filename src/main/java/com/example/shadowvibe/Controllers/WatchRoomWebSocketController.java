@@ -13,6 +13,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
+import java.util.HashMap;
 import java.util.Map;
 
 @Controller
@@ -75,7 +76,42 @@ public class WatchRoomWebSocketController {
         Long roomId = Long.valueOf(request.get("roomId").toString());
         String content = request.get("content") != null ? request.get("content").toString() : null;
         String stickerCode = request.get("stickerCode") != null ? request.get("stickerCode").toString() : null;
-        watchRoomService.sendChatMessage(principal.getName(), roomId, content, stickerCode);
+        String audioUrl = request.get("audioUrl") != null ? request.get("audioUrl").toString() : null;
+        watchRoomService.sendChatMessage(principal.getName(), roomId, content, stickerCode, audioUrl);
+    }
+
+    @MessageMapping("/room.voice.join")
+    public void voiceJoin(@Payload Map<String, Object> request, Principal principal) {
+        if (principal == null || request.get("roomId") == null) {
+            return;
+        }
+        watchRoomService.voiceJoin(principal.getName(), Long.valueOf(request.get("roomId").toString()));
+    }
+
+    @MessageMapping("/room.voice.leave")
+    public void voiceLeave(@Payload Map<String, Object> request, Principal principal) {
+        if (principal == null || request.get("roomId") == null) {
+            return;
+        }
+        watchRoomService.voiceLeave(principal.getName(), Long.valueOf(request.get("roomId").toString()));
+    }
+
+    @MessageMapping("/room.voice.signal")
+    public void voiceSignal(@Payload Map<String, Object> request, Principal principal) {
+        if (principal == null || request.get("roomId") == null || request.get("to") == null) {
+            return;
+        }
+        Long roomId = Long.valueOf(request.get("roomId").toString());
+        String target = request.get("to").toString();
+        String type = request.get("type") != null ? request.get("type").toString() : null;
+        Map<String, Object> payload = new HashMap<>();
+        if (request.get("sdp") != null) {
+            payload.put("sdp", request.get("sdp"));
+        }
+        if (request.get("candidate") != null) {
+            payload.put("candidate", request.get("candidate"));
+        }
+        watchRoomService.voiceSignal(principal.getName(), roomId, target, type, payload);
     }
 
     @MessageMapping("/room.react")

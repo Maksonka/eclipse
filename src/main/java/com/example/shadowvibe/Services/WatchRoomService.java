@@ -30,10 +30,12 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -55,6 +57,13 @@ public class WatchRoomService {
      * status/positionMs/updatedAt по серверным часам.
      */
     private final Map<Long, RoomState> states = new ConcurrentHashMap<>();
+
+    /**
+     * Участники голосового чата по комнатам + какая комната голосового чата у юзера
+     * (для очистки при обрыве WebSocket-соединения).
+     */
+    private final Map<Long, Set<String>> voiceMembers = new ConcurrentHashMap<>();
+    private final Map<String, Long> userVoiceRoom = new ConcurrentHashMap<>();
 
     public WatchRoomService(WatchRoomRepository roomRepository,
                             WatchRoomMessageRepository messageRepository,
@@ -133,6 +142,7 @@ public class WatchRoomService {
             return null;
         }
 
+        voiceLeave(username, roomId);
         room.getMembers().removeIf(m -> m.getUsername().equals(username));
 
         if (room.getMembers().isEmpty()) {
@@ -140,6 +150,7 @@ public class WatchRoomService {
             playlistItemRepository.deleteByRoomId(roomId);
             roomRepository.delete(room);
             states.remove(roomId);
+            voiceMembers.remove(roomId);
             sendAfterCommit(() -> {
                 messagingTemplate.convertAndSend(
                         "/topic/room." + roomId,
@@ -219,16 +230,22 @@ public class WatchRoomService {
 
     @Transactional
     public WatchRoomChatMessageDto sendChatMessage(String username, Long roomId, String content) {
-        return sendChatMessage(username, roomId, content, null);
+        return sendChatMessage(username, roomId, content, null, null);
     }
 
     @Transactional
     public WatchRoomChatMessageDto sendChatMessage(String username, Long roomId, String content, String stickerCode) {
+        return sendChatMessage(username, roomId, content, stickerCode, null);
+    }
+
+    @Transactional
+    public WatchRoomChatMessageDto sendChatMessage(String username, Long roomId, String content, String stickerCode, String audioUrl) {
         WatchRoom room = getRoom(roomId);
         if (!room.isMember(username)) {
             throw new IllegalArgumentException("Вы не в этой комнате");
         }
-        if ((content == null || content.isBlank()) && (stickerCode == null || stickerCode.isBlank())) {
+        if ((content == null || content.isBlank()) && (stickerCode == null || stickerCode.isBlank())
+                && (audioUrl == null || audioUrl.isBlank())) {
             throw new IllegalArgumentException("Сообщение не может быть пустым");
         }
 
@@ -253,6 +270,11 @@ public class WatchRoomService {
             }
             message.setStickerCode(sticker.getCode());
             message.setStickerUrl(sticker.getFilename());
+        }
+
+        if (audioUrl != null && !audioUrl.isBlank()) {
+            String trimmed = audioUrl.trim();
+            message.setAudioUrl(trimmed.length() > 500 ? trimmed.substring(0, 500) : trimmed);
         }
 
         WatchRoomChatMessageDto dto = toMessageDto(messageRepository.save(message));
@@ -304,7 +326,79 @@ public class WatchRoomService {
         );
         dto.setStickerCode(message.getStickerCode());
         dto.setStickerUrl(message.getStickerUrl());
+        dto.setAudioUrl(message.getAudioUrl());
         return dto;
+    }
+
+    /* ===== Голосовой чат ===== */
+
+    @Transactional
+    public List<String> voiceJoin(String username, Long roomId) {
+        WatchRoom room = getRoom(roomId);
+        if (!room.isMember(username)) {
+            throw new IllegalArgumentException("Вы не в этой комнате");
+        }
+        userVoiceRoom.put(username, roomId);
+        Set<String> members = voiceMembers.computeIfAbsent(roomId, id -> ConcurrentHashMap.newKeySet());
+        members.add(username);
+        List<String> list = new ArrayList<>(members);
+        sendAfterCommit(() -> messagingTemplate.convertAndSend("/topic/room." + roomId + ".voice", list));
+        return list;
+    }
+
+    @Transactional
+    public List<String> voiceLeave(String username, Long roomId) {
+        userVoiceRoom.remove(username);
+        if (roomId == null) {
+            return List.of();
+        }
+        Set<String> members = voiceMembers.get(roomId);
+        List<String> list;
+        if (members != null) {
+            members.remove(username);
+            list = new ArrayList<>(members);
+            if (members.isEmpty()) {
+                voiceMembers.remove(roomId);
+            }
+        } else {
+            list = new ArrayList<>();
+        }
+        final List<String> result = list;
+        sendAfterCommit(() -> messagingTemplate.convertAndSend("/topic/room." + roomId + ".voice", result));
+        return result;
+    }
+
+    /**
+     * Очистка голосового чата при обрыве соединения (закрыл вкладку и т.п.).
+     */
+    @Transactional
+    public void voiceDisconnect(String username) {
+        Long roomId = userVoiceRoom.get(username);
+        if (roomId != null) {
+            voiceLeave(username, roomId);
+        }
+    }
+
+    /**
+     * Релей сигнального сообщения WebRTC между участниками голосового чата.
+     */
+    @Transactional
+    public void voiceSignal(String username, Long roomId, String target, String type, Map<String, Object> payload) {
+        WatchRoom room = getRoom(roomId);
+        if (!room.isMember(username) || !room.isMember(target)) {
+            throw new IllegalArgumentException("Участник не найден");
+        }
+        if (type == null || type.isBlank()) {
+            return;
+        }
+        Map<String, Object> signal = new HashMap<>();
+        signal.put("roomId", roomId);
+        signal.put("from", username);
+        signal.put("type", type);
+        if (payload != null) {
+            signal.putAll(payload);
+        }
+        messagingTemplate.convertAndSendToUser(target, "/queue/voice", signal);
     }
 
     @Transactional

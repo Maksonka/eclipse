@@ -28,7 +28,7 @@ public class AttachmentService {
 
     private static final Set<String> AUDIO_TYPES = Set.of(
             "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/ogg", "audio/aac",
-            "audio/mp4", "audio/x-m4a", "audio/x-aac"
+            "audio/mp4", "audio/x-m4a", "audio/x-aac", "audio/webm"
     );
 
     private static final Map<String, String> EXTENSIONS = Map.ofEntries(
@@ -49,7 +49,8 @@ public class AttachmentService {
             Map.entry("audio/aac", ".aac"),
             Map.entry("audio/x-aac", ".aac"),
             Map.entry("audio/mp4", ".m4a"),
-            Map.entry("audio/x-m4a", ".m4a")
+            Map.entry("audio/x-m4a", ".m4a"),
+            Map.entry("audio/webm", ".webm")
     );
 
     @Value("${app.upload.dir:uploads}")
@@ -77,6 +78,33 @@ public class AttachmentService {
         Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
 
         return new AttachmentInfo(filename, type, file.getOriginalFilename(), file.getSize());
+    }
+
+    /**
+     * Сохранение голосового сообщения в uploads/voice/.
+     */
+    public AttachmentInfo saveAudio(MultipartFile file) throws IOException {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Выберите файл для отправки");
+        }
+        if (file.getSize() > 25L * 1024 * 1024) {
+            throw new IllegalArgumentException("Голосовое сообщение слишком большое. Максимум — 25 МБ");
+        }
+
+        String contentType = file.getContentType() != null ? file.getContentType().toLowerCase() : "";
+        if (!AUDIO_TYPES.contains(contentType)) {
+            throw new IllegalArgumentException("Разрешены только аудиофайлы");
+        }
+
+        String extension = extensionFor(contentType, file.getOriginalFilename());
+        String filename = UUID.randomUUID().toString().replace("-", "") + extension;
+
+        Path dir = Paths.get(uploadDir, "voice").toAbsolutePath().normalize();
+        Files.createDirectories(dir);
+        Path target = dir.resolve(filename);
+        Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+
+        return new AttachmentInfo(filename, "audio", file.getOriginalFilename(), file.getSize());
     }
 
     public static String labelForType(String type) {
