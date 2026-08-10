@@ -389,15 +389,28 @@ function appendMessage(message) {
             return;
         }
         if (existingRow) {
-            existingRow.replaceWith(buildMessageRow(message));
+            var updatedRow = buildMessageRow(message);
+            existingRow.replaceWith(updatedRow);
+            forceLoadVoice(updatedRow);
             scrollToBottom();
             return;
         }
         displayedMessageIds.add(String(message.id));
     }
 
-    messagesContainer.appendChild(buildMessageRow(message));
+    var row = buildMessageRow(message);
+    messagesContainer.appendChild(row);
+    forceLoadVoice(row);
     scrollToBottom();
+}
+
+function forceLoadVoice(row) {
+    if (!row) return;
+    row.querySelectorAll('.voice-player audio').forEach(function (a) {
+        if (a.readyState < 1) {
+            try { a.load(); } catch (e) {}
+        }
+    });
 }
 
 function sendMarkAsRead() {
