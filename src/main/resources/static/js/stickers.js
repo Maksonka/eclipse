@@ -428,7 +428,7 @@ window.StickerUI = (function () {
             clearTimeout(pressTimer);
             pressTimer = null;
         }
-        if (zoomOverlay && !zoomOverlay.hidden && (lastReleaseAt - pressStartedAt) >= 2000) {
+        if (zoomOverlay && !zoomOverlay.hidden && (lastReleaseAt - pressStartedAt) >= 200) {
             zoomPinned = true;
         } else {
             if (zoomOverlay) {
