@@ -12,6 +12,8 @@ window.StickerUI = (function () {
     var panelErrEl = null;
     var pressTimer = null;
     var pressShown = false;
+    var isPressing = false;
+    var zoomUrl = null;
     var zoomOverlay = null;
     var zoomImg = null;
     var zoomHandlerRegistered = false;
@@ -59,6 +61,21 @@ window.StickerUI = (function () {
 
         gridEl = document.createElement('div');
         gridEl.className = 'sticker-grid';
+        gridEl.addEventListener('mouseleave', cancelStickerZoom);
+        gridEl.addEventListener('touchmove', function (e) {
+            if (!isPressing) {
+                return;
+            }
+            var touch = e.touches[0];
+            var el = touch && document.elementFromPoint(touch.clientX, touch.clientY);
+            var cell = el && el.closest ? el.closest('.sticker-cell') : null;
+            if (cell) {
+                var img = cell.querySelector('img');
+                if (img) {
+                    updateZoomTo(img.src);
+                }
+            }
+        }, { passive: true });
 
         addForm = buildAddForm();
 
@@ -204,7 +221,11 @@ window.StickerUI = (function () {
                 startStickerZoom(sticker.url);
             });
             cell.addEventListener('mouseup', cancelStickerZoom);
-            cell.addEventListener('mouseleave', cancelStickerZoom);
+            cell.addEventListener('mouseover', function () {
+                if (isPressing) {
+                    updateZoomTo(sticker.url);
+                }
+            });
             cell.addEventListener('touchstart', function () {
                 startStickerZoom(sticker.url);
             }, { passive: true });
@@ -386,19 +407,29 @@ window.StickerUI = (function () {
         document.body.appendChild(zoomOverlay);
     }
 
+    function updateZoomTo(stickerUrl) {
+        zoomUrl = stickerUrl;
+        if (zoomOverlay && !zoomOverlay.hidden) {
+            zoomImg.src = stickerUrl;
+        }
+    }
+
     function startStickerZoom(stickerUrl) {
         cancelStickerZoom();
+        isPressing = true;
         pressShown = false;
+        zoomUrl = stickerUrl;
         pressTimer = setTimeout(function () {
             pressTimer = null;
             pressShown = true;
             ensureZoomOverlay();
-            zoomImg.src = stickerUrl;
+            zoomImg.src = zoomUrl;
             zoomOverlay.hidden = false;
         }, 350);
     }
 
     function cancelStickerZoom() {
+        isPressing = false;
         if (pressTimer) {
             clearTimeout(pressTimer);
             pressTimer = null;

@@ -4575,6 +4575,7 @@ html, body {
     justify-content: center;
     background: rgba(0, 0, 0, 0.65);
     cursor: zoom-out;
+    pointer-events: none;
 }
 
 .sticker-zoom img {
