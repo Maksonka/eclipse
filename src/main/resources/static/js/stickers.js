@@ -13,7 +13,9 @@ window.StickerUI = (function () {
     var pressTimer = null;
     var pressShown = false;
     var isPressing = false;
-    var zoomUrl = null;
+    var zoomPinned = false;
+    var pressStartedAt = 0;
+    var lastReleaseAt = 0;
     var zoomOverlay = null;
     var zoomImg = null;
     var zoomHandlerRegistered = false;
@@ -61,21 +63,7 @@ window.StickerUI = (function () {
 
         gridEl = document.createElement('div');
         gridEl.className = 'sticker-grid';
-        gridEl.addEventListener('mouseleave', cancelStickerZoom);
-        gridEl.addEventListener('touchmove', function (e) {
-            if (!isPressing) {
-                return;
-            }
-            var touch = e.touches[0];
-            var el = touch && document.elementFromPoint(touch.clientX, touch.clientY);
-            var cell = el && el.closest ? el.closest('.sticker-cell') : null;
-            if (cell) {
-                var img = cell.querySelector('img');
-                if (img) {
-                    updateZoomTo(img.src);
-                }
-            }
-        }, { passive: true });
+        gridEl.addEventListener('mouseleave', finishStickerPress);
 
         addForm = buildAddForm();
 
@@ -220,17 +208,12 @@ window.StickerUI = (function () {
             cell.addEventListener('mousedown', function () {
                 startStickerZoom(sticker.url);
             });
-            cell.addEventListener('mouseup', cancelStickerZoom);
-            cell.addEventListener('mouseover', function () {
-                if (isPressing) {
-                    updateZoomTo(sticker.url);
-                }
-            });
+            cell.addEventListener('mouseup', finishStickerPress);
             cell.addEventListener('touchstart', function () {
                 startStickerZoom(sticker.url);
             }, { passive: true });
-            cell.addEventListener('touchend', cancelStickerZoom);
-            cell.addEventListener('touchcancel', cancelStickerZoom);
+            cell.addEventListener('touchend', finishStickerPress);
+            cell.addEventListener('touchcancel', finishStickerPress);
             cell.addEventListener('click', function () {
                 if (pressShown) {
                     pressShown = false;
@@ -383,6 +366,12 @@ window.StickerUI = (function () {
 
     function closePanel() {
         panel.hidden = true;
+        if (zoomPinned) {
+            zoomPinned = false;
+        }
+        if (zoomOverlay) {
+            zoomOverlay.hidden = true;
+        }
     }
 
     function showAdd(show) {
@@ -400,42 +389,51 @@ window.StickerUI = (function () {
         zoomImg = document.createElement('img');
         zoomImg.alt = '';
         zoomOverlay.appendChild(zoomImg);
-        zoomOverlay.addEventListener('click', function () {
-            zoomOverlay.hidden = true;
-            pressShown = false;
-        });
         document.body.appendChild(zoomOverlay);
     }
 
-    function updateZoomTo(stickerUrl) {
-        zoomUrl = stickerUrl;
-        if (zoomOverlay && !zoomOverlay.hidden) {
-            zoomImg.src = stickerUrl;
-        }
-    }
-
-    function startStickerZoom(stickerUrl) {
-        cancelStickerZoom();
-        isPressing = true;
-        pressShown = false;
-        zoomUrl = stickerUrl;
-        pressTimer = setTimeout(function () {
-            pressTimer = null;
-            pressShown = true;
-            ensureZoomOverlay();
-            zoomImg.src = zoomUrl;
-            zoomOverlay.hidden = false;
-        }, 350);
-    }
-
-    function cancelStickerZoom() {
+    function resetZoomState() {
         isPressing = false;
+        zoomPinned = false;
         if (pressTimer) {
             clearTimeout(pressTimer);
             pressTimer = null;
         }
         if (zoomOverlay) {
             zoomOverlay.hidden = true;
+        }
+        pressShown = false;
+    }
+
+    function startStickerZoom(stickerUrl) {
+        resetZoomState();
+        isPressing = true;
+        pressStartedAt = Date.now();
+        pressTimer = setTimeout(function () {
+            pressTimer = null;
+            pressShown = true;
+            ensureZoomOverlay();
+            zoomImg.src = stickerUrl;
+            zoomOverlay.hidden = false;
+        }, 350);
+    }
+
+    function finishStickerPress() {
+        if (!isPressing) {
+            return;
+        }
+        isPressing = false;
+        lastReleaseAt = Date.now();
+        if (pressTimer) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+        }
+        if (zoomOverlay && !zoomOverlay.hidden && (lastReleaseAt - pressStartedAt) >= 2000) {
+            zoomPinned = true;
+        } else {
+            if (zoomOverlay) {
+                zoomOverlay.hidden = true;
+            }
         }
         if (pressShown) {
             setTimeout(function () {
@@ -459,6 +457,12 @@ window.StickerUI = (function () {
         registerZoomHandlers();
 
         document.addEventListener('click', function (e) {
+            if (zoomPinned && (Date.now() - lastReleaseAt) > 200) {
+                zoomPinned = false;
+                if (zoomOverlay) {
+                    zoomOverlay.hidden = true;
+                }
+            }
             if (!panel.hidden) {
                 if (pressShown) {
                     return;
@@ -473,8 +477,15 @@ window.StickerUI = (function () {
             }
         });
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && !panel.hidden) {
-                closePanel();
+            if (e.key === 'Escape') {
+                if (zoomOverlay && !zoomOverlay.hidden) {
+                    zoomPinned = false;
+                    zoomOverlay.hidden = true;
+                    return;
+                }
+                if (!panel.hidden) {
+                    closePanel();
+                }
             }
         });
         window.addEventListener('resize', function () {
@@ -506,9 +517,9 @@ window.StickerUI = (function () {
             return;
         }
         zoomHandlerRegistered = true;
-        document.addEventListener('mouseup', cancelStickerZoom);
-        document.addEventListener('touchend', cancelStickerZoom);
-        document.addEventListener('touchcancel', cancelStickerZoom);
+        document.addEventListener('mouseup', finishStickerPress);
+        document.addEventListener('touchend', finishStickerPress);
+        document.addEventListener('touchcancel', finishStickerPress);
     }
 
     function registerStickerClickHandler() {
