@@ -10,6 +10,11 @@ window.StickerUI = (function () {
     var nameInput = null;
     var stickerFileInput = null;
     var panelErrEl = null;
+    var pressTimer = null;
+    var pressShown = false;
+    var zoomOverlay = null;
+    var zoomImg = null;
+    var zoomHandlerRegistered = false;
 
     function createButton(insertBeforeEl) {
         btn = document.createElement('button');
@@ -195,7 +200,21 @@ window.StickerUI = (function () {
             img.alt = '';
             img.loading = 'lazy';
             cell.appendChild(img);
+            cell.addEventListener('mousedown', function () {
+                startStickerZoom(sticker.url);
+            });
+            cell.addEventListener('mouseup', cancelStickerZoom);
+            cell.addEventListener('mouseleave', cancelStickerZoom);
+            cell.addEventListener('touchstart', function () {
+                startStickerZoom(sticker.url);
+            }, { passive: true });
+            cell.addEventListener('touchend', cancelStickerZoom);
+            cell.addEventListener('touchcancel', cancelStickerZoom);
             cell.addEventListener('click', function () {
+                if (pressShown) {
+                    pressShown = false;
+                    return;
+                }
                 if (opts && typeof opts.onPick === 'function') {
                     opts.onPick(sticker.code, sticker);
                 }
@@ -350,6 +369,50 @@ window.StickerUI = (function () {
         renderTabs();
     }
 
+    function ensureZoomOverlay() {
+        if (zoomOverlay) {
+            return;
+        }
+        zoomOverlay = document.createElement('div');
+        zoomOverlay.className = 'sticker-zoom';
+        zoomOverlay.hidden = true;
+        zoomImg = document.createElement('img');
+        zoomImg.alt = '';
+        zoomOverlay.appendChild(zoomImg);
+        zoomOverlay.addEventListener('click', function () {
+            zoomOverlay.hidden = true;
+            pressShown = false;
+        });
+        document.body.appendChild(zoomOverlay);
+    }
+
+    function startStickerZoom(stickerUrl) {
+        cancelStickerZoom();
+        pressShown = false;
+        pressTimer = setTimeout(function () {
+            pressTimer = null;
+            pressShown = true;
+            ensureZoomOverlay();
+            zoomImg.src = stickerUrl;
+            zoomOverlay.hidden = false;
+        }, 350);
+    }
+
+    function cancelStickerZoom() {
+        if (pressTimer) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+        }
+        if (zoomOverlay) {
+            zoomOverlay.hidden = true;
+        }
+        if (pressShown) {
+            setTimeout(function () {
+                pressShown = false;
+            }, 100);
+        }
+    }
+
     function init(options) {
         opts = options || {};
         var insertBeforeEl = null;
@@ -362,9 +425,13 @@ window.StickerUI = (function () {
         buildPanel();
         createButton(insertBeforeEl);
         registerStickerClickHandler();
+        registerZoomHandlers();
 
         document.addEventListener('click', function (e) {
             if (!panel.hidden) {
+                if (e.target && e.target.closest && e.target.closest('.sticker-zoom')) {
+                    return;
+                }
                 var path = e.composedPath ? e.composedPath() : [];
                 if (path.indexOf(panel) === -1 && path.indexOf(btn) === -1) {
                     closePanel();
@@ -399,6 +466,16 @@ window.StickerUI = (function () {
 
     var previewModal = null;
     var previewHandlerRegistered = false;
+
+    function registerZoomHandlers() {
+        if (zoomHandlerRegistered) {
+            return;
+        }
+        zoomHandlerRegistered = true;
+        document.addEventListener('mouseup', cancelStickerZoom);
+        document.addEventListener('touchend', cancelStickerZoom);
+        document.addEventListener('touchcancel', cancelStickerZoom);
+    }
 
     function registerStickerClickHandler() {
         if (previewHandlerRegistered) {

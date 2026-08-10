@@ -4336,6 +4336,10 @@ html, body {
     border-radius: 10px;
     background: transparent;
     cursor: pointer;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
     transition: background 0.15s ease;
 }
 
@@ -4558,6 +4562,31 @@ html, body {
     flex: 0 0 auto;
     width: 100%;
     padding: 10px 14px;
+}
+
+/* ===== STICKER LONG-PRESS ZOOM ===== */
+
+.sticker-zoom {
+    position: fixed;
+    inset: 0;
+    z-index: 4000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.65);
+    cursor: zoom-out;
+}
+
+.sticker-zoom img {
+    max-width: min(360px, 80vw);
+    max-height: min(360px, 80vh);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
 }
 
 .sticker-preview-add:disabled {
