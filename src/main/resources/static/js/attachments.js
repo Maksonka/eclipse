@@ -15,6 +15,9 @@ function messagePreview(message) {
     if (message.stickerUrl) {
         return 'Стикер';
     }
+    if (message.audioUrl) {
+        return 'Голосовое сообщение';
+    }
     if (message.content && message.content.trim()) {
         return message.content;
     }

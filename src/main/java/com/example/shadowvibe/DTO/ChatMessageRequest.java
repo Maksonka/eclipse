@@ -5,6 +5,7 @@ public class ChatMessageRequest {
     private String content;
     private Long replyToMessageId;
     private String stickerCode;
+    private String audioUrl;
 
     public String getReceiverUsername() { return receiverUsername; }
     public void setReceiverUsername(String receiverUsername) { this.receiverUsername = receiverUsername; }
@@ -17,4 +18,7 @@ public class ChatMessageRequest {
 
     public String getStickerCode() { return stickerCode; }
     public void setStickerCode(String stickerCode) { this.stickerCode = stickerCode; }
+
+    public String getAudioUrl() { return audioUrl; }
+    public void setAudioUrl(String audioUrl) { this.audioUrl = audioUrl; }
 }

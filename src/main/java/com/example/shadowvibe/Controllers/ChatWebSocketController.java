@@ -39,8 +39,9 @@ public class ChatWebSocketController {
         }
 
         boolean hasSticker = request.getStickerCode() != null && !request.getStickerCode().isBlank();
+        boolean hasAudio = request.getAudioUrl() != null && !request.getAudioUrl().isBlank();
         if (request.getContent() == null || request.getContent().isBlank()) {
-            if (!hasSticker) {
+            if (!hasSticker && !hasAudio) {
                 return;
             }
         }
@@ -51,6 +52,13 @@ public class ChatWebSocketController {
                     principal.getName(),
                     request.getReceiverUsername(),
                     request.getStickerCode().trim()
+            );
+        } else if (hasAudio) {
+            saved = messageService.saveAudioMessage(
+                    principal.getName(),
+                    request.getReceiverUsername(),
+                    request.getAudioUrl().trim(),
+                    request.getReplyToMessageId()
             );
         } else {
             saved = messageService.saveMessage(

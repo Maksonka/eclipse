@@ -17,6 +17,7 @@ public class ChatMessageDto {
     private boolean deleted;
     private String stickerCode;
     private String stickerUrl;
+    private String audioUrl;
 
     public ChatMessageDto() {
     }
@@ -138,4 +139,7 @@ public class ChatMessageDto {
 
     public String getStickerUrl() { return stickerUrl; }
     public void setStickerUrl(String stickerUrl) { this.stickerUrl = stickerUrl; }
+
+    public String getAudioUrl() { return audioUrl; }
+    public void setAudioUrl(String audioUrl) { this.audioUrl = audioUrl; }
 }

@@ -48,6 +48,19 @@ public class MessageService {
     }
 
 
+    private String replyPreviewText(Message original) {
+        if (original == null) {
+            return "";
+        }
+        if (original.hasAudio()) {
+            return "Голосовое сообщение";
+        }
+        if (original.hasSticker()) {
+            return "Стикер";
+        }
+        return original.getContent() != null ? original.getContent() : "";
+    }
+
     public Message saveMessage(String senderUsername, String receiverUsername, String content, Long replyToMessageId) {
         User receiver = userService.findByUsername(receiverUsername).orElseThrow(()-> new RuntimeException("пользователь не найден"));
         User sender = userService.findByUsername(senderUsername).orElseThrow(()-> new RuntimeException("пользователь не найден"));
@@ -62,7 +75,7 @@ public class MessageService {
             Message original = messageRepository.findById(replyToMessageId).orElse(null);
             if (original != null) {
                 message.setReplyToMessageId(original.getId());
-                message.setReplyToContent(original.getContent() != null ? original.getContent() : "");
+                message.setReplyToContent(replyPreviewText(original));
                 message.setReplyToSenderUsername(original.getSender().getUsername());
             }
         }
@@ -108,6 +121,31 @@ public class MessageService {
         message.setTimestamp(LocalDateTime.now());
         message.setStickerCode(sticker.getCode());
         message.setStickerUrl(sticker.getFilename());
+        return messageRepository.save(message);
+    }
+
+    public Message saveAudioMessage(String senderUsername, String receiverUsername, String audioUrl, Long replyToMessageId) {
+        User receiver = userService.findByUsername(receiverUsername)
+                .orElseThrow(() -> new RuntimeException("пользователь не найден"));
+        User sender = userService.findByUsername(senderUsername)
+                .orElseThrow(() -> new RuntimeException("пользователь не найден"));
+
+        Message message = new Message();
+        message.setSender(sender);
+        message.setReceiver(receiver);
+        message.setContent("");
+        message.setTimestamp(LocalDateTime.now());
+        message.setAudioUrl(audioUrl);
+
+        if (replyToMessageId != null) {
+            Message original = messageRepository.findById(replyToMessageId).orElse(null);
+            if (original != null) {
+                message.setReplyToMessageId(original.getId());
+                message.setReplyToContent(replyPreviewText(original));
+                message.setReplyToSenderUsername(original.getSender().getUsername());
+            }
+        }
+
         return messageRepository.save(message);
     }
 
@@ -166,6 +204,7 @@ public class MessageService {
         );
         dto.setStickerCode(message.getStickerCode());
         dto.setStickerUrl(message.getStickerUrl());
+        dto.setAudioUrl(message.getAudioUrl());
         return dto;
     }
 
@@ -256,6 +295,7 @@ public class MessageService {
         message.setAttachmentSize(null);
         message.setStickerCode(null);
         message.setStickerUrl(null);
+        message.setAudioUrl(null);
         message.setDeletedBySender(true);
         message.setDeletedByReceiver(true);
         messageRepository.save(message);
@@ -273,6 +313,7 @@ public class MessageService {
         boolean outgoing = message.getSender().getUsername().equals(currentUsername);
 
         String preview = message.hasSticker() ? "Стикер"
+                : message.hasAudio() ? "Голосовое сообщение"
                 : (message.getContent() != null && !message.getContent().isBlank()
                         ? message.getContent()
                         : AttachmentService.labelForType(message.getAttachmentType()));
