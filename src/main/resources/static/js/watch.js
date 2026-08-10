@@ -27,6 +27,13 @@ var playlistAddForm = document.getElementById('playlist-add-form');
 var playlistUrlInput = document.getElementById('playlist-url-input');
 var playlistTitleInput = document.getElementById('playlist-title-input');
 var playlistHostHint = document.getElementById('playlist-host-hint');
+var videoSearchBtn = document.getElementById('video-search-btn');
+var videoSearchOverlay = document.getElementById('video-search-overlay');
+var videoSearchClose = document.getElementById('video-search-close');
+var videoSearchForm = document.getElementById('video-search-form');
+var videoSearchInput = document.getElementById('video-search-input');
+var videoSearchStatus = document.getElementById('video-search-status');
+var videoSearchResults = document.getElementById('video-search-results');
 var chatMessages = document.getElementById('watch-chat-messages');
 var chatForm = document.getElementById('watch-chat-form');
 var chatInput = document.getElementById('watch-chat-input');
@@ -1169,6 +1176,7 @@ if (leaveBtn) {
         }
         clearSavedRoom();
         resetRoomView();
+        closeVideoSearch();
     });
 }
 
@@ -1330,6 +1338,153 @@ if (playlistAddForm) {
         playlistTitleInput.value = '';
     });
 }
+
+/* ===== Video search ===== */
+
+function openVideoSearch() {
+    if (!videoSearchOverlay) return;
+    videoSearchOverlay.hidden = false;
+    videoSearchResults.innerHTML = '';
+    setVideoSearchStatus('');
+    if (videoSearchInput) {
+        videoSearchInput.value = '';
+        setTimeout(function () { videoSearchInput.focus(); }, 50);
+    }
+}
+
+function closeVideoSearch() {
+    if (videoSearchOverlay) videoSearchOverlay.hidden = true;
+}
+
+function setVideoSearchStatus(text) {
+    if (!videoSearchStatus) return;
+    if (text) {
+        videoSearchStatus.textContent = text;
+        videoSearchStatus.hidden = false;
+    } else {
+        videoSearchStatus.textContent = '';
+        videoSearchStatus.hidden = true;
+    }
+}
+
+function runVideoSearch(query) {
+    if (!videoSearchResults) return;
+    videoSearchResults.innerHTML = '<div class="sidebar-empty">Поиск...</div>';
+    setVideoSearchStatus('');
+    fetch('/api/video/search?q=' + encodeURIComponent(query) + '&limit=12')
+        .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+        })
+        .then(function (res) {
+            if (!res.ok || !res.data) {
+                videoSearchResults.innerHTML = '';
+                setVideoSearchStatus('Не удалось выполнить поиск. Попробуйте ещё раз.');
+                return;
+            }
+            var results = res.data.results || [];
+            if (!results.length) {
+                videoSearchResults.innerHTML = '';
+                setVideoSearchStatus('Ничего не найдено по запросу «' + query + '».');
+                return;
+            }
+            videoSearchResults.innerHTML = '';
+            results.forEach(function (item) {
+                videoSearchResults.appendChild(buildVideoSearchResult(item));
+            });
+        })
+        .catch(function () {
+            videoSearchResults.innerHTML = '';
+            setVideoSearchStatus('Ошибка сети. Попробуйте ещё раз.');
+        });
+}
+
+function buildVideoSearchResult(item) {
+    var row = document.createElement('div');
+    row.className = 'video-search-result';
+    row.setAttribute('role', 'button');
+    row.setAttribute('tabindex', '0');
+    row.title = item.title || item.url || '';
+    var thumb = document.createElement('img');
+    thumb.className = 'video-search-result-thumb';
+    thumb.src = item.thumb || '';
+    thumb.alt = '';
+    thumb.loading = 'lazy';
+    thumb.referrerPolicy = 'no-referrer';
+    var body = document.createElement('div');
+    body.className = 'video-search-result-body';
+    var title = document.createElement('span');
+    title.className = 'video-search-result-title';
+    title.textContent = item.title || item.url || '';
+    var badge = document.createElement('span');
+    badge.className = 'video-search-result-badge';
+    badge.textContent = item.source === 'youtube' ? 'YouTube' : (item.source || '');
+    body.appendChild(title);
+    body.appendChild(badge);
+    row.appendChild(thumb);
+    row.appendChild(body);
+    row.addEventListener('click', function () {
+        addVideoSearchResult(item);
+    });
+    row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            addVideoSearchResult(item);
+        }
+    });
+    return row;
+}
+
+function addVideoSearchResult(item) {
+    if (!activeRoom) {
+        closeVideoSearch();
+        showToast('Сначала войдите в комнату');
+        return;
+    }
+    if (!stompClient || !stompClient.connected) {
+        showToast('Нет соединения с сервером');
+        return;
+    }
+    var url = item.url || '';
+    var title = item.title || '';
+    if (!isSupportedVideoUrl(url)) {
+        showToast('Не удалось добавить это видео');
+        return;
+    }
+    stompClient.send('/app/room.playlist.add', {}, JSON.stringify({ roomId: activeRoom.roomId, url: url, title: title }));
+    closeVideoSearch();
+    showToast('Добавлено в очередь');
+}
+
+if (videoSearchBtn) {
+    videoSearchBtn.addEventListener('click', openVideoSearch);
+}
+if (videoSearchClose) {
+    videoSearchClose.addEventListener('click', closeVideoSearch);
+}
+if (videoSearchOverlay) {
+    videoSearchOverlay.addEventListener('click', function (e) {
+        if (e.target === videoSearchOverlay) {
+            closeVideoSearch();
+        }
+    });
+}
+if (videoSearchForm) {
+    videoSearchForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!videoSearchInput) return;
+        var q = videoSearchInput.value.trim();
+        if (!q) {
+            setVideoSearchStatus('Введите название видео');
+            return;
+        }
+        runVideoSearch(q);
+    });
+}
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && videoSearchOverlay && !videoSearchOverlay.hidden) {
+        closeVideoSearch();
+    }
+});
 
 if (nextBtn) {
     nextBtn.addEventListener('click', function () {

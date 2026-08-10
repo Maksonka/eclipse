@@ -214,7 +214,16 @@
                 <div class="watch-playlist">
                     <div class="watch-playlist-head">
                         <h2 class="watch-playlist-title">Очередь видео</h2>
-                        <span class="watch-hint" id="playlist-host-hint" hidden>Хост управляет очередью</span>
+                        <div class="watch-playlist-head-actions">
+                            <span class="watch-hint" id="playlist-host-hint" hidden>Хост управляет очередью</span>
+                            <button type="button" id="video-search-btn" class="watch-btn small" title="Найти видео по названию и добавить ссылку в очередь">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M20 20l-3.2-3.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                <span>Поиск</span>
+                            </button>
+                        </div>
                     </div>
                     <form id="playlist-add-form" class="watch-playlist-add">
                         <input type="url" id="playlist-url-input" placeholder="Ссылка: YouTube, VK, Rutube, Vimeo или MP4/WebM"
@@ -246,6 +255,23 @@
 
 <div id="watch-toast" class="watch-toast" hidden></div>
 
+<div id="video-search-overlay" class="video-search-overlay" hidden>
+    <div class="video-search-panel">
+        <div class="video-search-header">
+            <h3 class="video-search-title">Поиск видео</h3>
+            <button type="button" class="video-search-close" id="video-search-close" aria-label="Закрыть">&times;</button>
+        </div>
+        <form id="video-search-form" class="video-search-form">
+            <input type="text" id="video-search-input" placeholder="Название видео... (YouTube)" autocomplete="off"
+                   maxlength="200"/>
+            <button type="submit" class="watch-btn primary">Найти</button>
+        </form>
+        <p class="watch-card-hint" id="video-search-hint">Нажмите на найденное видео — его ссылка добавится в очередь.</p>
+        <div class="video-search-status" id="video-search-status" hidden></div>
+        <div class="video-search-results" id="video-search-results"></div>
+    </div>
+</div>
+
 <script th:inline="javascript">
     const currentUsername = /*[[${#authentication.name}]]*/ '';
     const inviteRoom = /*[[${room}]]*/ '';
@@ -255,6 +281,6 @@
 <script src="/js/hls.min.js"></script>
 <script th:src="@{/js/notifications.js(v=3)}"></script>
  <script th:src="@{/js/stickers.js(v=11)}"></script>
-<script th:src="@{/js/watch.js(v=47)}"></script>
+<script th:src="@{/js/watch.js(v=48)}"></script>
 </body>
 </html>
