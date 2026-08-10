@@ -3,15 +3,12 @@ package com.example.shadowvibe.Services.search;
 import com.example.shadowvibe.DTO.VideoSearchResultDto;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -23,7 +20,6 @@ import java.util.regex.Pattern;
 @Service
 public class YouTubeVideoSearchProvider implements VideoSearchProvider {
 
-    private static final String UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
     private static final String YT_INITIAL_DATA = "var ytInitialData = ";
     private static final Pattern VIDEO_ID = Pattern.compile("\"videoId\":\"([A-Za-z0-9_-]{11})\"");
     private static final Pattern TEXT_FIELD = Pattern.compile("\"text\":\"((?:[^\"\\\\]|\\\\.)*)\"");
@@ -34,8 +30,9 @@ public class YouTubeVideoSearchProvider implements VideoSearchProvider {
             return List.of();
         }
         try {
-            String html = fetchText("https://www.youtube.com/results?search_query="
-                    + URLEncoder.encode(query.trim(), StandardCharsets.UTF_8));
+            String html = SearchHttp.get("https://www.youtube.com/results?search_query="
+                    + URLEncoder.encode(query.trim(), StandardCharsets.UTF_8),
+                    Map.of("Cookie", "CONSENT=YES+1; SOCS=CAI"));
             return parse(html, limit);
         } catch (Exception e) {
             return List.of();
@@ -116,30 +113,5 @@ public class YouTubeVideoSearchProvider implements VideoSearchProvider {
             }
         }
         return null;
-    }
-
-    private String fetchText(String url) throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-        conn.setConnectTimeout(12000);
-        conn.setReadTimeout(12000);
-        conn.setInstanceFollowRedirects(true);
-        conn.setRequestProperty("User-Agent", UA);
-        conn.setRequestProperty("Accept-Language", "ru-RU,ru;q=0.9,en;q=0.8");
-        conn.setRequestProperty("Cookie", "CONSENT=YES+1; SOCS=CAI");
-        int code = conn.getResponseCode();
-        if (code != HttpURLConnection.HTTP_OK) {
-            conn.disconnect();
-            throw new Exception("YouTube status " + code);
-        }
-        try (InputStream in = conn.getInputStream()) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            byte[] buf = new byte[16384];
-            int n;
-            while ((n = in.read(buf)) != -1) {
-                out.write(buf, 0, n);
-            }
-            conn.disconnect();
-            return out.toString(StandardCharsets.UTF_8);
-        }
     }
 }

@@ -1417,7 +1417,8 @@ function buildVideoSearchResult(item) {
     title.textContent = item.title || item.url || '';
     var badge = document.createElement('span');
     badge.className = 'video-search-result-badge';
-    badge.textContent = item.source === 'youtube' ? 'YouTube' : (item.source || '');
+    var sourceNames = { youtube: 'YouTube', rutube: 'Rutube', vk: 'VK Видео' };
+    badge.textContent = sourceNames[item.source] || (item.source || '');
     body.appendChild(title);
     body.appendChild(badge);
     row.appendChild(thumb);

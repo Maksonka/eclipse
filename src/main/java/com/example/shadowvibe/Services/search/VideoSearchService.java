@@ -20,20 +20,34 @@ public class VideoSearchService {
     }
 
     public List<VideoSearchResultDto> search(String query, int limit) {
-        List<VideoSearchResultDto> results = new ArrayList<>();
+        List<List<VideoSearchResultDto>> perProvider = new ArrayList<>();
         for (VideoSearchProvider provider : providers) {
             try {
                 List<VideoSearchResultDto> found = provider.search(query, limit);
-                if (found != null) {
-                    results.addAll(found);
+                if (found != null && !found.isEmpty()) {
+                    perProvider.add(found);
                 }
             } catch (Exception ignored) {
                 // платформа временно недоступна — пропускаем
             }
-            if (results.size() >= limit) {
-                break;
+        }
+        List<VideoSearchResultDto> merged = new ArrayList<>();
+        int max = 0;
+        for (List<VideoSearchResultDto> list : perProvider) {
+            if (list.size() > max) {
+                max = list.size();
             }
         }
-        return results.size() > limit ? results.subList(0, limit) : results;
+        for (int i = 0; i < max && merged.size() < limit; i++) {
+            for (List<VideoSearchResultDto> list : perProvider) {
+                if (i < list.size()) {
+                    merged.add(list.get(i));
+                    if (merged.size() >= limit) {
+                        break;
+                    }
+                }
+            }
+        }
+        return merged;
     }
 }
