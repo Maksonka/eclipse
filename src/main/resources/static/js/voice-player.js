@@ -89,20 +89,30 @@
         timeEl.className = 'voice-player-time';
         timeEl.textContent = '0:00';
 
-        var audioCopy = audio.cloneNode(false);
-        audioCopy.setAttribute('data-voice-player', '');
-        audioCopy.preload = 'metadata';
-        audioCopy.controls = false;
-        audioCopy.hidden = true;
+        var audioEl;
+        if (audio.parentNode) {
+            var audioCopy = audio.cloneNode(false);
+            audioCopy.setAttribute('data-voice-player', '');
+            audioCopy.preload = 'metadata';
+            audioCopy.controls = false;
+            audioCopy.hidden = true;
+            audio.parentNode.replaceChild(root, audio);
+            root.appendChild(audioCopy);
+            audioEl = audioCopy;
+        } else {
+            audio.preload = 'metadata';
+            audio.controls = false;
+            audio.hidden = true;
+            root.appendChild(audio);
+            audioEl = audio;
+        }
 
-        audio.parentNode.replaceChild(root, audio);
         root.appendChild(playBtn);
         root.appendChild(wave);
         root.appendChild(timeEl);
-        root.appendChild(audioCopy);
 
         var state = {
-            audio: audioCopy,
+            audio: audioEl,
             root: root,
             playBtn: playBtn,
             wave: wave,
@@ -111,48 +121,48 @@
         };
         players.push(state);
 
-        audioCopy.addEventListener('loadedmetadata', function () {
-            if (isFinite(audioCopy.duration)) {
-                state.total = audioCopy.duration;
+        audioEl.addEventListener('loadedmetadata', function () {
+            if (isFinite(audioEl.duration)) {
+                state.total = audioEl.duration;
             }
-            if (audioCopy.paused && audioCopy.currentTime === 0) {
+            if (audioEl.paused && audioEl.currentTime === 0) {
                 timeEl.textContent = fmt(state.total);
             }
         });
-        audioCopy.addEventListener('timeupdate', function () {
-            timeEl.textContent = fmt(audioCopy.currentTime);
-            setProgress(wave, state.total ? audioCopy.currentTime / state.total : 0);
+        audioEl.addEventListener('timeupdate', function () {
+            timeEl.textContent = fmt(audioEl.currentTime);
+            setProgress(wave, state.total ? audioEl.currentTime / state.total : 0);
         });
-        audioCopy.addEventListener('play', function () {
+        audioEl.addEventListener('play', function () {
             setPlaying(root, true);
             playBtn.setAttribute('aria-label', 'Пауза');
         });
-        audioCopy.addEventListener('pause', function () {
+        audioEl.addEventListener('pause', function () {
             setPlaying(root, false);
             playBtn.setAttribute('aria-label', 'Воспроизвести');
         });
-        audioCopy.addEventListener('ended', function () {
+        audioEl.addEventListener('ended', function () {
             setPlaying(root, false);
             timeEl.textContent = fmt(state.total);
             setProgress(wave, 1);
         });
-        audioCopy.addEventListener('error', function () {
+        audioEl.addEventListener('error', function () {
             timeEl.textContent = '0:00';
         });
 
         playBtn.addEventListener('click', function () {
-            if (audioCopy.paused) {
-                pauseOthers(audioCopy);
-                var p = audioCopy.play();
+            if (audioEl.paused) {
+                pauseOthers(audioEl);
+                var p = audioEl.play();
                 if (p && p.catch) {
                     p.catch(function () {});
                 }
             } else {
-                audioCopy.pause();
+                audioEl.pause();
             }
         });
 
-        var fallback = audio.getAttribute('data-duration-ms');
+        var fallback = audioEl.getAttribute('data-duration-ms');
         if (fallback && parseInt(fallback, 10) > 0) {
             state.total = parseInt(fallback, 10) / 1000;
             timeEl.textContent = fmt(state.total);
