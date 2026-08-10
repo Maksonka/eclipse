@@ -429,6 +429,9 @@ window.StickerUI = (function () {
 
         document.addEventListener('click', function (e) {
             if (!panel.hidden) {
+                if (pressShown) {
+                    return;
+                }
                 if (e.target && e.target.closest && e.target.closest('.sticker-zoom')) {
                     return;
                 }
