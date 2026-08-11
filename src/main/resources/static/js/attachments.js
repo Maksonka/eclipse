@@ -71,12 +71,26 @@ function createAttachmentElement(message) {
         video.className = 'attachment-video';
         box.appendChild(video);
     } else if (type === 'audio') {
+        var audioWrap = document.createElement('span');
+        audioWrap.className = 'attachment-audio-wrap';
         var audio = document.createElement('audio');
         audio.src = url;
         audio.controls = true;
         audio.preload = 'metadata';
         audio.className = 'attachment-audio';
-        box.appendChild(audio);
+        audioWrap.appendChild(audio);
+        var audioMeta = document.createElement('span');
+        audioMeta.className = 'attachment-file-meta';
+        var audioName = document.createElement('span');
+        audioName.className = 'attachment-file-name';
+        audioName.textContent = message.attachmentOriginalName || message.attachmentFilename;
+        var audioSize = document.createElement('span');
+        audioSize.className = 'attachment-file-size';
+        audioSize.textContent = formatAttachmentSize(message.attachmentSize);
+        audioMeta.appendChild(audioName);
+        audioMeta.appendChild(audioSize);
+        audioWrap.appendChild(audioMeta);
+        box.appendChild(audioWrap);
     } else {
         var fileLink = document.createElement('a');
         fileLink.href = url;

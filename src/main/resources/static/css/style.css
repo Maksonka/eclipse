@@ -1286,6 +1286,20 @@ body.chat-page {
     min-width: 240px;
 }
 
+.attachment-audio-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 340px;
+}
+
+.attachment-file-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
 .attachment-file {
     display: flex;
     align-items: center;
@@ -1486,6 +1500,10 @@ body.chat-page {
     .attachment-audio {
         min-width: 0;
         width: 100%;
+    }
+
+    .attachment-audio-wrap {
+        max-width: 100%;
     }
 
     .group-member-item {

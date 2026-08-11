@@ -16,10 +16,15 @@
                class="attachment-video"
                controls preload="metadata"
                th:src="@{/uploads/messages/{name}(name=${msg.attachmentFilename})}"></video>
-        <audio th:case="'audio'"
-               class="attachment-audio"
-               controls preload="metadata"
-               th:src="@{/uploads/messages/{name}(name=${msg.attachmentFilename})}"></audio>
+        <span th:case="'audio'" class="attachment-audio-wrap">
+            <audio class="attachment-audio"
+                   controls preload="metadata"
+                   th:src="@{/uploads/messages/{name}(name=${msg.attachmentFilename})}"></audio>
+            <span class="attachment-file-meta">
+                <span class="attachment-file-name" th:text="${msg.attachmentOriginalName}">song.mp3</span>
+                <span class="attachment-file-size" th:text="${T(com.example.shadowvibe.Services.AttachmentService).formatSize(msg.attachmentSize)}">размер</span>
+            </span>
+        </span>
         <a th:case="*"
            class="attachment-file"
            th:href="@{/uploads/messages/{name}(name=${msg.attachmentFilename})}"
