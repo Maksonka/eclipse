@@ -34,7 +34,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // включить в продакшене
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/register", "/login", "/error", "/css/**", "/js/**", "/img/**", "/uploads/**").permitAll()
+                        .requestMatchers("/", "/register", "/login", "/error", "/css/**", "/js/**", "/img/**", "/sounds/**", "/uploads/**").permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/ws/**").authenticated()
                         .requestMatchers("/admin/**").hasRole(UserRole.ADMIN.name())

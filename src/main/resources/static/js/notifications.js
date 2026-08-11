@@ -7,7 +7,7 @@
     var SOUND_GAP = 1200;
 
     var container = null;
-    var audioCtx = null;
+    var soundEl = null;
     var lastSoundAt = 0;
     var burstTimer = null;
     var burstCount = 0;
@@ -40,20 +40,25 @@
         }
     }
 
+    function getSound() {
+        if (!soundEl) {
+            soundEl = new Audio('/sounds/notification.mp3');
+            soundEl.preload = 'auto';
+        }
+        return soundEl;
+    }
+
     function unlockAudio() {
-        if (!audioCtx) {
-            try {
-                var AC = window.AudioContext || window.webkitAudioContext;
-                if (AC) {
-                    audioCtx = new AC();
-                }
-            } catch (e) {
-                audioCtx = null;
+        var el = getSound();
+        try {
+            var p = el.play();
+            if (p && typeof p.then === 'function') {
+                p.then(function () {
+                    el.pause();
+                    el.currentTime = 0;
+                }).catch(function () {});
             }
-        }
-        if (audioCtx && audioCtx.state === 'suspended') {
-            try { audioCtx.resume(); } catch (e) {}
-        }
+        } catch (e) {}
     }
 
     if (document.addEventListener) {
@@ -68,27 +73,13 @@
             return;
         }
         lastSoundAt = nowMs;
-        unlockAudio();
-        if (!audioCtx) {
-            return;
-        }
         try {
-            var now = audioCtx.currentTime;
-            var tone = function (freq, start, dur) {
-                var osc = audioCtx.createOscillator();
-                var gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = freq;
-                gain.gain.setValueAtTime(0.0001, start);
-                gain.gain.exponentialRampToValueAtTime(0.15, start + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(start);
-                osc.stop(start + dur + 0.02);
-            };
-            tone(880, now, 0.1);
-            tone(1174.66, now + 0.08, 0.14);
+            var el = getSound();
+            el.currentTime = 0;
+            var p = el.play();
+            if (p && typeof p.catch === 'function') {
+                p.catch(function () {});
+            }
         } catch (e) {}
     }
 
