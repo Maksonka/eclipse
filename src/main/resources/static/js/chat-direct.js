@@ -409,16 +409,13 @@ function appendMessage(message) {
 
 function forceLoadVoice(row) {
     if (!row) return;
-    row.querySelectorAll('.voice-player').forEach(function (vp) {
-        var pending = vp.getAttribute('data-pending-src');
-        if (pending) {
-            vp.removeAttribute('data-pending-src');
+    requestAnimationFrame(function () {
+        row.querySelectorAll('.voice-player').forEach(function (vp) {
             var a = vp.querySelector('audio');
-            if (a) {
-                a.src = pending;
-                a.load();
+            if (a && a.src) {
+                try { a.load(); } catch (e) {}
             }
-        }
+        });
     });
 }
 

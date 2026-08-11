@@ -984,6 +984,14 @@ body.chat-page {
     background: transparent;
 }
 
+.voice-player audio {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
 .voice-player-play {
     display: inline-flex;
     align-items: center;

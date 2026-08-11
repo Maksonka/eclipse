@@ -94,16 +94,12 @@
             var audioCopy = audio.cloneNode(false);
             audioCopy.preload = 'metadata';
             audioCopy.controls = false;
-            audioCopy.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
             audio.parentNode.replaceChild(root, audio);
             root.appendChild(audioCopy);
             audioEl = audioCopy;
         } else {
             audio.preload = 'metadata';
             audio.controls = false;
-            audio.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
-            var pendingSrc = audio.getAttribute('src');
-            audio.removeAttribute('src');
             root.appendChild(audio);
             audioEl = audio;
         }
@@ -111,10 +107,6 @@
         root.appendChild(playBtn);
         root.appendChild(wave);
         root.appendChild(timeEl);
-
-        if (pendingSrc) {
-            root.setAttribute('data-pending-src', pendingSrc);
-        }
 
         setProgress(wave, 1);
 
