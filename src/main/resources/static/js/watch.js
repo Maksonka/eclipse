@@ -87,7 +87,17 @@ var voiceState = {
 };
 var voiceSub = null;
 var voiceQueueSub = null;
-var RTC_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+var RTC_CONFIG = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'stun:stun.services.mozilla.com' },
+        { urls: 'stun:stun.1und1.de:3478' }
+    ]
+};
 var voiceRecorder = null;
 var voiceChunks = [];
 var voiceRecTimer = null;
@@ -1198,15 +1208,26 @@ function createPeer(u) {
         attachRemoteAudio(u, stream);
     };
     pc.onconnectionstatechange = function () {
-        if (pc.connectionState === 'failed' || pc.connectionState === 'closed') closePeer(u);
+        if (pc.connectionState === 'connected') {
+            setVoiceStatus('Соединение установлено');
+        } else if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+            closePeer(u);
+        }
     };
-    pc.createOffer().then(function (offer) {
-        return pc.setLocalDescription(offer);
-    }).then(function () {
-        if (pc.localDescription) sendVoiceSignal(u, 'offer', { sdp: pc.localDescription });
-    }).catch(function () {
-        closePeer(u);
-    });
+    pc.oniceconnectionstatechange = function () {
+        if (pc.iceConnectionState === 'failed') {
+            closePeer(u);
+        }
+    };
+    if (u > currentUsername) {
+        pc.createOffer().then(function (offer) {
+            return pc.setLocalDescription(offer);
+        }).then(function () {
+            if (pc.localDescription) sendVoiceSignal(u, 'offer', { sdp: pc.localDescription });
+        }).catch(function () {
+            closePeer(u);
+        });
+    }
 }
 
 function attachRemoteAudio(u, stream) {
