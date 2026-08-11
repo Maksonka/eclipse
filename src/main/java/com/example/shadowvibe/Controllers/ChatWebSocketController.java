@@ -37,6 +37,9 @@ public class ChatWebSocketController {
         if (principal == null || request.getReceiverUsername() == null || request.getReceiverUsername().isBlank()) {
             return;
         }
+        if (request.getReceiverUsername().equals(principal.getName())) {
+            return;
+        }
 
         boolean hasSticker = request.getStickerCode() != null && !request.getStickerCode().isBlank();
         boolean hasAudio = request.getAudioUrl() != null && !request.getAudioUrl().isBlank();

@@ -157,6 +157,9 @@ function upsertConversation(message, incrementUnread) {
     }
 
     const partner = getPartnerUsername(message);
+    if (partner === currentUsername) {
+        return;
+    }
     const isOutgoing = message.senderUsername === currentUsername;
     const preview = truncatePreview(messagePreview(message));
     let item = conversationsList.querySelector('[data-partner="' + partner + '"]');

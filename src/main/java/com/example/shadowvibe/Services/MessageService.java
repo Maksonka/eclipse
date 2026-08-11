@@ -220,6 +220,9 @@ public class MessageService {
             String partner = message.getSender().getUsername().equals(username)
                     ? message.getReceiver().getUsername()
                     : message.getSender().getUsername();
+            if (partner.equals(username)) {
+                continue;
+            }
             latestByPartner.putIfAbsent(partner, message);
         }
 
