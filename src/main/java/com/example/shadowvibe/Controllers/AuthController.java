@@ -5,9 +5,16 @@ import com.example.shadowvibe.Repositories.UserRepository;
 import com.example.shadowvibe.Services.UserService;
 
 import com.example.shadowvibe.enums.UserRole;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,12 +28,14 @@ public class AuthController {
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
 
-    public AuthController(UserService userService, PasswordEncoder passwordEncoder) {
+    public AuthController(UserService userService, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager) {
         this.userService = userService;
 
 
         this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
     }
 
 
@@ -66,6 +75,7 @@ public class AuthController {
     public String registerUser(@RequestParam String username,
                                @RequestParam String email,
                                @RequestParam String password,
+                               HttpServletRequest request,
                                Model model) {
         model.addAttribute("enteredUsername", username);
         model.addAttribute("enteredEmail", email);
@@ -90,6 +100,15 @@ public class AuthController {
         String encodedPassword = passwordEncoder.encode(password);
         User user = new User(username, email, encodedPassword, UserRole.USER);
         userService.registerUser(user);
-        return "redirect:/login";
+
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(username, password));
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+        HttpSession session = request.getSession(true);
+        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
+
+        return "redirect:/chat";
     }
 }

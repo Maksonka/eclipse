@@ -80,7 +80,7 @@ public class ApiController {
     }
 
     @PostMapping("/auth/register")
-    public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> register(@RequestBody Map<String, String> body, HttpServletRequest request) {
         String username = body.get("username");
         String email = body.get("email");
         String password = body.get("password");
@@ -101,7 +101,16 @@ public class ApiController {
 
         User user = new User(username, email, passwordEncoder.encode(password), UserRole.USER);
         userService.registerUser(user);
-        return ResponseEntity.ok(Map.of("success", true));
+
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(username, password));
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+        HttpSession session = request.getSession(true);
+        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
+
+        return ResponseEntity.ok(toUserMap(user));
     }
 
     @PostMapping("/auth/logout")
