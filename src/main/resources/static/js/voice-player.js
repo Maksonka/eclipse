@@ -127,12 +127,18 @@
             }
             if (audioEl.paused && audioEl.currentTime === 0) {
                 timeEl.textContent = fmt(state.total);
+                setProgress(wave, 1);
             }
         });
         audioEl.addEventListener('timeupdate', function () {
             timeEl.textContent = fmt(audioEl.currentTime);
             setProgress(wave, state.total ? audioEl.currentTime / state.total : 0);
         });
+        if (audioEl.readyState >= 1 && isFinite(audioEl.duration) && audioEl.duration > 0) {
+            state.total = audioEl.duration;
+            timeEl.textContent = fmt(state.total);
+            setProgress(wave, 1);
+        }
         audioEl.addEventListener('play', function () {
             setPlaying(root, true);
             playBtn.setAttribute('aria-label', 'Пауза');
