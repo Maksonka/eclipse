@@ -77,7 +77,8 @@ public class WatchRoomWebSocketController {
         String content = request.get("content") != null ? request.get("content").toString() : null;
         String stickerCode = request.get("stickerCode") != null ? request.get("stickerCode").toString() : null;
         String audioUrl = request.get("audioUrl") != null ? request.get("audioUrl").toString() : null;
-        watchRoomService.sendChatMessage(principal.getName(), roomId, content, stickerCode, audioUrl);
+        Long audioDurationMs = request.get("audioDurationMs") != null ? Long.valueOf(request.get("audioDurationMs").toString()) : null;
+        watchRoomService.sendChatMessage(principal.getName(), roomId, content, stickerCode, audioUrl, audioDurationMs);
     }
 
     @MessageMapping("/room.voice.join")

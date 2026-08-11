@@ -904,14 +904,21 @@ function appendChatMessage(msg, notify) {
         row.appendChild(stickerImg);
     } else if (msg.audioUrl) {
         row.classList.add('chat-msg-audio');
+        row.classList.add('bubble-none');
         var audioWrap = document.createElement('div');
-        audioWrap.className = 'chat-msg-content chat-msg-audio-wrap';
-        var audio = document.createElement('audio');
-        audio.controls = true;
-        audio.preload = 'metadata';
-        audio.src = msg.audioUrl;
-        audio.setAttribute('data-audio-url', msg.audioUrl);
-        audioWrap.appendChild(audio);
+        audioWrap.className = 'chat-msg-content';
+        if (window.VoicePlayer) {
+            var voiceEl = VoicePlayer.create(msg.audioUrl, msg.audioDurationMs);
+            if (voiceEl) {
+                audioWrap.appendChild(voiceEl);
+            }
+        } else {
+            var audio = document.createElement('audio');
+            audio.controls = true;
+            audio.preload = 'metadata';
+            audio.src = msg.audioUrl;
+            audioWrap.appendChild(audio);
+        }
         if (msg.content) {
             var audioText = document.createElement('span');
             audioText.className = 'chat-msg-audio-text';
@@ -1052,7 +1059,8 @@ function uploadVoiceRecording() {
             }
             stompClient.send('/app/room.message', {}, JSON.stringify({
                 roomId: activeRoom.roomId,
-                audioUrl: res.data.url
+                audioUrl: res.data.url,
+                audioDurationMs: durationMs
             }));
         })
         .catch(function () {

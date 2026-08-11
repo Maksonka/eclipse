@@ -235,11 +235,16 @@ public class WatchRoomService {
 
     @Transactional
     public WatchRoomChatMessageDto sendChatMessage(String username, Long roomId, String content, String stickerCode) {
-        return sendChatMessage(username, roomId, content, stickerCode, null);
+        return sendChatMessage(username, roomId, content, stickerCode, null, null);
     }
 
     @Transactional
     public WatchRoomChatMessageDto sendChatMessage(String username, Long roomId, String content, String stickerCode, String audioUrl) {
+        return sendChatMessage(username, roomId, content, stickerCode, audioUrl, null);
+    }
+
+    @Transactional
+    public WatchRoomChatMessageDto sendChatMessage(String username, Long roomId, String content, String stickerCode, String audioUrl, Long audioDurationMs) {
         WatchRoom room = getRoom(roomId);
         if (!room.isMember(username)) {
             throw new IllegalArgumentException("Вы не в этой комнате");
@@ -275,6 +280,9 @@ public class WatchRoomService {
         if (audioUrl != null && !audioUrl.isBlank()) {
             String trimmed = audioUrl.trim();
             message.setAudioUrl(trimmed.length() > 500 ? trimmed.substring(0, 500) : trimmed);
+            if (audioDurationMs != null && audioDurationMs > 0) {
+                message.setAudioDurationMs(audioDurationMs);
+            }
         }
 
         WatchRoomChatMessageDto dto = toMessageDto(messageRepository.save(message));
@@ -327,6 +335,7 @@ public class WatchRoomService {
         dto.setStickerCode(message.getStickerCode());
         dto.setStickerUrl(message.getStickerUrl());
         dto.setAudioUrl(message.getAudioUrl());
+        dto.setAudioDurationMs(message.getAudioDurationMs());
         return dto;
     }
 
