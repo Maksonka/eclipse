@@ -53,6 +53,7 @@ var seekRow = document.getElementById('seek-row');
 var seekBar = document.getElementById('seek-bar');
 var seekTime = document.getElementById('seek-time');
 var hostScrubbing = false;
+var scrubTick = null;
 var lastSeekTime = 0;
 var lastSendControlTs = 0;
 
@@ -889,6 +890,46 @@ function loadChatHistory(roomId) {
     });
 }
 
+function showMsgNote(msg) {
+    var noteBox = document.getElementById('watch-msg-note');
+    if (!noteBox) return;
+
+    var card = document.createElement('div');
+    card.className = 'watch-msg-note-card';
+
+    var avatar = document.createElement('span');
+    avatar.className = 'watch-msg-note-avatar';
+    avatar.textContent = (msg.senderUsername || '?').charAt(0).toUpperCase();
+
+    var body = document.createElement('span');
+    body.className = 'watch-msg-note-body';
+
+    var sender = document.createElement('span');
+    sender.className = 'watch-msg-note-sender';
+    sender.textContent = msg.senderUsername;
+
+    var text = document.createElement('span');
+    text.className = 'watch-msg-note-text';
+    text.textContent = msg.stickerUrl ? 'Стикер' : (msg.audioUrl ? 'Голосовое сообщение' : (msg.content || 'Файл'));
+
+    body.appendChild(sender);
+    body.appendChild(text);
+    card.appendChild(avatar);
+    card.appendChild(body);
+    noteBox.appendChild(card);
+
+    while (noteBox.children.length > 3) {
+        noteBox.removeChild(noteBox.firstChild);
+    }
+
+    setTimeout(function () {
+        card.classList.add('is-leaving');
+    }, 4000);
+    setTimeout(function () {
+        if (card.parentNode) card.parentNode.removeChild(card);
+    }, 4600);
+}
+
 function appendChatMessage(msg, notify) {
     var empty = chatMessages.querySelector('.sidebar-empty');
     if (empty) empty.remove();
@@ -963,6 +1004,10 @@ function appendChatMessage(msg, notify) {
             text: msg.stickerUrl ? 'Стикер' : (msg.audioUrl ? 'Голосовое сообщение' : (msg.content || 'Файл')),
             href: '/watch?room=' + activeRoom.roomId
         });
+    }
+
+    if (msg.senderUsername !== currentUsername && notify !== false) {
+        showMsgNote(msg);
     }
 }
 
@@ -1771,7 +1816,7 @@ if (videoEl) {
         sendControl('PAUSED', getCurrentTimeMs());
     });
     videoEl.addEventListener('seeked', function () {
-        if (hostScrubbing) { hostScrubbing = false; return; }
+        if (hostScrubbing) return;
         if (!isHost || applyingSync || !activeRoom || playerMode !== 'html5') return;
         if (Date.now() - lastSendControlTs < 1500) return;
         sendControl(activeRoom.status === 'PLAYING' ? 'PLAYING' : 'PAUSED', getCurrentTimeMs());
@@ -1789,20 +1834,35 @@ if (videoEl) {
     });
 }
 
+function applyScrubSeek() {
+    scrubTick = null;
+    if (!hostScrubbing || !seekBar) return;
+    var val = (Number(seekBar.value) || 0) / 1000;
+    if (playerMode === 'html5') {
+        try { videoEl.currentTime = val; } catch (e) {}
+    } else if (playerMode === 'youtube' && ytPlayer && ytApiReady) {
+        try { ytPlayer.seekTo(val, true); } catch (e) {}
+    }
+}
+
 if (seekBar) {
+    seekBar.addEventListener('pointerdown', function () {
+        if (!isHost) return;
+        hostScrubbing = true;
+    });
     seekBar.addEventListener('input', function () {
         if (!isHost) return;
         hostScrubbing = true;
         var val = (Number(seekBar.value) || 0) / 1000;
-        if (playerMode === 'html5') {
-            try { videoEl.currentTime = val; } catch (e) {}
-        } else if (playerMode === 'youtube' && ytPlayer && ytApiReady) {
-            try { ytPlayer.seekTo(val, true); } catch (e) {}
-        }
         seekTime.textContent = formatTime(val) + ' / ' + formatTime(seekDurationSec());
+        if (!scrubTick) {
+            scrubTick = setTimeout(applyScrubSeek, 150);
+        }
     });
     seekBar.addEventListener('change', function () {
         if (!isHost) return;
+        hostScrubbing = false;
+        if (scrubTick) { clearTimeout(scrubTick); scrubTick = null; }
         var val = (Number(seekBar.value) || 0) / 1000;
         var playing = false;
         if (playerMode === 'html5') {
@@ -1996,7 +2056,20 @@ if (playlistList) {
         if (e.target.closest('.playlist-play-btn')) {
             stompClient.send('/app/room.playlist.play', {}, JSON.stringify({ roomId: activeRoom.roomId, itemId: itemId }));
         } else if (e.target.closest('.playlist-remove-btn')) {
-            stompClient.send('/app/room.playlist.remove', {}, JSON.stringify({ roomId: activeRoom.roomId, itemId: itemId }));
+            var removeTitle = '';
+            for (var i = 0; i < (playlist.items || []).length; i++) {
+                if (Number(playlist.items[i].itemId) === itemId) {
+                    removeTitle = playlist.items[i].title || playlist.items[i].videoUrl || '';
+                    break;
+                }
+            }
+            if (window.showConfirmDialog) {
+                showConfirmDialog('Вы точно хотите удалить из очереди «' + (removeTitle || 'видео') + '»?', function () {
+                    stompClient.send('/app/room.playlist.remove', {}, JSON.stringify({ roomId: activeRoom.roomId, itemId: itemId }));
+                });
+            } else {
+                stompClient.send('/app/room.playlist.remove', {}, JSON.stringify({ roomId: activeRoom.roomId, itemId: itemId }));
+            }
         }
     });
 }

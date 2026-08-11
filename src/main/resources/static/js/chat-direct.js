@@ -954,19 +954,50 @@ if (contextMenu) {
                 showReplyPreview(messageId, senderName, contentText);
             }
         } else if (action === 'delete-me') {
-            stompClient.send('/app/chat.delete', {}, JSON.stringify({ messageId: Number(messageId), mode: 'me' }));
-            var msgRow = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
-            if (msgRow) {
-                msgRow.remove();
-            }
+            var rowMe = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
+            var labelMe = rowMe ? getMessageLabel(rowMe) : 'сообщение';
+            showConfirmDialog('Вы точно хотите удалить «' + labelMe + '» для себя?', function () {
+                stompClient.send('/app/chat.delete', {}, JSON.stringify({ messageId: Number(messageId), mode: 'me' }));
+                var msgRow = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
+                if (msgRow) {
+                    msgRow.remove();
+                }
+            });
         } else if (action === 'delete-all') {
-            stompClient.send('/app/chat.delete', {}, JSON.stringify({ messageId: Number(messageId), mode: 'everyone' }));
-            var delRow = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
-            if (delRow) {
-                delRow.remove();
-            }
+            var rowAll = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
+            var labelAll = rowAll ? getMessageLabel(rowAll) : 'сообщение';
+            showConfirmDialog('Вы точно хотите удалить «' + labelAll + '» для всех?', function () {
+                stompClient.send('/app/chat.delete', {}, JSON.stringify({ messageId: Number(messageId), mode: 'everyone' }));
+                var delRow = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
+                if (delRow) {
+                    delRow.remove();
+                }
+            });
         }
     });
+}
+
+function getMessageLabel(row) {
+    var contentEl = row.querySelector('.content');
+    if (contentEl && contentEl.textContent && contentEl.textContent.trim()) {
+        return contentEl.textContent.trim();
+    }
+    if (row.querySelector('.voice-player')) {
+        return 'голосовое сообщение';
+    }
+    if (row.querySelector('.sticker-image')) {
+        return 'стикер';
+    }
+    if (row.querySelector('.attachment-audio-wrap')) {
+        return 'аудиофайл';
+    }
+    if (row.querySelector('.attachment-image')) {
+        return 'изображение';
+    }
+    if (row.querySelector('.attachment-video')) {
+        return 'видео';
+    }
+    return 'сообщение';
 }
 
 if (replyPreviewEl) {

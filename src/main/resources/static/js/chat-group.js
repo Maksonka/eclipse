@@ -204,11 +204,42 @@ if (contextMenu) {
                 showReplyPreview(messageId, senderName, contentText);
             }
         } else if (action === 'delete-me') {
-            stompClient.send('/app/group.delete', {}, JSON.stringify({ messageId: Number(messageId), groupId: activeGroupId, mode: 'me' }));
+            var rowMe = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
+            var labelMe = rowMe ? getGroupMessageLabel(rowMe) : 'сообщение';
+            showConfirmDialog('Вы точно хотите удалить «' + labelMe + '» для себя?', function () {
+                stompClient.send('/app/group.delete', {}, JSON.stringify({ messageId: Number(messageId), groupId: activeGroupId, mode: 'me' }));
+            });
         } else if (action === 'delete-all') {
-            stompClient.send('/app/group.delete', {}, JSON.stringify({ messageId: Number(messageId), groupId: activeGroupId, mode: 'everyone' }));
+            var rowAll = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
+            var labelAll = rowAll ? getGroupMessageLabel(rowAll) : 'сообщение';
+            showConfirmDialog('Вы точно хотите удалить «' + labelAll + '» для всех?', function () {
+                stompClient.send('/app/group.delete', {}, JSON.stringify({ messageId: Number(messageId), groupId: activeGroupId, mode: 'everyone' }));
+            });
         }
     });
+}
+
+function getGroupMessageLabel(row) {
+    var contentEl = row.querySelector('.content');
+    if (contentEl && contentEl.textContent && contentEl.textContent.trim()) {
+        return contentEl.textContent.trim();
+    }
+    if (row.querySelector('.voice-player')) {
+        return 'голосовое сообщение';
+    }
+    if (row.querySelector('.sticker-image')) {
+        return 'стикер';
+    }
+    if (row.querySelector('.attachment-audio-wrap')) {
+        return 'аудиофайл';
+    }
+    if (row.querySelector('.attachment-image')) {
+        return 'изображение';
+    }
+    if (row.querySelector('.attachment-video')) {
+        return 'видео';
+    }
+    return 'сообщение';
 }
 
 if (replyPreviewEl) {
