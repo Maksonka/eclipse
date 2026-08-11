@@ -981,7 +981,7 @@ body.chat-page {
     padding: 6px 10px;
     margin: -2px 0 2px;
     border-radius: 12px;
-    background: rgba(0, 0, 0, 0.25);
+    background: transparent;
 }
 
 .voice-player-play {
@@ -1047,7 +1047,7 @@ body.chat-page {
 }
 
 .message-row.outgoing .voice-player {
-    background: rgba(0, 0, 0, 0.18);
+    background: transparent;
 }
 
 .message-row.outgoing .voice-player-play {
