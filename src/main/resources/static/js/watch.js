@@ -1657,6 +1657,22 @@ if (leaveBtn) {
     });
 }
 
+var chatBack = document.querySelector('.chat-back');
+if (chatBack) {
+    chatBack.addEventListener('click', function (e) {
+        if (!activeRoom) return;
+        e.preventDefault();
+        if (stompClient.connected) {
+            try {
+                stompClient.send('/app/room.leave', {}, JSON.stringify({ roomId: activeRoom.roomId }));
+            } catch (err) {}
+        }
+        clearSavedRoom();
+        resetRoomView();
+        closeVideoSearch();
+    });
+}
+
 if (inviteBtn) {
     inviteBtn.addEventListener('click', function () {
         if (!activeRoom) return;
