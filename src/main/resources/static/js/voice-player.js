@@ -94,14 +94,14 @@
             var audioCopy = audio.cloneNode(false);
             audioCopy.preload = 'metadata';
             audioCopy.controls = false;
-            audioCopy.hidden = true;
+            audioCopy.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
             audio.parentNode.replaceChild(root, audio);
             root.appendChild(audioCopy);
             audioEl = audioCopy;
         } else {
             audio.preload = 'metadata';
             audio.controls = false;
-            audio.hidden = true;
+            audio.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
             var pendingSrc = audio.getAttribute('src');
             audio.removeAttribute('src');
             root.appendChild(audio);
