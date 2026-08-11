@@ -723,6 +723,9 @@ function updateControls() {
     videoUrlInput.disabled = !hostNow;
     hostHint.hidden = !hostNow;
     playlistHostHint.hidden = !hostNow;
+    playlistUrlInput.disabled = !hostNow;
+    playlistTitleInput.disabled = !hostNow;
+    if (videoSearchBtn) videoSearchBtn.disabled = !hostNow;
     if (!hostNow && !currentVideoUrl) {
         playerEmptySub.textContent = 'Синхронизация с хостом…';
     }
@@ -1802,7 +1805,7 @@ if (seekBar) {
 if (playlistAddForm) {
     playlistAddForm.addEventListener('submit', function (e) {
         e.preventDefault();
-        if (!activeRoom || !stompClient.connected) return;
+        if (!isHost || !activeRoom || !stompClient.connected) return;
         var url = playlistUrlInput.value.trim();
         if (!url) { showToast('Вставьте ссылку на видео'); return; }
         if (!isSupportedVideoUrl(url)) { showToast('Неподдерживаемая ссылка: используйте YouTube, VK, Rutube, Vimeo или прямой файл .mp4/.webm'); return; }
@@ -1816,6 +1819,7 @@ if (playlistAddForm) {
 /* ===== Video search ===== */
 
 function openVideoSearch() {
+    if (!isHost || !activeRoom) return;
     if (!videoSearchOverlay) return;
     videoSearchOverlay.hidden = false;
     videoSearchResults.innerHTML = '';
@@ -1910,9 +1914,8 @@ function buildVideoSearchResult(item) {
 }
 
 function addVideoSearchResult(item) {
-    if (!activeRoom) {
+    if (!isHost || !activeRoom) {
         closeVideoSearch();
-        showToast('Сначала войдите в комнату');
         return;
     }
     if (!stompClient || !stompClient.connected) {

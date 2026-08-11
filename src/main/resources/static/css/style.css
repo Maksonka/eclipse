@@ -3508,6 +3508,8 @@ body.watch-page {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    max-height: calc(100dvh - 120px);
+    min-height: 240px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
@@ -3537,6 +3539,7 @@ body.watch-page {
     border-radius: var(--radius-sm);
     background: var(--incoming-bg);
     max-width: 100%;
+    flex-shrink: 0;
 }
 
 .chat-msg.outgoing {

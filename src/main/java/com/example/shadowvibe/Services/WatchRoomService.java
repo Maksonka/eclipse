@@ -416,6 +416,9 @@ public class WatchRoomService {
         if (!room.isMember(username)) {
             throw new IllegalArgumentException("Вы не в этой комнате");
         }
+        if (!room.getHostUsername().equals(username)) {
+            throw new IllegalArgumentException("Только хост может добавлять видео в очередь");
+        }
         if (url == null || url.isBlank()) {
             throw new IllegalArgumentException("Ссылка на видео пустая");
         }
