@@ -3508,7 +3508,7 @@ body.watch-page {
     display: flex;
     flex-direction: column;
     min-height: 0;
-    max-height: calc(100dvh - 120px);
+    max-height: calc(100dvh - 320px);
     min-height: 240px;
     background: var(--bg-card);
     border: 1px solid var(--border);
