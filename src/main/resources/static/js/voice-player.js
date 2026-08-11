@@ -116,6 +116,8 @@
             root.setAttribute('data-pending-src', pendingSrc);
         }
 
+        setProgress(wave, 1);
+
         var state = {
             audio: audioEl,
             root: root,
