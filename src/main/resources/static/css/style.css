@@ -1444,6 +1444,11 @@ body.chat-page {
     .chat-status {
         font-size: 0.76rem;
     }
+
+    .voice-player {
+        min-width: 180px;
+        max-width: 240px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -1549,6 +1554,49 @@ body.chat-page {
     .profile-back,
     .settings-back {
         font-size: 0.84rem;
+    }
+
+    .voice-player {
+        min-width: 160px;
+        max-width: 100%;
+        gap: 8px;
+        padding: 5px 8px;
+    }
+
+    .voice-player-play {
+        width: 34px;
+        height: 34px;
+    }
+
+    .voice-player-play svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .voice-player-wave {
+        height: 32px;
+    }
+
+    .voice-player-time {
+        font-size: 0.68rem;
+        min-width: 28px;
+    }
+
+    .voice-rec-bar {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+    }
+
+    .voice-rec-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .voice-rec-btn {
+        padding: 6px 12px;
+        font-size: 0.78rem;
     }
 }
 
@@ -4494,6 +4542,45 @@ html, body {
 
     .notification-toast {
         padding: 10px 12px;
+    }
+
+    .voice-player {
+        min-width: 140px;
+        gap: 6px;
+        padding: 4px 6px;
+    }
+
+    .voice-player-play {
+        width: 30px;
+        height: 30px;
+    }
+
+    .voice-player-play svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    .voice-player-wave {
+        height: 28px;
+    }
+
+    .voice-rec-bar {
+        gap: 6px;
+        padding: 6px 8px;
+        font-size: 0.75rem;
+    }
+
+    .voice-rec-dot {
+        width: 8px;
+        height: 8px;
+    }
+
+    .voice-rec-label {
+        font-size: 0.78rem;
+    }
+
+    .voice-rec-timer {
+        font-size: 0.78rem;
     }
 }
 
