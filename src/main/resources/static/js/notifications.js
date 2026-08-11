@@ -44,6 +44,7 @@
         if (!soundEl) {
             soundEl = new Audio('/sounds/notification.mp3');
             soundEl.preload = 'auto';
+            soundEl.volume = 0.3;
         }
         return soundEl;
     }
