@@ -80,7 +80,7 @@ function buildGroupMessageRow(message) {
     if (message.content) {
         var contentEl = document.createElement('span');
         contentEl.className = 'content';
-        contentEl.textContent = message.content;
+        contentEl.innerHTML = linkifyText(message.content);
         bubbleEl.appendChild(contentEl);
     }
 
@@ -266,7 +266,24 @@ if (messageForm) {
         event.preventDefault();
         var content = messageInput.value.trim();
         var groupId = groupIdInput ? parseInt(groupIdInput.value, 10) : activeGroupId;
-        if (!content || !stompClient.connected || !groupId) {
+        var pendingFile = window.AttachmentPending ? AttachmentPending.getFile() : null;
+        if (!stompClient.connected || !groupId) {
+            return;
+        }
+        if (!content && !pendingFile) {
+            return;
+        }
+
+        if (pendingFile) {
+            AttachmentPending.send({
+                content: content,
+                replyToMessageId: replyState && replyState.messageId
+            }).then(function () {
+                messageInput.value = '';
+                messageInput.focus();
+                clearReplyPreview();
+            }).catch(function () {
+            });
             return;
         }
 

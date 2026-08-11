@@ -95,9 +95,11 @@ public class GroupController {
     @ResponseBody
     public ResponseEntity<Map<String, Object>> sendAttachment(@PathVariable Long groupId,
                                                               Principal principal,
-                                                              @RequestParam("file") MultipartFile file) {
+                                                              @RequestParam("file") MultipartFile file,
+                                                              @RequestParam(value = "content", required = false) String content,
+                                                              @RequestParam(value = "replyToMessageId", required = false) Long replyToMessageId) {
         try {
-            GroupMessage saved = groupService.saveGroupAttachmentMessage(principal.getName(), groupId, file);
+            GroupMessage saved = groupService.saveGroupAttachmentMessage(principal.getName(), groupId, file, content, replyToMessageId);
             groupService.broadcastGroupMessage(saved);
             return ResponseEntity.ok(Map.of("success", true));
         } catch (IllegalArgumentException e) {

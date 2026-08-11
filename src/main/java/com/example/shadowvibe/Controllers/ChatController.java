@@ -115,12 +115,14 @@ public class ChatController {
     @ResponseBody
     public ResponseEntity<Map<String, Object>> sendAttachment(@PathVariable String receiverUsername,
                                                               Principal principal,
-                                                              @RequestParam("file") MultipartFile file) {
+                                                              @RequestParam("file") MultipartFile file,
+                                                              @RequestParam(value = "content", required = false) String content,
+                                                              @RequestParam(value = "replyToMessageId", required = false) Long replyToMessageId) {
         if (receiverUsername.equals(principal.getName())) {
             return ResponseEntity.badRequest().body(Map.of("error", "Нельзя отправить файл самому себе"));
         }
         try {
-            Message saved = messageService.saveAttachmentMessage(principal.getName(), receiverUsername, file);
+            Message saved = messageService.saveAttachmentMessage(principal.getName(), receiverUsername, file, content, replyToMessageId);
             messageService.broadcastDirectMessage(saved);
             return ResponseEntity.ok(Map.of("success", true));
         } catch (IllegalArgumentException e) {

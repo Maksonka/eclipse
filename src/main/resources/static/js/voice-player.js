@@ -158,6 +158,9 @@
         playBtn.addEventListener('click', function () {
             if (audioEl.paused) {
                 pauseOthers(audioEl);
+                if (global.AudioPlayer) {
+                    global.AudioPlayer.pauseAll();
+                }
                 var p = audioEl.play();
                 if (p && p.catch) {
                     p.catch(function () {});

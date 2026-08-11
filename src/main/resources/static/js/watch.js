@@ -935,7 +935,7 @@ function appendChatMessage(msg, notify) {
         if (msg.content) {
             var audioText = document.createElement('span');
             audioText.className = 'chat-msg-audio-text';
-            audioText.textContent = msg.content;
+            audioText.innerHTML = linkifyText(msg.content);
             audioWrap.appendChild(audioText);
         }
         row.appendChild(sender);
@@ -943,7 +943,7 @@ function appendChatMessage(msg, notify) {
     } else {
         var content = document.createElement('span');
         content.className = 'chat-msg-content';
-        content.textContent = msg.content;
+        content.innerHTML = linkifyText(msg.content);
         row.appendChild(sender);
         row.appendChild(content);
     }

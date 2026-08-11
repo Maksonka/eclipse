@@ -353,7 +353,7 @@ function buildMessageRow(message) {
     if (message.content) {
         var contentEl = document.createElement('span');
         contentEl.className = 'content';
-        contentEl.textContent = message.content;
+        contentEl.innerHTML = linkifyText(message.content);
         bubbleEl.appendChild(contentEl);
     }
 
@@ -836,11 +836,28 @@ if (messageForm) {
     messageForm.addEventListener('submit', function (event) {
         event.preventDefault();
         var content = messageInput.value.trim();
-        if (!content || !stompClient.connected || !activeChatUsername || voiceRecording) {
+        var pendingFile = window.AttachmentPending ? AttachmentPending.getFile() : null;
+        if (!stompClient.connected || !activeChatUsername || voiceRecording) {
+            return;
+        }
+        if (!content && !pendingFile) {
             return;
         }
 
         stopLocalTyping();
+
+        if (pendingFile) {
+            AttachmentPending.send({
+                content: content,
+                replyToMessageId: replyState && replyState.messageId
+            }).then(function () {
+                messageInput.value = '';
+                messageInput.focus();
+                clearReplyPreview();
+            }).catch(function () {
+            });
+            return;
+        }
 
         var payload = {
             receiverUsername: activeChatUsername,

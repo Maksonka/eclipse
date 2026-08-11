@@ -118,6 +118,7 @@
                         <button type="button" id="voice-rec-cancel" class="voice-rec-btn cancel" aria-label="Отменить запись">Отмена</button>
                     </span>
                 </div>
+                <div id="attachment-pending" class="attachment-pending" hidden></div>
                 <form id="message-form" class="composer-form">
                     <input type="hidden" id="receiver-username" th:value="${receiver.username}"/>
                     <button type="button" id="voice-button" class="composer-attach composer-voice" aria-label="Голосовое сообщение" title="Голосовое сообщение">
@@ -136,7 +137,6 @@
                            id="message-input"
                            name="content"
                            placeholder="Напишите сообщение..."
-                           required
                            autocomplete="off"
                            maxlength="2000"/>
                     <button type="submit" id="send-button" aria-label="Отправить">
@@ -167,8 +167,8 @@
 </div>
 <script th:src="@{/js/notifications.js(v=5)}"></script>
  <script th:src="@{/js/stickers.js(v=11)}"></script>
-<script th:src="@{/js/voice-player.js(v=8)}"></script>
-<script th:src="@{/js/chat-direct.js(v=17)}"></script>
+<script th:src="@{/js/voice-player.js(v=9)}"></script>
+<script th:src="@{/js/chat-direct.js(v=18)}"></script>
 <div id="lightbox" class="lightbox">
     <button class="lightbox-close" aria-label="Закрыть">&times;</button>
     <div class="lightbox-content"></div>

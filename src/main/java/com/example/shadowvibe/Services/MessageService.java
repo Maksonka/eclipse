@@ -84,6 +84,11 @@ public class MessageService {
     }
 
     public Message saveAttachmentMessage(String senderUsername, String receiverUsername, MultipartFile file) throws IOException {
+        return saveAttachmentMessage(senderUsername, receiverUsername, file, null, null);
+    }
+
+    public Message saveAttachmentMessage(String senderUsername, String receiverUsername, MultipartFile file,
+                                         String content, Long replyToMessageId) throws IOException {
         AttachmentService.AttachmentInfo info = attachmentService.save(file);
 
         User receiver = userService.findByUsername(receiverUsername)
@@ -94,12 +99,21 @@ public class MessageService {
         Message message = new Message();
         message.setSender(sender);
         message.setReceiver(receiver);
-        message.setContent("");
+        message.setContent(content == null ? "" : content.trim());
         message.setTimestamp(LocalDateTime.now());
         message.setAttachmentFilename(info.filename());
         message.setAttachmentType(info.type());
         message.setAttachmentOriginalName(info.originalName());
         message.setAttachmentSize(info.size());
+
+        if (replyToMessageId != null) {
+            Message original = messageRepository.findById(replyToMessageId).orElse(null);
+            if (original != null) {
+                message.setReplyToMessageId(original.getId());
+                message.setReplyToContent(replyPreviewText(original));
+                message.setReplyToSenderUsername(original.getSender().getUsername());
+            }
+        }
         return messageRepository.save(message);
     }
 

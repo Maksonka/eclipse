@@ -185,6 +185,11 @@ public class GroupService {
     }
 
     public GroupMessage saveGroupAttachmentMessage(String senderUsername, Long groupId, MultipartFile file) throws IOException {
+        return saveGroupAttachmentMessage(senderUsername, groupId, file, null, null);
+    }
+
+    public GroupMessage saveGroupAttachmentMessage(String senderUsername, Long groupId, MultipartFile file,
+                                                   String content, Long replyToMessageId) throws IOException {
         AttachmentService.AttachmentInfo info = attachmentService.save(file);
 
         ChatGroup group = getGroupForMember(groupId, senderUsername);
@@ -192,7 +197,7 @@ public class GroupService {
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
         GroupMessage message = new GroupMessage();
-        message.setContent("");
+        message.setContent(content == null ? "" : content.trim());
         message.setSender(sender);
         message.setGroup(group);
         message.setTimestamp(LocalDateTime.now());
@@ -200,6 +205,15 @@ public class GroupService {
         message.setAttachmentType(info.type());
         message.setAttachmentOriginalName(info.originalName());
         message.setAttachmentSize(info.size());
+
+        if (replyToMessageId != null) {
+            GroupMessage original = groupMessageRepository.findById(replyToMessageId).orElse(null);
+            if (original != null) {
+                message.setReplyToMessageId(original.getId());
+                message.setReplyToContent(original.getContent() != null ? original.getContent() : "");
+                message.setReplyToSenderUsername(original.getSender().getUsername());
+            }
+        }
         return groupMessageRepository.save(message);
     }
 

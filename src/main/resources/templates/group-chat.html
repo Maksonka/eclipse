@@ -76,6 +76,7 @@
             </div>
 
             <footer class="chat-composer">
+                <div id="attachment-pending" class="attachment-pending" hidden></div>
                 <form id="message-form" class="composer-form">
                     <input type="hidden" id="group-id" th:value="${group.id}"/>
                     <button type="button" id="attach-button" class="composer-attach" aria-label="Прикрепить файл" title="Прикрепить файл">
@@ -88,7 +89,6 @@
                            id="message-input"
                            name="content"
                            placeholder="Сообщение для группы..."
-                           required
                            autocomplete="off"
                            maxlength="2000"/>
                     <button type="submit" id="send-button" aria-label="Отправить">
@@ -119,7 +119,7 @@
 </div>
 <script th:src="@{/js/notifications.js(v=5)}"></script>
  <script th:src="@{/js/stickers.js(v=11)}"></script>
-<script th:src="@{/js/chat-group.js(v=10)}"></script>
+<script th:src="@{/js/chat-group.js(v=11)}"></script>
 <div id="lightbox" class="lightbox">
     <button class="lightbox-close" aria-label="Закрыть">&times;</button>
     <div class="lightbox-content"></div>
