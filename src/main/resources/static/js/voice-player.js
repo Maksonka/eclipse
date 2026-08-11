@@ -92,7 +92,6 @@
         var audioEl;
         if (audio.parentNode) {
             var audioCopy = audio.cloneNode(false);
-            audioCopy.setAttribute('data-voice-player', '');
             audioCopy.preload = 'metadata';
             audioCopy.controls = false;
             audioCopy.hidden = true;
@@ -103,6 +102,8 @@
             audio.preload = 'metadata';
             audio.controls = false;
             audio.hidden = true;
+            var pendingSrc = audio.getAttribute('src');
+            audio.removeAttribute('src');
             root.appendChild(audio);
             audioEl = audio;
         }
@@ -110,6 +111,10 @@
         root.appendChild(playBtn);
         root.appendChild(wave);
         root.appendChild(timeEl);
+
+        if (pendingSrc) {
+            root.setAttribute('data-pending-src', pendingSrc);
+        }
 
         var state = {
             audio: audioEl,

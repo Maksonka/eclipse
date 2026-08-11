@@ -406,9 +406,15 @@ function appendMessage(message) {
 
 function forceLoadVoice(row) {
     if (!row) return;
-    row.querySelectorAll('.voice-player audio').forEach(function (a) {
-        if (a.readyState < 1) {
-            try { a.load(); } catch (e) {}
+    row.querySelectorAll('.voice-player').forEach(function (vp) {
+        var pending = vp.getAttribute('data-pending-src');
+        if (pending) {
+            vp.removeAttribute('data-pending-src');
+            var a = vp.querySelector('audio');
+            if (a) {
+                a.src = pending;
+                a.load();
+            }
         }
     });
 }
@@ -854,7 +860,7 @@ if (messageForm) {
     window.addEventListener('beforeunload', stopLocalTyping);
 
     hidePeerTyping();
-    scrollToBottom();
+    requestAnimationFrame(function () { scrollToBottom(); });
     messageInput.focus();
 }
 
