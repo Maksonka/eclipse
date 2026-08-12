@@ -7,8 +7,10 @@ import com.example.shadowvibe.Models.User;
 import com.example.shadowvibe.Services.GroupService;
 import com.example.shadowvibe.Services.MessageService;
 import com.example.shadowvibe.Services.PresenceService;
+import com.example.shadowvibe.Services.ReactionService;
 import com.example.shadowvibe.Services.SidebarModelService;
 import com.example.shadowvibe.Services.UserService;
+import com.example.shadowvibe.enums.ReactionTargetType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,6 +25,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -34,17 +37,20 @@ public class ChatController {
     private final GroupService groupService;
     private final PresenceService presenceService;
     private final SidebarModelService sidebarModelService;
+    private final ReactionService reactionService;
 
     public ChatController(MessageService messageService,
                           UserService userService,
                           GroupService groupService,
                           PresenceService presenceService,
-                          SidebarModelService sidebarModelService) {
+                          SidebarModelService sidebarModelService,
+                          ReactionService reactionService) {
         this.messageService = messageService;
         this.userService = userService;
         this.groupService = groupService;
         this.presenceService = presenceService;
         this.sidebarModelService = sidebarModelService;
+        this.reactionService = reactionService;
     }
 
     @GetMapping("/account")
@@ -68,8 +74,12 @@ public class ChatController {
         ChatGroup group = groupService.getGroupForMember(groupId, principal.getName());
         groupService.markGroupAsRead(principal.getName(), groupId);
 
+        List<GroupMessage> groupMessages = groupService.getGroupHistory(groupId, principal.getName());
         model.addAttribute("group", group);
-        model.addAttribute("groupMessages", groupService.getGroupHistory(groupId, principal.getName()));
+        model.addAttribute("groupMessages", groupMessages);
+        model.addAttribute("reactionsByMessage",
+                reactionService.getReactionsBatch(ReactionTargetType.GROUP,
+                        groupMessages.stream().map(GroupMessage::getId).toList()));
         populateSidebar(model, principal, null, groupId, q);
         return "group-chat";
     }
@@ -92,7 +102,11 @@ public class ChatController {
 
         messageService.markConversationAsRead(principal.getName(), receiverUsername);
 
-        model.addAttribute("messages", messageService.getChatHistory(principal.getName(), receiverUsername));
+        List<Message> messages = messageService.getChatHistory(principal.getName(), receiverUsername);
+        model.addAttribute("messages", messages);
+        model.addAttribute("reactionsByMessage",
+                reactionService.getReactionsBatch(ReactionTargetType.DIRECT,
+                        messages.stream().map(Message::getId).toList()));
         model.addAttribute("receiver", receiver);
         model.addAttribute("receiverOnline", presenceService.isOnline(receiverUsername));
         populateSidebar(model, principal, receiverUsername, null, q);

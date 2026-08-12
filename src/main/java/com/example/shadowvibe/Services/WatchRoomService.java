@@ -17,6 +17,7 @@ import com.example.shadowvibe.Models.Sticker;
 import com.example.shadowvibe.Repositories.WatchRoomMessageRepository;
 import com.example.shadowvibe.Repositories.WatchRoomPlaylistItemRepository;
 import com.example.shadowvibe.Repositories.WatchRoomRepository;
+import com.example.shadowvibe.enums.ReactionTargetType;
 import com.example.shadowvibe.enums.RoomVisibility;
 import com.example.shadowvibe.enums.WatchRoomStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -51,6 +52,7 @@ public class WatchRoomService {
     private final SimpMessagingTemplate messagingTemplate;
     private final VideoMetadataService videoMetadataService;
     private final StickerService stickerService;
+    private final ReactionService reactionService;
 
     /**
      * Живое состояние комнат. Комната-источник правды для синхронизации:
@@ -71,7 +73,8 @@ public class WatchRoomService {
                             UserService userService,
                             SimpMessagingTemplate messagingTemplate,
                             VideoMetadataService videoMetadataService,
-                            StickerService stickerService) {
+                            StickerService stickerService,
+                            ReactionService reactionService) {
         this.roomRepository = roomRepository;
         this.messageRepository = messageRepository;
         this.playlistItemRepository = playlistItemRepository;
@@ -79,6 +82,7 @@ public class WatchRoomService {
         this.messagingTemplate = messagingTemplate;
         this.videoMetadataService = videoMetadataService;
         this.stickerService = stickerService;
+        this.reactionService = reactionService;
     }
 
     @Transactional
@@ -336,6 +340,7 @@ public class WatchRoomService {
         dto.setStickerUrl(message.getStickerUrl());
         dto.setAudioUrl(message.getAudioUrl());
         dto.setAudioDurationMs(message.getAudioDurationMs());
+        dto.setReactions(reactionService.getReactions(ReactionTargetType.WATCH, message.getId()));
         return dto;
     }
 

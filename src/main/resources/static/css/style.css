@@ -5503,3 +5503,106 @@ html, body {
     padding: 1px 8px;
     border-radius: 999px;
 }
+
+/* ===== Реакции-эмодзи на сообщениях ===== */
+
+.message-reactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    margin-top: 4px;
+    width: 100%;
+}
+
+.message-row {
+    flex-wrap: wrap;
+}
+
+.message-row.outgoing .message-reactions {
+    justify-content: flex-end;
+}
+
+.message-row.incoming .message-reactions {
+    justify-content: flex-start;
+}
+
+.chat-msg .message-reactions {
+    justify-content: flex-start;
+    margin-top: 5px;
+}
+
+.reaction-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--panel-bg);
+    color: var(--text);
+    font-size: 0.8rem;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.reaction-badge:hover {
+    transform: translateY(-1px);
+    border-color: var(--purple-400);
+}
+
+.reaction-badge.is-mine {
+    border-color: var(--purple-400);
+    background: rgba(139, 92, 246, 0.18);
+}
+
+.reaction-badge-count {
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+
+.reaction-badge.is-mine .reaction-badge-count {
+    color: var(--purple-300);
+}
+
+.reaction-palette {
+    z-index: 1000;
+    display: flex;
+    gap: 2px;
+    padding: 6px;
+    border-radius: 14px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    animation: paletteIn 0.16s ease;
+}
+
+@keyframes paletteIn {
+    from { opacity: 0; transform: translateY(6px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.reaction-palette-btn {
+    font-size: 1.3rem;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.12s ease, transform 0.12s ease;
+}
+
+.reaction-palette-btn:hover {
+    background: var(--hover-bg);
+    transform: scale(1.15);
+}
+
+.chat-msg {
+    cursor: default;
+}

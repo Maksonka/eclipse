@@ -3,12 +3,15 @@ package com.example.shadowvibe.Controllers;
 import com.example.shadowvibe.Models.Message;
 import com.example.shadowvibe.Services.GroupService;
 import com.example.shadowvibe.Services.MessageService;
+import com.example.shadowvibe.Services.ReactionService;
 import com.example.shadowvibe.DTO.ChatMessageRequest;
 import com.example.shadowvibe.DTO.ChatReadRequest;
 import com.example.shadowvibe.DTO.ChatTypingDto;
 import com.example.shadowvibe.DTO.ChatTypingRequest;
 import com.example.shadowvibe.DTO.GroupMessageRequest;
+import com.example.shadowvibe.DTO.ReactionEventDto;
 import com.example.shadowvibe.Models.GroupMessage;
+import com.example.shadowvibe.enums.ReactionTargetType;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -22,13 +25,16 @@ public class ChatWebSocketController {
 
     private final MessageService messageService;
     private final GroupService groupService;
+    private final ReactionService reactionService;
     private final SimpMessagingTemplate messagingTemplate;
 
     public ChatWebSocketController(MessageService messageService,
                                    GroupService groupService,
+                                   ReactionService reactionService,
                                    SimpMessagingTemplate messagingTemplate) {
         this.messageService = messageService;
         this.groupService = groupService;
+        this.reactionService = reactionService;
         this.messagingTemplate = messagingTemplate;
     }
 
@@ -156,5 +162,38 @@ public class ChatWebSocketController {
                 ? groupService.deleteGroupMessageForEveryone(messageId, username)
                 : groupService.deleteGroupMessageForMe(messageId, username);
         messagingTemplate.convertAndSend("/topic/group." + groupId, msg);
+    }
+
+    @MessageMapping("/chat.react")
+    public void reactToDirectMessage(@Payload Map<String, Object> request, Principal principal) {
+        if (principal == null || request.get("messageId") == null || request.get("emoji") == null) {
+            return;
+        }
+        Long messageId = Long.valueOf(request.get("messageId").toString());
+        String emoji = request.get("emoji").toString();
+        var reactions = reactionService.toggle(ReactionTargetType.DIRECT, messageId, principal.getName(), emoji);
+
+        var usernames = messageService.getDirectMessageUsernames(messageId);
+        if (usernames.isEmpty()) {
+            return;
+        }
+        ReactionEventDto event = new ReactionEventDto(messageId, "DIRECT", reactions);
+        messagingTemplate.convertAndSendToUser(usernames.get().getKey(), "/queue/reactions", event);
+        messagingTemplate.convertAndSendToUser(usernames.get().getValue(), "/queue/reactions", event);
+    }
+
+    @MessageMapping("/group.react")
+    public void reactToGroupMessage(@Payload Map<String, Object> request, Principal principal) {
+        if (principal == null || request.get("messageId") == null || request.get("groupId") == null
+                || request.get("emoji") == null) {
+            return;
+        }
+        Long messageId = Long.valueOf(request.get("messageId").toString());
+        Long groupId = Long.valueOf(request.get("groupId").toString());
+        String emoji = request.get("emoji").toString();
+
+        var reactions = reactionService.toggle(ReactionTargetType.GROUP, messageId, principal.getName(), emoji);
+        ReactionEventDto event = new ReactionEventDto(messageId, "GROUP", reactions);
+        messagingTemplate.convertAndSend("/topic/group." + groupId + ".reactions", event);
     }
 }

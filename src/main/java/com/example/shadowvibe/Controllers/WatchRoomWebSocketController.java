@@ -5,7 +5,10 @@ import com.example.shadowvibe.DTO.WatchRoomCreateRequest;
 import com.example.shadowvibe.DTO.WatchRoomJoinRequest;
 import com.example.shadowvibe.DTO.WatchRoomPlaylistAddRequest;
 import com.example.shadowvibe.DTO.WatchRoomPlaylistItemRequest;
+import com.example.shadowvibe.DTO.ReactionEventDto;
 import com.example.shadowvibe.Services.WatchRoomService;
+import com.example.shadowvibe.Services.ReactionService;
+import com.example.shadowvibe.enums.ReactionTargetType;
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -20,11 +23,14 @@ import java.util.Map;
 public class WatchRoomWebSocketController {
 
     private final WatchRoomService watchRoomService;
+    private final ReactionService reactionService;
     private final SimpMessagingTemplate messagingTemplate;
 
     public WatchRoomWebSocketController(WatchRoomService watchRoomService,
+                                        ReactionService reactionService,
                                         SimpMessagingTemplate messagingTemplate) {
         this.watchRoomService = watchRoomService;
+        this.reactionService = reactionService;
         this.messagingTemplate = messagingTemplate;
     }
 
@@ -123,6 +129,21 @@ public class WatchRoomWebSocketController {
         Long roomId = Long.valueOf(request.get("roomId").toString());
         String emoji = request.get("emoji") != null ? request.get("emoji").toString() : null;
         watchRoomService.react(principal.getName(), roomId, emoji);
+    }
+
+    @MessageMapping("/room.message.react")
+    public void reactToChatMessage(@Payload Map<String, Object> request, Principal principal) {
+        if (principal == null || request.get("roomId") == null || request.get("messageId") == null
+                || request.get("emoji") == null) {
+            return;
+        }
+        Long roomId = Long.valueOf(request.get("roomId").toString());
+        Long messageId = Long.valueOf(request.get("messageId").toString());
+        String emoji = request.get("emoji").toString();
+
+        var reactions = reactionService.toggle(ReactionTargetType.WATCH, messageId, principal.getName(), emoji);
+        ReactionEventDto event = new ReactionEventDto(messageId, "WATCH", reactions);
+        messagingTemplate.convertAndSend("/topic/room." + roomId + ".chat.reactions", event);
     }
 
     @MessageMapping("/room.playlist.add")

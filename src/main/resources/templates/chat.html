@@ -157,6 +157,7 @@
     const currentUsername = /*[[${#authentication.name}]]*/ '';
     const activeChatUsername = /*[[${receiver != null ? receiver.username : null}]]*/ null;
     const initialReceiverOnline = /*[[${receiverOnline != null ? receiverOnline : false}]]*/ false;
+    const initialReactions = /*[[${reactionsByMessage}]]*/ {};
 </script>
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
@@ -168,7 +169,8 @@
 <script th:src="@{/js/notifications.js(v=7)}"></script>
  <script th:src="@{/js/stickers.js(v=12)}"></script>
 <script th:src="@{/js/voice-player.js(v=9)}"></script>
-<script th:src="@{/js/chat-direct.js(v=20)}"></script>
+<script th:src="@{/js/reactions.js(v=1)}"></script>
+<script th:src="@{/js/chat-direct.js(v=21)}"></script>
 <div id="lightbox" class="lightbox">
     <button class="lightbox-close" aria-label="Закрыть">&times;</button>
     <div class="lightbox-content"></div>

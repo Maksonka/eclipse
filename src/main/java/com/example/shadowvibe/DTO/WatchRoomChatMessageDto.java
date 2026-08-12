@@ -10,6 +10,7 @@ public class WatchRoomChatMessageDto {
     private String stickerUrl;
     private String audioUrl;
     private Long audioDurationMs;
+    private java.util.Map<String, java.util.List<String>> reactions;
 
     public WatchRoomChatMessageDto() {
     }
@@ -74,4 +75,7 @@ public class WatchRoomChatMessageDto {
 
     public Long getAudioDurationMs() { return audioDurationMs; }
     public void setAudioDurationMs(Long audioDurationMs) { this.audioDurationMs = audioDurationMs; }
+
+    public java.util.Map<String, java.util.List<String>> getReactions() { return reactions; }
+    public void setReactions(java.util.Map<String, java.util.List<String>> reactions) { this.reactions = reactions; }
 }

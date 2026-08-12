@@ -108,6 +108,11 @@ function buildGroupMessageRow(message) {
 
     bubbleEl.appendChild(metaEl);
     rowEl.appendChild(bubbleEl);
+    if (window.ReactionsUI) {
+        ReactionsUI.renderBar(rowEl, message.id, message.reactions || (initialReactions && initialReactions[String(message.id)]), currentUsername, function (emoji) {
+            sendGroupReaction(message.id, emoji);
+        });
+    }
     return rowEl;
 }
 
@@ -282,6 +287,35 @@ var socket = new SockJS('/ws');
 var stompClient = Stomp.over(socket);
 stompClient.debug = null;
 
+function sendGroupReaction(messageId, emoji) {
+    if (!stompClient || !stompClient.connected || !activeGroupId) {
+        return;
+    }
+    stompClient.send('/app/group.react', {}, JSON.stringify({
+        messageId: Number(messageId),
+        groupId: Number(activeGroupId),
+        emoji: emoji
+    }));
+}
+
+function handleGroupReactionEvent(event) {
+    if (!event || event.messageId == null || !event.reactions) {
+        return;
+    }
+    if (!messagesContainer) {
+        return;
+    }
+    var row = messagesContainer.querySelector('[data-message-id="' + event.messageId + '"]');
+    if (!row) {
+        return;
+    }
+    if (window.ReactionsUI) {
+        ReactionsUI.renderBar(row, event.messageId, event.reactions, currentUsername, function (emoji) {
+            sendGroupReaction(event.messageId, emoji);
+        });
+    }
+}
+
 function setComposerEnabled(enabled) {
     if (messageInput) {
         messageInput.disabled = !enabled;
@@ -297,6 +331,9 @@ stompClient.connect({}, function () {
     setComposerEnabled(true);
     stompClient.subscribe('/topic/group.' + activeGroupId, function (payload) {
         appendGroupMessage(JSON.parse(payload.body));
+    });
+    stompClient.subscribe('/topic/group.' + activeGroupId + '.reactions', function (payload) {
+        handleGroupReactionEvent(JSON.parse(payload.body));
     });
 }, function (error) {
     console.error('WebSocket connection error:', error);
@@ -358,6 +395,40 @@ if (messageForm) {
 }
 
 initLightbox();
+
+if (window.ReactionsUI && messagesContainer) {
+    ReactionsUI.initContainer(messagesContainer, {
+        username: currentUsername,
+        getMessageId: function (row) {
+            return row.getAttribute('data-message-id');
+        },
+        getReactions: function (messageId) {
+            var row = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
+            if (row) {
+                var bar = row.querySelector(':scope > .message-reactions');
+                if (bar) {
+                    var map = {};
+                    bar.querySelectorAll('.reaction-badge').forEach(function (b) {
+                        map[b.getAttribute('data-emoji')] = b.getAttribute('data-users') ? b.getAttribute('data-users').split(',') : [];
+                    });
+                    return map;
+                }
+            }
+            return initialReactions && initialReactions[String(messageId)];
+        },
+        onPick: function (messageId, emoji) {
+            sendGroupReaction(messageId, emoji);
+        }
+    });
+    messagesContainer.querySelectorAll('.message-row').forEach(function (row) {
+        var id = row.getAttribute('data-message-id');
+        if (id && initialReactions && initialReactions[String(id)]) {
+            ReactionsUI.renderBar(row, id, initialReactions[String(id)], currentUsername, function (emoji) {
+                sendGroupReaction(id, emoji);
+            });
+        }
+    });
+}
 
 if (window.StickerUI) {
     StickerUI.init({

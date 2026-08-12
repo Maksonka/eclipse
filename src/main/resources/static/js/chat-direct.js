@@ -386,6 +386,11 @@ function buildMessageRow(message) {
 
     bubbleEl.appendChild(metaEl);
     rowEl.appendChild(bubbleEl);
+    if (window.ReactionsUI) {
+        ReactionsUI.renderBar(rowEl, message.id, message.reactions || (initialReactions && initialReactions[String(message.id)]), currentUsername, function (emoji) {
+            sendReaction(message.id, emoji);
+        });
+    }
     return rowEl;
 }
 
@@ -553,6 +558,31 @@ function handleUnreadUpdate(update) {
         return;
     }
     updateUnreadBadge(update.partnerUsername, update.unreadCount || 0);
+}
+
+function sendReaction(messageId, emoji) {
+    if (!stompClient || !stompClient.connected || !activeChatUsername) {
+        return;
+    }
+    stompClient.send('/app/chat.react', {}, JSON.stringify({ messageId: Number(messageId), emoji: emoji }));
+}
+
+function handleReactionEvent(event) {
+    if (!event || event.messageId == null || !event.reactions) {
+        return;
+    }
+    if (!messagesContainer || !activeChatUsername) {
+        return;
+    }
+    var row = messagesContainer.querySelector('[data-message-id="' + event.messageId + '"]');
+    if (!row) {
+        return;
+    }
+    if (window.ReactionsUI) {
+        ReactionsUI.renderBar(row, event.messageId, event.reactions, currentUsername, function (emoji) {
+            sendReaction(event.messageId, emoji);
+        });
+    }
 }
 
 function handlePresence(event) {
@@ -836,6 +866,9 @@ stompClient.connect({}, function () {
     stompClient.subscribe('/user/queue/conversation-deleted', function (payload) {
         handleConversationDeleted(JSON.parse(payload.body));
     });
+    stompClient.subscribe('/user/queue/reactions', function (payload) {
+        handleReactionEvent(JSON.parse(payload.body));
+    });
 
     if (activeChatUsername) {
         sendMarkAsRead();
@@ -1037,6 +1070,40 @@ document.addEventListener('keydown', function (e) {
 });
 
 initLightbox();
+
+if (window.ReactionsUI && messagesContainer) {
+    ReactionsUI.initContainer(messagesContainer, {
+        username: currentUsername,
+        getMessageId: function (row) {
+            return row.getAttribute('data-message-id');
+        },
+        getReactions: function (messageId) {
+            var row = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
+            if (row) {
+                var bar = row.querySelector(':scope > .message-reactions');
+                if (bar) {
+                    var map = {};
+                    bar.querySelectorAll('.reaction-badge').forEach(function (b) {
+                        map[b.getAttribute('data-emoji')] = b.getAttribute('data-users') ? b.getAttribute('data-users').split(',') : [];
+                    });
+                    return map;
+                }
+            }
+            return initialReactions && initialReactions[String(messageId)];
+        },
+        onPick: function (messageId, emoji) {
+            sendReaction(messageId, emoji);
+        }
+    });
+    messagesContainer.querySelectorAll('.message-row').forEach(function (row) {
+        var id = row.getAttribute('data-message-id');
+        if (id && initialReactions && initialReactions[String(id)]) {
+            ReactionsUI.renderBar(row, id, initialReactions[String(id)], currentUsername, function (emoji) {
+                sendReaction(id, emoji);
+            });
+        }
+    });
+}
 
 if (window.VoicePlayer && messagesContainer) {
     VoicePlayer.initAll(messagesContainer);

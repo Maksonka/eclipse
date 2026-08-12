@@ -10,6 +10,7 @@ import com.example.shadowvibe.Models.User;
 import com.example.shadowvibe.Repositories.ChatGroupRepository;
 import com.example.shadowvibe.Repositories.GroupMembershipRepository;
 import com.example.shadowvibe.Repositories.GroupMessageRepository;
+import com.example.shadowvibe.enums.ReactionTargetType;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -51,6 +52,7 @@ public class GroupService {
     private final SimpMessagingTemplate messagingTemplate;
     private final AttachmentService attachmentService;
     private final StickerService stickerService;
+    private final ReactionService reactionService;
 
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
@@ -61,7 +63,8 @@ public class GroupService {
                         UserService userService,
                         SimpMessagingTemplate messagingTemplate,
                         AttachmentService attachmentService,
-                        StickerService stickerService) {
+                        StickerService stickerService,
+                        ReactionService reactionService) {
         this.chatGroupRepository = chatGroupRepository;
         this.groupMessageRepository = groupMessageRepository;
         this.groupMembershipRepository = groupMembershipRepository;
@@ -69,6 +72,7 @@ public class GroupService {
         this.messagingTemplate = messagingTemplate;
         this.attachmentService = attachmentService;
         this.stickerService = stickerService;
+        this.reactionService = reactionService;
     }
 
     public ChatGroup createGroup(String creatorUsername, String name, String memberUsernames) {
@@ -379,6 +383,7 @@ public class GroupService {
         );
         dto.setStickerCode(message.getStickerCode());
         dto.setStickerUrl(message.getStickerUrl());
+        dto.setReactions(reactionService.getReactions(ReactionTargetType.GROUP, message.getId()));
         return dto;
     }
 

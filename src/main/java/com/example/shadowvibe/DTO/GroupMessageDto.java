@@ -16,6 +16,7 @@ public class GroupMessageDto {
     private String stickerCode;
     private String stickerUrl;
     private java.util.Set<Long> deletedByUserIds = new java.util.HashSet<>();
+    private java.util.Map<String, java.util.List<String>> reactions;
 
     public GroupMessageDto() {
     }
@@ -129,4 +130,7 @@ public class GroupMessageDto {
 
     public String getStickerUrl() { return stickerUrl; }
     public void setStickerUrl(String stickerUrl) { this.stickerUrl = stickerUrl; }
+
+    public java.util.Map<String, java.util.List<String>> getReactions() { return reactions; }
+    public void setReactions(java.util.Map<String, java.util.List<String>> reactions) { this.reactions = reactions; }
 }

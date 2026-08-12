@@ -8,6 +8,7 @@ import com.example.shadowvibe.Models.Message;
 import com.example.shadowvibe.Models.Sticker;
 import com.example.shadowvibe.Models.User;
 import com.example.shadowvibe.Repositories.MessageRepository;
+import com.example.shadowvibe.enums.ReactionTargetType;
 import jakarta.transaction.Transactional;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -33,18 +34,21 @@ public class MessageService {
     private final SimpMessagingTemplate messagingTemplate;
     private final AttachmentService attachmentService;
     private final StickerService stickerService;
+    private final ReactionService reactionService;
 
 
     public MessageService(MessageRepository messageRepository,
                           UserService userService,
                           SimpMessagingTemplate messagingTemplate,
                           AttachmentService attachmentService,
-                          StickerService stickerService) {
+                          StickerService stickerService,
+                          ReactionService reactionService) {
         this.messageRepository = messageRepository;
         this.userService = userService;
         this.messagingTemplate = messagingTemplate;
         this.attachmentService = attachmentService;
         this.stickerService = stickerService;
+        this.reactionService = reactionService;
     }
 
 
@@ -184,6 +188,15 @@ public class MessageService {
         return dto;
     }
 
+    public Message getMessageById(Long messageId) {
+        return messageRepository.findById(messageId).orElse(null);
+    }
+
+    public java.util.Optional<java.util.Map.Entry<String, String>> getDirectMessageUsernames(Long messageId) {
+        return messageRepository.findById(messageId)
+                .map(m -> Map.entry(m.getSender().getUsername(), m.getReceiver().getUsername()));
+    }
+
     public List<Message> getChatHistory(String senderUsername,String receiverUsername) {
         return messageRepository.findChatHistory(senderUsername,receiverUsername);
     }
@@ -219,6 +232,7 @@ public class MessageService {
         dto.setStickerCode(message.getStickerCode());
         dto.setStickerUrl(message.getStickerUrl());
         dto.setAudioUrl(message.getAudioUrl());
+        dto.setReactions(reactionService.getReactions(ReactionTargetType.DIRECT, message.getId()));
         return dto;
     }
 

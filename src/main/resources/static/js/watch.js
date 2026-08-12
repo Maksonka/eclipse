@@ -67,6 +67,7 @@ var currentVideoUrl = null;
 var applyingSync = false;
 var syncSub = null;
 var chatSub = null;
+var chatReactionsSub = null;
 var playlistSub = null;
 var reactionSub = null;
 var reactionLayer = document.getElementById('reaction-layer');
@@ -76,6 +77,36 @@ var fullscreenBtn = document.getElementById('fullscreen-btn');
 var playlist = { currentItemId: null, items: [] };
 var didInitialJoin = false;
 var connectErrorShown = false;
+var watchReactionsBound = false;
+
+function bindWatchReactions() {
+    if (watchReactionsBound || !chatMessages || !window.ReactionsUI) return;
+    watchReactionsBound = true;
+    ReactionsUI.initContainer(chatMessages, {
+        username: currentUsername,
+        bubbleSelector: '.chat-msg-content',
+        getMessageId: function (row) {
+            return row.getAttribute('data-msg-id');
+        },
+        getReactions: function (messageId) {
+            var row = chatMessages.querySelector('[data-msg-id="' + messageId + '"]');
+            if (row) {
+                var bar = row.querySelector(':scope > .message-reactions');
+                if (bar) {
+                    var map = {};
+                    bar.querySelectorAll('.reaction-badge').forEach(function (b) {
+                        map[b.getAttribute('data-emoji')] = b.getAttribute('data-users') ? b.getAttribute('data-users').split(',') : [];
+                    });
+                    return map;
+                }
+            }
+            return {};
+        },
+        onPick: function (messageId, emoji) {
+            sendWatchMessageReaction(messageId, emoji);
+        }
+    });
+}
 
 /* ===== Voice ===== */
 var voiceState = {
@@ -400,6 +431,7 @@ function showRoomView() {
 function resetRoomView() {
     if (syncSub) { try { syncSub.unsubscribe(); } catch (e) {} syncSub = null; }
     if (chatSub) { try { chatSub.unsubscribe(); } catch (e) {} chatSub = null; }
+    if (chatReactionsSub) { try { chatReactionsSub.unsubscribe(); } catch (e) {} chatReactionsSub = null; }
     if (playlistSub) { try { playlistSub.unsubscribe(); } catch (e) {} playlistSub = null; }
     if (reactionSub) { try { reactionSub.unsubscribe(); } catch (e) {} reactionSub = null; }
     if (voiceSub) { try { voiceSub.unsubscribe(); } catch (e) {} voiceSub = null; }
@@ -834,6 +866,7 @@ function applyRoomUpdate(update) {
 
 function onRoomJoined(room) {
     if (!room || !room.roomId) return;
+    bindWatchReactions();
     activeRoom = room;
     isHost = room.hostUsername === currentUsername;
     saveRoom(room);
@@ -850,6 +883,9 @@ function onRoomJoined(room) {
     });
     chatSub = stompClient.subscribe('/topic/room.' + room.roomId + '.chat', function (payload) {
         appendChatMessage(JSON.parse(payload.body));
+    });
+    var chatReactionsSub = stompClient.subscribe('/topic/room.' + room.roomId + '.chat.reactions', function (payload) {
+        handleWatchChatReactionEvent(JSON.parse(payload.body));
     });
     playlistSub = stompClient.subscribe('/topic/room.' + room.roomId + '.playlist', function (payload) {
         onPlaylistUpdate(JSON.parse(payload.body));
@@ -994,6 +1030,11 @@ function appendChatMessage(msg, notify) {
     meta.textContent = msg.timestamp || '';
 
     row.appendChild(meta);
+    if (window.ReactionsUI && msg.messageId) {
+        ReactionsUI.renderBar(row, msg.messageId, msg.reactions || {}, currentUsername, function (emoji) {
+            sendWatchMessageReaction(msg.messageId, emoji);
+        });
+    }
     chatMessages.appendChild(row);
     scrollChat();
 
@@ -1418,6 +1459,27 @@ function sendReaction(emoji) {
     if (!activeRoom || !stompClient.connected) return;
     stompClient.send('/app/room.react', {}, JSON.stringify({ roomId: activeRoom.roomId, emoji: emoji }));
     spawnReaction(emoji, currentUsername);
+}
+
+function sendWatchMessageReaction(messageId, emoji) {
+    if (!activeRoom || !stompClient.connected || !messageId) return;
+    stompClient.send('/app/room.message.react', {}, JSON.stringify({
+        roomId: activeRoom.roomId,
+        messageId: Number(messageId),
+        emoji: emoji
+    }));
+}
+
+function handleWatchChatReactionEvent(event) {
+    if (!event || event.messageId == null || !event.reactions) return;
+    if (!chatMessages) return;
+    var row = chatMessages.querySelector('[data-msg-id="' + event.messageId + '"]');
+    if (!row) return;
+    if (window.ReactionsUI) {
+        ReactionsUI.renderBar(row, event.messageId, event.reactions, currentUsername, function (emoji) {
+            sendWatchMessageReaction(event.messageId, emoji);
+        });
+    }
 }
 
 function spawnReaction(emoji, username) {

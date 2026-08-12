@@ -1,5 +1,8 @@
 package com.example.shadowvibe.DTO;
 
+import java.util.List;
+import java.util.Map;
+
 public class ChatMessageDto {
     private Long id;
     private String content;
@@ -18,6 +21,7 @@ public class ChatMessageDto {
     private String stickerCode;
     private String stickerUrl;
     private String audioUrl;
+    private Map<String, List<String>> reactions;
 
     public ChatMessageDto() {
     }
@@ -142,4 +146,7 @@ public class ChatMessageDto {
 
     public String getAudioUrl() { return audioUrl; }
     public void setAudioUrl(String audioUrl) { this.audioUrl = audioUrl; }
+
+    public Map<String, List<String>> getReactions() { return reactions; }
+    public void setReactions(Map<String, List<String>> reactions) { this.reactions = reactions; }
 }
