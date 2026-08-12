@@ -3,19 +3,22 @@
 <head th:fragment="head(title)">
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}"/>
+    <meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : 'X-CSRF-TOKEN'}"/>
     <title th:replace="${title}">ShadowVibe</title>
     <link rel="icon" type="image/png" th:href="@{/img/favicon.png}"/>
     <link rel="apple-touch-icon" th:href="@{/img/apple-touch-icon.png}"/>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=58}"/>
+    <link rel="stylesheet" th:href="@{/css/style.css?v=59}"/>
     <script th:inline="javascript">
         document.documentElement.setAttribute(
             'data-theme-preference',
             /*[[${currentUser != null ? currentUser.themePreference.name().toLowerCase() : 'dark'}]]*/ 'dark'
         );
     </script>
+    <script th:src="@{/js/csrf.js(v=1)}"></script>
     <script th:src="@{/js/theme.js(v=3)}"></script>
     <script th:src="@{/js/confirm-dialog.js(v=3)}"></script>
-    <script th:src="@{/js/attachments.js(v=11)}"></script>
+    <script th:src="@{/js/attachments.js(v=12)}"></script>
     <script th:src="@{/js/audio-player.js(v=1)}"></script>
 </head>
 <body></body>

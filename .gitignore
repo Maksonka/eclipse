@@ -37,3 +37,7 @@ run.log
 run.out.log
 run.err.log
 server.pid
+
+### Uploads (user content) ###
+uploads/
+!uploads/.gitkeep

@@ -1993,6 +1993,11 @@ body.profile-page {
     margin-bottom: 6px;
     max-width: 360px;
     overflow: hidden;
+    cursor: pointer;
+}
+
+.reply-block:hover {
+    background: rgba(139, 92, 246, 0.2);
 }
 
 .reply-sender {
@@ -2035,6 +2040,11 @@ body.profile-page {
     flex: 1;
     min-width: 0;
     overflow: hidden;
+    cursor: pointer;
+}
+
+.reply-preview-content:hover .reply-preview-sender {
+    text-decoration: underline;
 }
 
 .reply-preview-sender {

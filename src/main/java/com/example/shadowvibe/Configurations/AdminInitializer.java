@@ -40,6 +40,10 @@ public class AdminInitializer implements ApplicationRunner {
         }
         User admin = userRepository.findByUsername(adminUsername).orElse(null);
         if (admin == null) {
+            if (adminPassword == null || adminPassword.isBlank()) {
+                adminPassword = generatePassword();
+                log.warn("ADMIN_PASSWORD не задан, сгенерирован случайный пароль для {}: {}", adminUsername, adminPassword);
+            }
             admin = new User(adminUsername, adminEmail, passwordEncoder.encode(adminPassword), UserRole.ADMIN);
             userRepository.save(admin);
             log.info("Создан администратор: {}", adminUsername);
@@ -48,5 +52,11 @@ public class AdminInitializer implements ApplicationRunner {
             userRepository.save(admin);
             log.info("Администратору {} задан email: {}", adminUsername, adminEmail);
         }
+    }
+
+    private String generatePassword() {
+        byte[] bytes = new byte[16];
+        new java.security.SecureRandom().nextBytes(bytes);
+        return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }

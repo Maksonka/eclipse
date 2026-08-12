@@ -67,9 +67,40 @@ public class VkVideoSearchProvider implements VideoSearchProvider {
                     "vk",
                     ownerId + "_" + videoId,
                     title,
-                    item.path("photo_320").asText(""),
+                    pickThumb(item),
                     "https://vk.com/video" + ownerId + "_" + videoId));
         }
         return results;
+    }
+
+    private String pickThumb(JsonNode item) {
+        JsonNode images = item.path("image");
+        if (images.isArray()) {
+            String best = "";
+            int bestWidth = 0;
+            for (JsonNode img : images) {
+                int width = img.path("width").asInt(0);
+                String url = img.path("url").asText("");
+                if (url.isEmpty()) {
+                    continue;
+                }
+                if (width >= 320 && (best.isEmpty() || width < bestWidth)) {
+                    best = url;
+                    bestWidth = width;
+                }
+                if (best.isEmpty()) {
+                    best = url;
+                    bestWidth = width;
+                }
+            }
+            if (!best.isEmpty()) {
+                return best;
+            }
+        }
+        JsonNode frames = item.path("first_frame");
+        if (frames.isArray() && !frames.isEmpty()) {
+            return frames.get(0).path("url").asText("");
+        }
+        return "";
     }
 }

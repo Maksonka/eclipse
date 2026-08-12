@@ -163,6 +163,7 @@ function createReplyBlock(message) {
     }
     var block = document.createElement('div');
     block.className = 'reply-block';
+    block.setAttribute('data-reply-id', message.replyToMessageId);
     var sender = document.createElement('span');
     sender.className = 'reply-sender';
     sender.textContent = message.replyToSenderUsername || '';

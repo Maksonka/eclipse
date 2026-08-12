@@ -263,6 +263,21 @@ function scrollToBottom() {
     }
 }
 
+function scrollToMessage(messageId) {
+    var target = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
+    if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+        scrollToBottom();
+    }
+}
+
+function focusReplyMessage() {
+    if (replyState && replyState.messageId) {
+        scrollToMessage(replyState.messageId);
+    }
+}
+
 function createReadReceiptElement(isRead) {
     const receipt = document.createElement('span');
     receipt.className = 'read-receipt' + (isRead ? ' is-read' : '');
@@ -1002,6 +1017,16 @@ function getMessageLabel(row) {
 
 if (replyPreviewEl) {
     replyPreviewEl.querySelector('.reply-preview-close').addEventListener('click', clearReplyPreview);
+    replyPreviewEl.querySelector('.reply-preview-content').addEventListener('click', focusReplyMessage);
+}
+
+if (messagesContainer) {
+    messagesContainer.addEventListener('click', function (e) {
+        var replyBlock = e.target.closest('.reply-block[data-reply-id]');
+        if (replyBlock) {
+            scrollToMessage(replyBlock.getAttribute('data-reply-id'));
+        }
+    });
 }
 
 document.addEventListener('keydown', function (e) {

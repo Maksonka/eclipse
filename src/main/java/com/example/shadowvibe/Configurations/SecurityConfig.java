@@ -16,6 +16,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.util.Collections;
 import java.util.Set;
@@ -30,11 +31,13 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, RateLimitFilter rateLimitFilter) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // включить в продакшене
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/ws/**", "/ws-mobile/**", "/api/auth/login", "/api/auth/register"))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/register", "/login", "/error", "/css/**", "/js/**", "/img/**", "/sounds/**", "/uploads/**").permitAll()
+                        .requestMatchers("/", "/register", "/login", "/error", "/css/**", "/js/**", "/img/**", "/sounds/**").permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/ws/**").authenticated()
                         .requestMatchers("/admin/**").hasRole(UserRole.ADMIN.name())

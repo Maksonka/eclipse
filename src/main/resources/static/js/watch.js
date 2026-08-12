@@ -1002,7 +1002,8 @@ function appendChatMessage(msg, notify) {
             sender: msg.senderUsername,
             title: msg.senderUsername,
             text: msg.stickerUrl ? 'Стикер' : (msg.audioUrl ? 'Голосовое сообщение' : (msg.content || 'Файл')),
-            href: '/watch?room=' + activeRoom.roomId
+            href: '/watch?room=' + activeRoom.roomId,
+            silent: true
         });
     }
 

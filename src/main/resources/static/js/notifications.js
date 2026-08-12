@@ -12,6 +12,7 @@
     var burstTimer = null;
     var burstCount = 0;
     var burstOpts = null;
+    var audioUnlocked = false;
 
     function ensureContainer() {
         if (container) {
@@ -96,7 +97,9 @@
             removeInstant(toasts.firstChild);
         }
 
-        playSound();
+        if (!opts.silent) {
+            playSound();
+        }
 
         var toast = document.createElement('div');
         toast.className = 'notification-toast';
@@ -172,7 +175,8 @@
                 sender: opts.sender,
                 title: opts.title,
                 text: (opts.text || '') + ' · ещё ' + (count - 1),
-                href: opts.href
+                href: opts.href,
+                silent: opts.silent
             });
         } else {
             renderToast(opts);

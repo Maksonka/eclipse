@@ -549,7 +549,7 @@ window.StickerUI = (function () {
                 return r.json().then(function (data) { return { ok: r.ok, data: data }; });
             })
             .then(function (res) {
-                if (!res.ok || !res.data || !res.data.id || res.data.added) {
+                if (!res.ok || !res.data || !res.data.id) {
                     return;
                 }
                 showPreviewModal(res.data);
@@ -608,28 +608,33 @@ window.StickerUI = (function () {
         var addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'btn-primary sticker-preview-add';
-        addBtn.textContent = 'Добавить набор';
-        addBtn.addEventListener('click', function () {
-            fetch('/api/sticker-packs/' + pack.id + '/subscribe', { method: 'POST' })
-                .then(function (r) {
-                    return r.json().then(function (data) { return { ok: r.ok, data: data }; });
-                })
-                .then(function (res) {
-                    if (!res.ok || !res.data || !res.data.success || !res.data.pack || !res.data.pack.added) {
-                        throw new Error(res.data && res.data.error ? res.data.error : 'Не удалось добавить набор');
-                    }
-                    addBtn.textContent = '\u2713 Набор добавлен';
-                    addBtn.disabled = true;
-                    if (panel && !panel.hidden) {
-                        loadPacks(pack.id);
-                    }
-                    setTimeout(closePreviewModal, 900);
-                })
-                .catch(function (e) {
-                    addBtn.textContent = e.message || 'Не удалось добавить набор';
-                    addBtn.disabled = false;
-                });
-        });
+        if (pack.added) {
+            addBtn.textContent = '\u2713 Набор уже добавлен';
+            addBtn.disabled = true;
+        } else {
+            addBtn.textContent = 'Добавить набор';
+            addBtn.addEventListener('click', function () {
+                fetch('/api/sticker-packs/' + pack.id + '/subscribe', { method: 'POST' })
+                    .then(function (r) {
+                        return r.json().then(function (data) { return { ok: r.ok, data: data }; });
+                    })
+                    .then(function (res) {
+                        if (!res.ok || !res.data || !res.data.success || !res.data.pack || !res.data.pack.added) {
+                            throw new Error(res.data && res.data.error ? res.data.error : 'Не удалось добавить набор');
+                        }
+                        addBtn.textContent = '\u2713 Набор добавлен';
+                        addBtn.disabled = true;
+                        if (panel && !panel.hidden) {
+                            loadPacks(pack.id);
+                        }
+                        setTimeout(closePreviewModal, 900);
+                    })
+                    .catch(function (e) {
+                        addBtn.textContent = e.message || 'Не удалось добавить набор';
+                        addBtn.disabled = false;
+                    });
+            });
+        }
 
         modal.appendChild(header);
         modal.appendChild(grid);
