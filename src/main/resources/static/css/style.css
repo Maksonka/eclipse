@@ -6505,3 +6505,166 @@ body.chat-search-modal-open {
 body.favorites-modal-open {
     overflow: hidden;
 }
+
+/* ===== Scheduled (delayed) messages ===== */
+.scheduled-inner {
+    max-width: 620px;
+}
+
+.scheduled-body {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 4px 16px 18px;
+    overflow-y: auto;
+}
+
+.scheduled-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 16px;
+}
+
+.scheduled-target {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.scheduled-target strong {
+    color: var(--accent);
+}
+
+.scheduled-content {
+    resize: vertical;
+    min-height: 72px;
+    max-height: 160px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg, var(--surface-2));
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+.scheduled-content:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.scheduled-datetime {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg, var(--surface-2));
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.92rem;
+}
+
+.scheduled-datetime:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.scheduled-submit {
+    align-self: flex-start;
+    padding: 9px 20px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--accent);
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+}
+
+.scheduled-submit:hover {
+    filter: brightness(1.1);
+}
+
+.scheduled-submit:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.scheduled-list h4 {
+    margin: 0 0 10px;
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+.scheduled-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.scheduled-empty {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    padding: 6px 0;
+}
+
+.scheduled-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-2, var(--surface));
+}
+
+.scheduled-item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.scheduled-item-target {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.scheduled-item-time {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.scheduled-item-content {
+    font-size: 0.9rem;
+    color: var(--text);
+    word-break: break-word;
+}
+
+.scheduled-item-cancel {
+    align-self: flex-start;
+    border: none;
+    background: transparent;
+    color: var(--danger, #e05353);
+    font-family: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+    padding: 0;
+}
+
+.scheduled-item-cancel:hover {
+    text-decoration: underline;
+}
+
+.composer-schedule {
+    color: var(--text-muted);
+}
+
+.composer-schedule:hover {
+    color: var(--accent);
+}

@@ -144,6 +144,14 @@
             <span>Избранное</span>
             <span id="favorites-count" class="favorites-count-badge" hidden>0</span>
         </button>
+        <button type="button" id="scheduled-sidebar-toggle" class="sidebar-favorites-link" aria-label="Отложенные сообщения" title="Отложенные сообщения">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>Отложенные</span>
+            <span id="scheduled-count" class="favorites-count-badge" hidden>0</span>
+        </button>
         <a class="sidebar-create-group" th:href="@{/group/create}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/>
@@ -161,6 +169,28 @@
                 <button type="button" id="favorites-close" class="favorites-close" aria-label="Закрыть">&times;</button>
             </div>
             <div id="favorites-list" class="favorites-list"></div>
+        </div>
+    </div>
+
+    <div id="scheduled-modal" class="favorites-modal" hidden>
+        <div class="favorites-modal-inner scheduled-inner">
+            <div class="favorites-modal-header">
+                <h3>Отложить сообщение</h3>
+                <button type="button" id="scheduled-close" class="favorites-close" aria-label="Закрыть">&times;</button>
+            </div>
+            <div class="scheduled-body">
+                <div class="scheduled-form">
+                    <div class="scheduled-target">Отправить в: <strong id="scheduled-target-name"></strong></div>
+                    <textarea id="scheduled-content" class="scheduled-content" maxlength="2000" placeholder="Текст сообщения..." rows="3"></textarea>
+                    <input type="datetime-local" id="scheduled-datetime" class="scheduled-datetime"/>
+                    <div id="scheduled-error" class="composer-error" hidden></div>
+                    <button type="button" id="scheduled-submit" class="scheduled-submit">Отложить</button>
+                </div>
+                <div class="scheduled-list">
+                    <h4>Мои отложенные</h4>
+                    <div id="scheduled-list-items" class="scheduled-items"></div>
+                </div>
+            </div>
         </div>
     </div>
 </aside>
