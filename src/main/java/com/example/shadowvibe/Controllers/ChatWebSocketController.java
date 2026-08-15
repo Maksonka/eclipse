@@ -152,6 +152,22 @@ public class ChatWebSocketController {
         groupService.broadcastGroupMessage(saved);
     }
 
+    @MessageMapping("/group.typing")
+    public void sendGroupTyping(@Payload Map<String, Object> request, Principal principal) {
+        if (principal == null || request.get("groupId") == null || request.get("typing") == null) {
+            return;
+        }
+        Long groupId;
+        try {
+            groupId = Long.valueOf(request.get("groupId").toString());
+        } catch (NumberFormatException e) {
+            return;
+        }
+        boolean typing = Boolean.parseBoolean(request.get("typing").toString());
+        ChatTypingDto dto = new ChatTypingDto(principal.getName(), typing);
+        messagingTemplate.convertAndSend("/topic/group." + groupId + ".typing", dto);
+    }
+
     @MessageMapping("/group.delete")
     public void deleteGroupMessage(@Payload Map<String, Object> request, Principal principal) {
         if (principal == null || request.get("messageId") == null || request.get("mode") == null || request.get("groupId") == null) {

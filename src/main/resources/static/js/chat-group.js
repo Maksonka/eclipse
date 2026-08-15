@@ -4,6 +4,77 @@ var messageInput = document.getElementById('message-input');
 var sendButton = document.getElementById('send-button');
 var groupIdInput = document.getElementById('group-id');
 
+var groupTypingIndicator = document.getElementById('group-typing-indicator');
+var groupTypingLabel = document.getElementById('group-typing-label');
+var groupTypingUsers = {};
+var groupTypingTimers = {};
+var groupTypingStopTimeout = null;
+var groupIsSendingTyping = false;
+
+function sendGroupTypingState(typing) {
+    if (!stompClient || !stompClient.connected || !activeGroupId) {
+        return;
+    }
+    stompClient.send('/app/group.typing', {}, JSON.stringify({
+        groupId: activeGroupId,
+        typing: typing
+    }));
+}
+
+function notifyLocalGroupTyping() {
+    if (!groupIsSendingTyping) {
+        groupIsSendingTyping = true;
+        sendGroupTypingState(true);
+    }
+    clearTimeout(groupTypingStopTimeout);
+    groupTypingStopTimeout = setTimeout(stopLocalGroupTyping, 1500);
+}
+
+function stopLocalGroupTyping() {
+    clearTimeout(groupTypingStopTimeout);
+    if (groupIsSendingTyping) {
+        groupIsSendingTyping = false;
+        sendGroupTypingState(false);
+    }
+}
+
+function updateGroupTypingIndicator() {
+    if (!groupTypingIndicator) {
+        return;
+    }
+    var names = Object.keys(groupTypingUsers);
+    if (!names.length) {
+        groupTypingIndicator.classList.remove('is-visible');
+        return;
+    }
+    if (groupTypingLabel) {
+        groupTypingLabel.textContent = names.length === 1
+            ? names[0] + ' печатает…'
+            : names[0] + ' и ещё ' + (names.length - 1) + ' печатают…';
+    }
+    groupTypingIndicator.classList.add('is-visible');
+}
+
+function handleGroupTyping(event) {
+    if (!event || !event.senderUsername || event.senderUsername === currentUsername) {
+        return;
+    }
+    var name = event.senderUsername;
+    clearTimeout(groupTypingTimers[name]);
+    if (event.typing) {
+        groupTypingUsers[name] = true;
+    } else {
+        delete groupTypingUsers[name];
+    }
+    updateGroupTypingIndicator();
+    if (event.typing) {
+        groupTypingTimers[name] = setTimeout(function () {
+            delete groupTypingUsers[name];
+            updateGroupTypingIndicator();
+        }, 2500);
+    }
+}
+
 var displayedMessageIds = new Set();
 if (messagesContainer) {
     messagesContainer.querySelectorAll('[data-message-id]').forEach(function (el) {
@@ -692,6 +763,9 @@ stompClient.connect({}, function () {
     stompClient.subscribe('/topic/group.' + activeGroupId + '.reactions', function (payload) {
         handleGroupReactionEvent(JSON.parse(payload.body));
     });
+    stompClient.subscribe('/topic/group.' + activeGroupId + '.typing', function (payload) {
+        handleGroupTyping(JSON.parse(payload.body));
+    });
 }, function (error) {
     console.error('WebSocket connection error:', error);
     setComposerEnabled(false);
@@ -743,12 +817,17 @@ if (messageForm) {
         }
         stompClient.send('/app/group.send', {}, JSON.stringify(payload));
         messageInput.value = '';
+        stopLocalGroupTyping();
         messageInput.focus();
         clearReplyPreview();
     });
 
     scrollToBottom();
     messageInput.focus();
+
+    messageInput.addEventListener('input', notifyLocalGroupTyping);
+    messageInput.addEventListener('blur', stopLocalGroupTyping);
+    window.addEventListener('beforeunload', stopLocalGroupTyping);
 }
 
 initLightbox();
