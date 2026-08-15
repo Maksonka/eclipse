@@ -6509,6 +6509,26 @@ body.favorites-modal-open {
 /* ===== Scheduled (delayed) messages ===== */
 .scheduled-inner {
     max-width: 620px;
+    border: 1px solid transparent;
+    background:
+        linear-gradient(var(--surface), var(--surface)) padding-box,
+        linear-gradient(135deg, rgba(167, 139, 250, 0.55) 0%, rgba(124, 58, 237, 0.18) 50%, rgba(139, 92, 246, 0.4) 100%) border-box;
+    box-shadow:
+        0 0 0 1px rgba(139, 92, 246, 0.12),
+        0 0 44px rgba(139, 92, 246, 0.16),
+        var(--shadow);
+}
+
+.scheduled-inner .favorites-modal-header {
+    border-bottom: 1px solid var(--border);
+}
+
+.scheduled-inner .favorites-modal-header h3 {
+    background: linear-gradient(120deg, #c4b5fd, var(--purple-400));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
 }
 
 .scheduled-body {
@@ -6533,7 +6553,7 @@ body.favorites-modal-open {
 }
 
 .scheduled-target strong {
-    color: var(--accent);
+    color: var(--purple-400);
 }
 
 .scheduled-content {
@@ -6541,51 +6561,62 @@ body.favorites-modal-open {
     min-height: 72px;
     max-height: 160px;
     padding: 10px 12px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
-    background: var(--input-bg, var(--surface-2));
+    background: var(--bg-elevated);
     color: var(--text);
     font-family: inherit;
     font-size: 0.92rem;
     line-height: 1.45;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .scheduled-content:focus {
     outline: none;
-    border-color: var(--accent);
+    border-color: var(--purple-500);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
 }
 
 .scheduled-datetime {
     padding: 9px 12px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
-    background: var(--input-bg, var(--surface-2));
+    background: var(--bg-elevated);
     color: var(--text);
     font-family: inherit;
     font-size: 0.92rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .scheduled-datetime:focus {
     outline: none;
-    border-color: var(--accent);
+    border-color: var(--purple-500);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
 }
 
 .scheduled-submit {
     align-self: flex-start;
-    padding: 9px 20px;
+    padding: 10px 24px;
     border: none;
-    border-radius: var(--radius-md);
-    background: var(--accent);
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, var(--purple-600) 0%, var(--purple-500) 100%);
     color: #fff;
     font-family: inherit;
     font-size: 0.92rem;
     font-weight: 600;
     cursor: pointer;
-    transition: filter 0.15s ease;
+    box-shadow: 0 6px 18px rgba(139, 92, 246, 0.32);
+    transition: filter 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
 
-.scheduled-submit:hover {
-    filter: brightness(1.1);
+.scheduled-submit:hover:not(:disabled) {
+    filter: brightness(1.12);
+    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.45);
+}
+
+.scheduled-submit:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 
 .scheduled-submit:disabled {
@@ -6608,17 +6639,32 @@ body.favorites-modal-open {
 .scheduled-empty {
     color: var(--text-muted);
     font-size: 0.88rem;
-    padding: 6px 0;
+    padding: 14px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    text-align: center;
 }
 
 .scheduled-item {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 10px 12px;
+    padding: 12px 14px;
     border: 1px solid var(--border);
+    border-left: 3px solid transparent;
     border-radius: var(--radius-md);
-    background: var(--surface-2, var(--surface));
+    background:
+        linear-gradient(180deg, rgba(167, 139, 250, 0.06), transparent 65%),
+        var(--surface-hover);
+    transition: border-color 0.15s ease, border-left-color 0.15s ease,
+        transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.scheduled-item:hover {
+    border-color: var(--border-strong);
+    border-left-color: var(--purple-500);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
 }
 
 .scheduled-item-top {
@@ -6631,7 +6677,7 @@ body.favorites-modal-open {
 .scheduled-item-target {
     font-size: 0.82rem;
     font-weight: 600;
-    color: var(--accent);
+    color: var(--purple-400);
 }
 
 .scheduled-item-time {
@@ -6648,23 +6694,36 @@ body.favorites-modal-open {
 
 .scheduled-item-cancel {
     align-self: flex-start;
-    border: none;
+    border: 1px solid rgba(167, 139, 250, 0.28);
+    border-radius: var(--radius-full);
     background: transparent;
-    color: var(--danger, #e05353);
+    color: var(--text-muted);
     font-family: inherit;
     font-size: 0.82rem;
+    font-weight: 500;
     cursor: pointer;
-    padding: 0;
+    padding: 4px 14px;
+    transition: color 0.15s ease, border-color 0.15s ease,
+        background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .scheduled-item-cancel:hover {
-    text-decoration: underline;
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.45);
+    background: rgba(248, 113, 113, 0.08);
+    box-shadow: 0 0 14px rgba(248, 113, 113, 0.18);
 }
 
 .composer-schedule {
     color: var(--text-muted);
+    transition: color 0.15s ease, filter 0.15s ease, transform 0.1s ease;
 }
 
 .composer-schedule:hover {
-    color: var(--accent);
+    color: var(--purple-400);
+    filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.6));
+}
+
+.composer-schedule:active {
+    transform: scale(0.92);
 }
