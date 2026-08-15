@@ -30,7 +30,11 @@
         return fetch('/api/push/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(subscription)
+            body: JSON.stringify({
+                endpoint: subscription.endpoint,
+                p256dh: subscription.keys.p256dh,
+                auth: subscription.keys.auth
+            })
         }).then(function (response) {
             if (!response.ok) {
                 throw new Error('register failed');
