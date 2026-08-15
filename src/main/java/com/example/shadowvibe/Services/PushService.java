@@ -5,6 +5,8 @@ import com.example.shadowvibe.Models.User;
 import com.example.shadowvibe.Repositories.PushSubscriptionRepository;
 import com.example.shadowvibe.Repositories.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +22,8 @@ import java.util.concurrent.CompletableFuture;
 
 @Service
 public class PushService {
+
+    private static final Logger log = LoggerFactory.getLogger(PushService.class);
 
     private final PushSubscriptionRepository subscriptionRepository;
     private final UserRepository userRepository;
@@ -58,6 +62,7 @@ public class PushService {
             existing.setP256dh(p256dh);
             existing.setAuth(auth);
             subscriptionRepository.save(existing);
+            log.info("PushSubscription refreshed for user={} endpoint={}", username, endpoint);
             return;
         }
 
@@ -68,6 +73,7 @@ public class PushService {
         subscription.setAuth(auth);
         subscription.setCreatedAt(LocalDateTime.now());
         subscriptionRepository.save(subscription);
+        log.info("PushSubscription registered for user={} endpoint={} (new)", username, endpoint);
     }
 
     public void unregister(String username, String endpoint) {
@@ -83,12 +89,14 @@ public class PushService {
         }
         List<PushSubscription> subscriptions = subscriptionRepository.findByUserUsername(username);
         if (subscriptions.isEmpty()) {
+            log.info("Push: no subscriptions for user={}, skip", username);
             return;
         }
         byte[] payload = toPayload(title, body, url, tag);
         for (PushSubscription subscription : subscriptions) {
             sendAsync(subscription, payload);
         }
+        log.info("Push: queued {} push(es) for user={} title={}", subscriptions.size(), username, title);
     }
 
     private byte[] toPayload(String title, String body, String url, String tag) {
@@ -130,11 +138,12 @@ public class PushService {
 
             HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
             int status = response.statusCode();
+            log.info("Push delivered: endpoint={} status={}", subscription.getEndpoint(), status);
             if (status == 404 || status == 410) {
                 subscriptionRepository.deleteById(subscription.getId());
             }
         } catch (Exception e) {
-            // сети/шифрованию не критично для основного потока
+            log.warn("Push send failed: endpoint={} error={}", subscription.getEndpoint(), e.toString());
         }
     }
 }
