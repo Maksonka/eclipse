@@ -54,6 +54,21 @@ public class Message {
     @Column(name = "audio_url", length = 500)
     private String audioUrl;
 
+    @Column(name = "edited")
+    private boolean edited;
+
+    @Column(name = "edited_at")
+    private LocalDateTime editedAt;
+
+    @Column(name = "forwarded_from", length = 80)
+    private String forwardedFrom;
+
+    @Column(name = "pinned_at")
+    private LocalDateTime pinnedAt;
+
+    @Column(name = "pinned_by", length = 255)
+    private String pinnedByUsername;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", nullable = false)
     private User sender;
@@ -193,4 +208,21 @@ public class Message {
     public void setAudioUrl(String audioUrl) { this.audioUrl = audioUrl; }
 
     public boolean hasAudio() { return audioUrl != null && !audioUrl.isBlank(); }
+
+    public boolean isEdited() { return edited; }
+    public void setEdited(boolean edited) { this.edited = edited; }
+
+    public LocalDateTime getEditedAt() { return editedAt; }
+    public void setEditedAt(LocalDateTime editedAt) { this.editedAt = editedAt; }
+
+    public String getForwardedFrom() { return forwardedFrom; }
+    public void setForwardedFrom(String forwardedFrom) { this.forwardedFrom = forwardedFrom; }
+
+    public LocalDateTime getPinnedAt() { return pinnedAt; }
+    public void setPinnedAt(LocalDateTime pinnedAt) { this.pinnedAt = pinnedAt; }
+
+    public String getPinnedByUsername() { return pinnedByUsername; }
+    public void setPinnedByUsername(String pinnedByUsername) { this.pinnedByUsername = pinnedByUsername; }
+
+    public boolean isPinned() { return pinnedAt != null; }
 }

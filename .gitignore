@@ -37,6 +37,8 @@ run.log
 run.out.log
 run.err.log
 server.pid
+app.log
+boot.log
 
 ### Uploads (user content) ###
 uploads/

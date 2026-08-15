@@ -17,6 +17,11 @@ public class GroupMessageDto {
     private String stickerUrl;
     private java.util.Set<Long> deletedByUserIds = new java.util.HashSet<>();
     private java.util.Map<String, java.util.List<String>> reactions;
+    private boolean edited;
+    private String editedAt;
+    private String forwardedFrom;
+    private boolean pinned;
+    private boolean pinUpdate;
 
     public GroupMessageDto() {
     }
@@ -133,4 +138,19 @@ public class GroupMessageDto {
 
     public java.util.Map<String, java.util.List<String>> getReactions() { return reactions; }
     public void setReactions(java.util.Map<String, java.util.List<String>> reactions) { this.reactions = reactions; }
+
+    public boolean isEdited() { return edited; }
+    public void setEdited(boolean edited) { this.edited = edited; }
+
+    public String getEditedAt() { return editedAt; }
+    public void setEditedAt(String editedAt) { this.editedAt = editedAt; }
+
+    public String getForwardedFrom() { return forwardedFrom; }
+    public void setForwardedFrom(String forwardedFrom) { this.forwardedFrom = forwardedFrom; }
+
+    public boolean isPinned() { return pinned; }
+    public void setPinned(boolean pinned) { this.pinned = pinned; }
+
+    public boolean isPinUpdate() { return pinUpdate; }
+    public void setPinUpdate(boolean pinUpdate) { this.pinUpdate = pinUpdate; }
 }

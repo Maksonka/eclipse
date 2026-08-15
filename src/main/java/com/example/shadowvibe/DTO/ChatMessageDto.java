@@ -22,6 +22,11 @@ public class ChatMessageDto {
     private String stickerUrl;
     private String audioUrl;
     private Map<String, List<String>> reactions;
+    private boolean edited;
+    private String editedAt;
+    private String forwardedFrom;
+    private boolean pinned;
+    private boolean pinUpdate;
 
     public ChatMessageDto() {
     }
@@ -149,4 +154,19 @@ public class ChatMessageDto {
 
     public Map<String, List<String>> getReactions() { return reactions; }
     public void setReactions(Map<String, List<String>> reactions) { this.reactions = reactions; }
+
+    public boolean isEdited() { return edited; }
+    public void setEdited(boolean edited) { this.edited = edited; }
+
+    public String getEditedAt() { return editedAt; }
+    public void setEditedAt(String editedAt) { this.editedAt = editedAt; }
+
+    public String getForwardedFrom() { return forwardedFrom; }
+    public void setForwardedFrom(String forwardedFrom) { this.forwardedFrom = forwardedFrom; }
+
+    public boolean isPinned() { return pinned; }
+    public void setPinned(boolean pinned) { this.pinned = pinned; }
+
+    public boolean isPinUpdate() { return pinUpdate; }
+    public void setPinUpdate(boolean pinUpdate) { this.pinUpdate = pinUpdate; }
 }

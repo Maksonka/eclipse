@@ -7,6 +7,7 @@ public class ConversationPreviewDto {
     private boolean lastMessageOutgoing;
     private String partnerAvatarFilename;
     private long unreadCount;
+    private boolean muted;
 
     public ConversationPreviewDto() {
     }
@@ -14,12 +15,20 @@ public class ConversationPreviewDto {
     public ConversationPreviewDto(String partnerUsername, String lastMessagePreview,
                                   String lastMessageTime, boolean lastMessageOutgoing,
                                   String partnerAvatarFilename, long unreadCount) {
+        this(partnerUsername, lastMessagePreview, lastMessageTime, lastMessageOutgoing,
+                partnerAvatarFilename, unreadCount, false);
+    }
+
+    public ConversationPreviewDto(String partnerUsername, String lastMessagePreview,
+                                  String lastMessageTime, boolean lastMessageOutgoing,
+                                  String partnerAvatarFilename, long unreadCount, boolean muted) {
         this.partnerUsername = partnerUsername;
         this.lastMessagePreview = lastMessagePreview;
         this.lastMessageTime = lastMessageTime;
         this.lastMessageOutgoing = lastMessageOutgoing;
         this.partnerAvatarFilename = partnerAvatarFilename;
         this.unreadCount = unreadCount;
+        this.muted = muted;
     }
 
     public String getPartnerUsername() {
@@ -68,5 +77,13 @@ public class ConversationPreviewDto {
 
     public void setUnreadCount(long unreadCount) {
         this.unreadCount = unreadCount;
+    }
+
+    public boolean isMuted() {
+        return muted;
+    }
+
+    public void setMuted(boolean muted) {
+        this.muted = muted;
     }
 }

@@ -11,6 +11,195 @@ if (messagesContainer) {
     });
 }
 
+function pinnedPreviewText(message) {
+    if (!message) return '';
+    if (message.stickerUrl) return 'Стикер';
+    if (message.audioUrl) return 'Голосовое сообщение';
+    if (message.content && message.content.trim()) return message.content;
+    if (message.attachmentType) return messagePreview(message);
+    return 'Сообщение';
+}
+
+function getPinnedBar() {
+    var bar = document.getElementById('pinned-bar');
+    if (bar) {
+        return bar;
+    }
+    bar = document.createElement('div');
+    bar.className = 'pinned-bar';
+    bar.id = 'pinned-bar';
+
+    var icon = document.createElement('span');
+    icon.className = 'pinned-bar-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = '📌';
+
+    var body = document.createElement('div');
+    body.className = 'pinned-bar-body';
+    var title = document.createElement('span');
+    title.className = 'pinned-bar-title';
+    title.textContent = 'Закреплённые сообщения';
+    var list = document.createElement('div');
+    list.className = 'pinned-list';
+    list.id = 'pinned-list';
+    body.appendChild(title);
+    body.appendChild(list);
+
+    bar.appendChild(icon);
+    bar.appendChild(body);
+
+    var messages = document.getElementById('messages');
+    if (messages && messages.parentNode) {
+        messages.parentNode.insertBefore(bar, messages);
+    }
+    return bar;
+}
+
+var pinnedItems = [];
+var pinnedIndex = 0;
+
+function findPinnedIndexById(messageId) {
+    for (var i = 0; i < pinnedItems.length; i++) {
+        if (pinnedItems[i].getAttribute('data-pinned-id') === String(messageId)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+function syncPinnedDisplay() {
+    var bar = document.getElementById('pinned-bar');
+    if (pinnedItems.length === 0) {
+        if (bar) {
+            bar.remove();
+        }
+        return;
+    }
+    if (pinnedIndex >= pinnedItems.length) {
+        pinnedIndex = 0;
+    }
+    pinnedItems.forEach(function (el, i) {
+        if (i === pinnedIndex) {
+            el.classList.add('is-active');
+        } else {
+            el.classList.remove('is-active');
+        }
+    });
+    var title = bar.querySelector('.pinned-bar-title');
+    if (title) {
+        title.textContent = 'Закреплённые: ' + (pinnedIndex + 1) + ' из ' + pinnedItems.length;
+    }
+}
+
+function createPinnedItem(message) {
+    var item = document.createElement('div');
+    item.className = 'pinned-item';
+    item.setAttribute('data-pinned-id', message.id);
+
+    var sender = document.createElement('span');
+    sender.className = 'pinned-bar-sender';
+    sender.textContent = message.senderUsername;
+
+    var preview = document.createElement('span');
+    preview.className = 'pinned-bar-preview';
+    preview.textContent = truncatePreview(pinnedPreviewText(message));
+
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'pinned-item-close';
+    close.setAttribute('aria-label', 'Открепить сообщение');
+    close.title = 'Открепить';
+    close.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+
+    item.appendChild(sender);
+    item.appendChild(preview);
+    item.appendChild(close);
+    return item;
+}
+
+function initPinnedBar() {
+    var bar = document.getElementById('pinned-bar');
+    if (!bar) {
+        return;
+    }
+    var list = bar.querySelector('.pinned-list');
+    pinnedItems = list ? Array.prototype.slice.call(list.querySelectorAll('.pinned-item')) : [];
+    pinnedIndex = 0;
+    syncPinnedDisplay();
+}
+
+function addPinnedItem(message) {
+    var idx = findPinnedIndexById(message.id);
+    if (idx >= 0) {
+        var old = pinnedItems[idx];
+        if (old.parentNode) {
+            old.parentNode.removeChild(old);
+        }
+        pinnedItems.splice(idx, 1);
+    }
+    var bar = getPinnedBar();
+    var list = bar.querySelector('.pinned-list');
+    var el = createPinnedItem(message);
+    pinnedItems.unshift(el);
+    list.insertBefore(el, list.firstChild);
+    pinnedIndex = 0;
+    syncPinnedDisplay();
+}
+
+function removePinnedItem(messageId) {
+    var idx = findPinnedIndexById(messageId);
+    if (idx < 0) {
+        return;
+    }
+    var el = pinnedItems[idx];
+    if (el.parentNode) {
+        el.parentNode.removeChild(el);
+    }
+    pinnedItems.splice(idx, 1);
+    if (idx < pinnedIndex) {
+        pinnedIndex--;
+    }
+    if (pinnedIndex >= pinnedItems.length) {
+        pinnedIndex = Math.max(0, pinnedItems.length - 1);
+    }
+    syncPinnedDisplay();
+}
+
+function renderPinnedBar(message) {
+    if (!messagesContainer || message.groupId !== activeGroupId) {
+        return;
+    }
+    if (message.pinned) {
+        addPinnedItem(message);
+    } else {
+        removePinnedItem(message.id);
+    }
+}
+
+function unpinMessage(messageId) {
+    if (!messageId || !stompClient || !stompClient.connected || !activeGroupId) {
+        return;
+    }
+    stompClient.send('/app/group.pin', {}, JSON.stringify({ messageId: Number(messageId), groupId: Number(activeGroupId), pinned: false }));
+}
+
+function handlePinUpdate(message) {
+    if (!messagesContainer || message.groupId !== activeGroupId) {
+        return;
+    }
+    var isDeletedByMe = message.deletedByUserIds && message.deletedByUserIds.indexOf && message.deletedByUserIds.indexOf(currentUserId) !== -1;
+    var isDeleted = isDeletedByMe || message.content === 'Сообщение удалено';
+    var row = messagesContainer.querySelector('[data-message-id="' + message.id + '"]');
+    if (row) {
+        if (isDeleted) {
+            row.remove();
+        } else {
+            row.replaceWith(buildGroupMessageRow(message));
+        }
+    }
+    renderPinnedBar(message);
+}
+
 function hideEmptyState() {
     var emptyState = messagesContainer && messagesContainer.querySelector('.chat-empty');
     if (emptyState) {
@@ -68,6 +257,13 @@ function buildGroupMessageRow(message) {
         bubbleEl.appendChild(replyBlock);
     }
 
+    if (message.forwardedFrom) {
+        var fwdEl = document.createElement('div');
+        fwdEl.className = 'forward-badge';
+        fwdEl.textContent = 'Переслано от ' + message.forwardedFrom;
+        bubbleEl.appendChild(fwdEl);
+    }
+
     var attachmentEl = createAttachmentElement(message);
     if (attachmentEl) {
         bubbleEl.appendChild(attachmentEl);
@@ -106,6 +302,22 @@ function buildGroupMessageRow(message) {
     timeEl.textContent = message.timestamp || '';
     metaEl.appendChild(timeEl);
 
+    if (message.edited) {
+        var editedEl = document.createElement('span');
+        editedEl.className = 'message-edited';
+        editedEl.textContent = 'изменено';
+        metaEl.appendChild(editedEl);
+    }
+
+    if (message.pinned) {
+        var pinEl = document.createElement('span');
+        pinEl.className = 'pin-badge';
+        pinEl.title = 'Закреплённое сообщение';
+        pinEl.setAttribute('aria-label', 'Закреплённое сообщение');
+        pinEl.textContent = '📌';
+        bubbleEl.appendChild(pinEl);
+    }
+
     bubbleEl.appendChild(metaEl);
     rowEl.appendChild(bubbleEl);
     if (window.ReactionsUI) {
@@ -113,11 +325,19 @@ function buildGroupMessageRow(message) {
             sendGroupReaction(message.id, emoji);
         });
     }
+    if (window.Favorites) {
+        window.Favorites.markRow(rowEl, message.id);
+    }
     return rowEl;
 }
 
 function appendGroupMessage(message) {
     if (!messagesContainer || message.groupId !== activeGroupId) {
+        return;
+    }
+
+    if (message.pinUpdate) {
+        handlePinUpdate(message);
         return;
     }
 
@@ -145,12 +365,14 @@ function appendGroupMessage(message) {
     messagesContainer.appendChild(buildGroupMessageRow(message));
     scrollToBottom();
 
-    if (message.senderUsername !== currentUsername && document.hidden && window.MessageNotifications) {
+    if (message.senderUsername !== currentUsername && document.hidden && window.MessageNotifications
+            && (!window.MuteManager || !MuteManager.isGroupMuted(activeGroupId))) {
         MessageNotifications.show({
             sender: message.senderUsername,
             title: message.senderUsername,
             text: message.content || messagePreview(message) || 'Сообщение',
-            href: '/chat/group/' + activeGroupId
+            href: '/chat/group/' + activeGroupId,
+            tag: 'group-' + activeGroupId
         });
     }
 }
@@ -190,8 +412,27 @@ if (messagesContainer) {
         var isOwn = sender === currentUsername;
         contextMenu.setAttribute('data-message-id', messageId);
         contextMenu.setAttribute('data-is-own', isOwn ? '1' : '0');
+        var pinBtn = contextMenu.querySelector('[data-action="pin"]');
+        if (pinBtn) {
+            pinBtn.textContent = row.querySelector('.pin-badge') ? 'Открепить' : 'Закрепить';
+        }
+        var favBtn = contextMenu.querySelector('[data-action="favorite"]');
+        if (favBtn) {
+            favBtn.textContent = window.Favorites && Favorites.isFavorited(messageId)
+                ? 'Убрать из избранного'
+                : 'В избранное';
+        }
         var deleteAllBtn = contextMenu.querySelector('[data-action="delete-all"]');
         if (deleteAllBtn) deleteAllBtn.style.display = isOwn ? '' : 'none';
+        var editBtn = contextMenu.querySelector('[data-action="edit"]');
+        if (editBtn) {
+            var editable = isOwn && !bubble.querySelector('.sticker-image')
+                && !bubble.querySelector('.voice-player')
+                && !bubble.querySelector('.attachment-image')
+                && !bubble.querySelector('.attachment-video')
+                && !bubble.querySelector('.attachment-audio-wrap');
+            editBtn.style.display = editable ? '' : 'none';
+        }
         contextMenu.hidden = false;
         contextMenu.style.left = e.clientX + 'px';
         contextMenu.style.top = e.clientY + 'px';
@@ -223,6 +464,34 @@ if (contextMenu) {
                 var senderName = senderEl ? senderEl.textContent : currentUsername;
                 showReplyPreview(messageId, senderName, contentText);
             }
+        } else if (action === 'pin') {
+            var pinRow = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
+            var isPinned = pinRow ? !!pinRow.querySelector('.pin-badge') : false;
+            stompClient.send('/app/group.pin', {}, JSON.stringify({ messageId: Number(messageId), groupId: Number(activeGroupId), pinned: !isPinned }));
+        } else if (action === 'favorite') {
+            if (window.Favorites) {
+                window.Favorites.toggle(messageId, 'GROUP');
+            }
+        } else if (action === 'edit') {
+            startGroupInlineEdit(messageId);
+        } else if (action === 'forward') {
+            if (window.showForwardDialog) {
+                showForwardDialog(function (targetType, target) {
+                    if (targetType === 'group') {
+                        stompClient.send('/app/group.forward', {}, JSON.stringify({
+                            sourceType: 'GROUP',
+                            sourceMessageId: Number(messageId),
+                            groupId: Number(target)
+                        }));
+                    } else {
+                        stompClient.send('/app/chat.forward', {}, JSON.stringify({
+                            sourceType: 'GROUP',
+                            sourceMessageId: Number(messageId),
+                            targetUsername: target
+                        }));
+                    }
+                });
+            }
         } else if (action === 'delete-me') {
             var rowMe = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
             var labelMe = rowMe ? getGroupMessageLabel(rowMe) : 'сообщение';
@@ -237,6 +506,79 @@ if (contextMenu) {
             });
         }
     });
+}
+
+function startGroupInlineEdit(messageId) {
+    var row = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
+    if (!row) return;
+    var bubble = row.querySelector('.message-bubble');
+    var contentEl = bubble ? bubble.querySelector('.content') : null;
+    if (!contentEl) return;
+    var oldText = contentEl.textContent;
+
+    var wrap = document.createElement('div');
+    wrap.className = 'inline-edit';
+
+    var input = document.createElement('textarea');
+    input.className = 'inline-edit-input';
+    input.value = oldText;
+    input.maxLength = 2000;
+    wrap.appendChild(input);
+
+    var actions = document.createElement('div');
+    actions.className = 'inline-edit-actions';
+    var saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'inline-edit-save';
+    saveBtn.textContent = 'Сохранить';
+    var cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'inline-edit-cancel';
+    cancelBtn.textContent = 'Отмена';
+    actions.appendChild(saveBtn);
+    actions.appendChild(cancelBtn);
+    wrap.appendChild(actions);
+
+    contentEl.replaceWith(wrap);
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+
+    var finished = false;
+    function revert() {
+        if (finished) return;
+        finished = true;
+        var span = document.createElement('span');
+        span.className = 'content';
+        span.textContent = oldText;
+        if (wrap.isConnected) wrap.replaceWith(span);
+    }
+    function commit() {
+        if (finished) return;
+        var val = input.value.trim();
+        if (!val) { revert(); return; }
+        finished = true;
+        var span = document.createElement('span');
+        span.className = 'content';
+        span.innerHTML = linkifyText(val);
+        if (wrap.isConnected) wrap.replaceWith(span);
+        stompClient.send('/app/group.edit', {}, JSON.stringify({
+            messageId: Number(messageId),
+            groupId: Number(activeGroupId),
+            content: val
+        }));
+    }
+
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            commit();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            revert();
+        }
+    });
+    saveBtn.addEventListener('click', commit);
+    cancelBtn.addEventListener('click', revert);
 }
 
 function getGroupMessageLabel(row) {
@@ -266,6 +608,21 @@ if (replyPreviewEl) {
     replyPreviewEl.querySelector('.reply-preview-close').addEventListener('click', clearReplyPreview);
     replyPreviewEl.querySelector('.reply-preview-content').addEventListener('click', focusReplyMessage);
 }
+
+document.addEventListener('click', function (e) {
+    var item;
+    if (e.target.closest && (item = e.target.closest('.pinned-item'))) {
+        if (e.target.closest('.pinned-item-close')) {
+            unpinMessage(item.getAttribute('data-pinned-id'));
+        } else {
+            scrollToMessage(item.getAttribute('data-pinned-id'));
+            pinnedIndex = (pinnedIndex + 1) % pinnedItems.length;
+            syncPinnedDisplay();
+        }
+    }
+});
+
+initPinnedBar();
 
 if (messagesContainer) {
     messagesContainer.addEventListener('click', function (e) {

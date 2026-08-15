@@ -1044,7 +1044,8 @@ function appendChatMessage(msg, notify) {
             title: msg.senderUsername,
             text: msg.stickerUrl ? 'Стикер' : (msg.audioUrl ? 'Голосовое сообщение' : (msg.content || 'Файл')),
             href: '/watch?room=' + activeRoom.roomId,
-            silent: true
+            silent: true,
+            tag: 'room-' + activeRoom.roomId
         });
     }
 

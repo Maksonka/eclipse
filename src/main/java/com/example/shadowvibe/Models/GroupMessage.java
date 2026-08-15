@@ -47,6 +47,21 @@ public class GroupMessage {
     @Column(name = "sticker_url", length = 255)
     private String stickerUrl;
 
+    @Column(name = "edited")
+    private boolean edited;
+
+    @Column(name = "edited_at")
+    private LocalDateTime editedAt;
+
+    @Column(name = "forwarded_from", length = 80)
+    private String forwardedFrom;
+
+    @Column(name = "pinned_at")
+    private LocalDateTime pinnedAt;
+
+    @Column(name = "pinned_by", length = 255)
+    private String pinnedByUsername;
+
     @ElementCollection
     @CollectionTable(name = "group_message_deletions", joinColumns = @JoinColumn(name = "message_id"))
     @Column(name = "user_id")
@@ -157,4 +172,21 @@ public class GroupMessage {
     public void setStickerUrl(String stickerUrl) { this.stickerUrl = stickerUrl; }
 
     public boolean hasSticker() { return stickerUrl != null && !stickerUrl.isBlank(); }
+
+    public boolean isEdited() { return edited; }
+    public void setEdited(boolean edited) { this.edited = edited; }
+
+    public LocalDateTime getEditedAt() { return editedAt; }
+    public void setEditedAt(LocalDateTime editedAt) { this.editedAt = editedAt; }
+
+    public String getForwardedFrom() { return forwardedFrom; }
+    public void setForwardedFrom(String forwardedFrom) { this.forwardedFrom = forwardedFrom; }
+
+    public LocalDateTime getPinnedAt() { return pinnedAt; }
+    public void setPinnedAt(LocalDateTime pinnedAt) { this.pinnedAt = pinnedAt; }
+
+    public String getPinnedByUsername() { return pinnedByUsername; }
+    public void setPinnedByUsername(String pinnedByUsername) { this.pinnedByUsername = pinnedByUsername; }
+
+    public boolean isPinned() { return pinnedAt != null; }
 }

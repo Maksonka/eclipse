@@ -1,6 +1,7 @@
 package com.example.shadowvibe.Repositories;
 
 import com.example.shadowvibe.Models.Message;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -45,4 +46,42 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Query("DELETE FROM Message m WHERE (m.sender.username = :u1 AND m.receiver.username = :u2) " +
            "OR (m.sender.username = :u2 AND m.receiver.username = :u1)")
     void deleteConversation(@Param("u1") String senderUsername, @Param("u2") String receiverUsername);
+
+    @Query("SELECT m FROM Message m WHERE " +
+           "((m.sender.username = :u1 AND m.receiver.username = :u2) OR " +
+            "(m.sender.username = :u2 AND m.receiver.username = :u1)) " +
+           "AND m.deletedBySender = false AND m.deletedByReceiver = false " +
+           "AND LOWER(m.content) LIKE LOWER(CONCAT('%', :query, '%')) ESCAPE '\\' " +
+           "ORDER BY m.timestamp DESC")
+    List<Message> searchDirectChat(@Param("u1") String username,
+                                   @Param("u2") String partner,
+                                   @Param("query") String query,
+                                   Pageable pageable);
+
+    @Query("SELECT m FROM Message m WHERE (m.sender.username = :username OR m.receiver.username = :username) " +
+           "AND m.deletedBySender = false AND m.deletedByReceiver = false " +
+           "AND LOWER(m.content) LIKE LOWER(CONCAT('%', :query, '%')) ESCAPE '\\' " +
+           "ORDER BY m.timestamp DESC")
+    List<Message> searchAllDirect(@Param("username") String username,
+                                  @Param("query") String query,
+                                  Pageable pageable);
+
+    @Query("SELECT m FROM Message m WHERE " +
+           "((m.sender.username = :u1 AND m.receiver.username = :u2) OR " +
+            "(m.sender.username = :u2 AND m.receiver.username = :u1)) " +
+           "AND m.id <= :anchorId " +
+           "ORDER BY m.id DESC")
+    List<Message> findChatWindowEndingAt(@Param("u1") String senderUsername,
+                                         @Param("u2") String receiverUsername,
+                                         @Param("anchorId") long anchorId,
+                                         Pageable pageable);
+
+    @Query("SELECT m FROM Message m WHERE " +
+           "((m.sender.username = :u1 AND m.receiver.username = :u2) OR " +
+            "(m.sender.username = :u2 AND m.receiver.username = :u1)) " +
+           "AND m.pinnedAt IS NOT NULL " +
+           "ORDER BY m.pinnedAt DESC")
+    List<Message> findAllPinnedInConversation(@Param("u1") String senderUsername,
+                                              @Param("u2") String receiverUsername);
+
 }

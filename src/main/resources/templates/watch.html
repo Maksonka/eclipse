@@ -211,32 +211,6 @@
                     </div>
                     <span class="watch-hint" id="host-hint" hidden>Вы хост — управляйте воспроизведением</span>
                 </div>
-
-                <div class="watch-playlist">
-                    <div class="watch-playlist-head">
-                        <h2 class="watch-playlist-title">Очередь видео</h2>
-                        <div class="watch-playlist-head-actions">
-                            <span class="watch-hint" id="playlist-host-hint" hidden>Хост управляет очередью</span>
-                            <button type="button" id="video-search-btn" class="watch-btn small" title="Найти видео по названию и добавить ссылку в очередь">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                    <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
-                                    <path d="M20 20l-3.2-3.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                </svg>
-                                <span>Поиск</span>
-                            </button>
-                        </div>
-                    </div>
-                    <form id="playlist-add-form" class="watch-playlist-add">
-                        <input type="url" id="playlist-url-input" placeholder="Ссылка: YouTube, VK, Rutube, Vimeo или MP4/WebM"
-                               autocomplete="off"/>
-                        <input type="text" id="playlist-title-input" placeholder="Название (необязательно)"
-                               maxlength="300" autocomplete="off"/>
-                        <button type="submit" class="watch-btn">В очередь</button>
-                    </form>
-                    <div class="watch-playlist-list" id="playlist-list">
-                        <div class="sidebar-empty">Очередь пуста</div>
-                    </div>
-                </div>
             </div>
 
             <div class="watch-chat">
@@ -275,6 +249,32 @@
                     <button type="submit" class="watch-btn">Отправить</button>
                 </form>
             </div>
+
+            <div class="watch-playlist">
+                <div class="watch-playlist-head">
+                    <h2 class="watch-playlist-title">Очередь видео</h2>
+                    <div class="watch-playlist-head-actions">
+                        <span class="watch-hint" id="playlist-host-hint" hidden>Хост управляет очередью</span>
+                        <button type="button" id="video-search-btn" class="watch-btn small" title="Найти видео по названию и добавить ссылку в очередь">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                                <path d="M20 20l-3.2-3.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            <span>Поиск</span>
+                        </button>
+                    </div>
+                </div>
+                <form id="playlist-add-form" class="watch-playlist-add">
+                    <input type="url" id="playlist-url-input" placeholder="Ссылка: YouTube, VK, Rutube, Vimeo или MP4/WebM"
+                           autocomplete="off"/>
+                    <input type="text" id="playlist-title-input" placeholder="Название (необязательно)"
+                           maxlength="300" autocomplete="off"/>
+                    <button type="submit" class="watch-btn">В очередь</button>
+                </form>
+                <div class="watch-playlist-list" id="playlist-list">
+                    <div class="sidebar-empty">Очередь пуста</div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -305,7 +305,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 <script src="/js/hls.min.js"></script>
-<script th:src="@{/js/notifications.js(v=7)}"></script>
+<script th:src="@{/js/notifications.js(v=9)}"></script>
  <script th:src="@{/js/stickers.js(v=12)}"></script>
 <script th:src="@{/js/voice-player.js(v=9)}"></script>
 <script th:src="@{/js/reactions.js(v=1)}"></script>

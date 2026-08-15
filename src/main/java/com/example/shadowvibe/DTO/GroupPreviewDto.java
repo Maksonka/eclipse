@@ -8,12 +8,18 @@ public class GroupPreviewDto {
     private String lastMessageTime;
     private String lastMessageSender;
     private long unreadCount;
+    private boolean muted;
 
     public GroupPreviewDto() {
     }
 
     public GroupPreviewDto(Long groupId, String groupName, String avatarFilename, String lastMessagePreview,
                            String lastMessageTime, String lastMessageSender, long unreadCount) {
+        this(groupId, groupName, avatarFilename, lastMessagePreview, lastMessageTime, lastMessageSender, unreadCount, false);
+    }
+
+    public GroupPreviewDto(Long groupId, String groupName, String avatarFilename, String lastMessagePreview,
+                           String lastMessageTime, String lastMessageSender, long unreadCount, boolean muted) {
         this.groupId = groupId;
         this.groupName = groupName;
         this.avatarFilename = avatarFilename;
@@ -21,6 +27,7 @@ public class GroupPreviewDto {
         this.lastMessageTime = lastMessageTime;
         this.lastMessageSender = lastMessageSender;
         this.unreadCount = unreadCount;
+        this.muted = muted;
     }
 
     public Long getGroupId() {
@@ -77,5 +84,13 @@ public class GroupPreviewDto {
 
     public void setUnreadCount(long unreadCount) {
         this.unreadCount = unreadCount;
+    }
+
+    public boolean isMuted() {
+        return muted;
+    }
+
+    public void setMuted(boolean muted) {
+        this.muted = muted;
     }
 }

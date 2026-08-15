@@ -17,7 +17,8 @@ import java.util.List;
 
 @Controller
 @RequestMapping("/settings")
-public class SettingsController {
+public class
+SettingsController {
 
     private final UserService userService;
     private final GroupService groupService;

@@ -53,6 +53,8 @@ public class WatchRoomService {
     private final VideoMetadataService videoMetadataService;
     private final StickerService stickerService;
     private final ReactionService reactionService;
+    private final PushService pushService;
+    private final PresenceService presenceService;
 
     /**
      * Живое состояние комнат. Комната-источник правды для синхронизации:
@@ -74,7 +76,9 @@ public class WatchRoomService {
                             SimpMessagingTemplate messagingTemplate,
                             VideoMetadataService videoMetadataService,
                             StickerService stickerService,
-                            ReactionService reactionService) {
+                            ReactionService reactionService,
+                            PushService pushService,
+                            PresenceService presenceService) {
         this.roomRepository = roomRepository;
         this.messageRepository = messageRepository;
         this.playlistItemRepository = playlistItemRepository;
@@ -83,6 +87,8 @@ public class WatchRoomService {
         this.videoMetadataService = videoMetadataService;
         this.stickerService = stickerService;
         this.reactionService = reactionService;
+        this.pushService = pushService;
+        this.presenceService = presenceService;
     }
 
     @Transactional
@@ -291,7 +297,32 @@ public class WatchRoomService {
 
         WatchRoomChatMessageDto dto = toMessageDto(messageRepository.save(message));
         sendAfterCommit(() -> messagingTemplate.convertAndSend("/topic/room." + roomId + ".chat", dto));
+        sendRoomChatPush(room, message.getSender().getUsername(), dto);
         return dto;
+    }
+
+    private void sendRoomChatPush(WatchRoom room, String senderUsername, WatchRoomChatMessageDto dto) {
+        String preview = dto.getStickerUrl() != null ? "Стикер"
+                : dto.getAudioUrl() != null ? "Голосовое сообщение"
+                : (dto.getContent() != null && !dto.getContent().isBlank() ? dto.getContent() : "Файл");
+        if (preview.length() > 120) {
+            preview = preview.substring(0, 120) + "…";
+        }
+        String body = senderUsername + ": " + preview;
+
+        for (User member : room.getMembers()) {
+            String username = member.getUsername();
+            if (username.equals(senderUsername) || presenceService.isOnline(username)) {
+                continue;
+            }
+            pushService.sendPushToUser(
+                    username,
+                    room.getName(),
+                    body,
+                    "/watch?room=" + room.getId(),
+                    "room-" + room.getId()
+            );
+        }
     }
 
     @Transactional(readOnly = true)

@@ -26,6 +26,9 @@ public class GroupMembership {
     @Column(name = "last_read_at")
     private LocalDateTime lastReadAt;
 
+    @Column(name = "muted", nullable = false)
+    private boolean muted = false;
+
     public GroupMembership() {
     }
 
@@ -52,5 +55,13 @@ public class GroupMembership {
 
     public void setLastReadAt(LocalDateTime lastReadAt) {
         this.lastReadAt = lastReadAt;
+    }
+
+    public boolean isMuted() {
+        return muted;
+    }
+
+    public void setMuted(boolean muted) {
+        this.muted = muted;
     }
 }

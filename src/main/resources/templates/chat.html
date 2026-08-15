@@ -33,7 +33,42 @@
                               th:text="${receiverOnline} ? 'В сети' : 'Не в сети'">В сети</span>
                     </div>
                 </a>
+                <button type="button" id="chat-search-button" class="chat-header-btn" aria-label="Поиск в чате" title="Поиск в чате">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                        <path d="M20 20l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <button type="button" id="chat-mute-button"
+                        class="chat-header-btn"
+                        th:classappend="${chatMuted} ? 'is-muted' : ''"
+                        th:attr="data-partner=${receiver.username}, data-muted=${chatMuted}"
+                        aria-label="Выключить уведомления" title="Выключить уведомления">
+                    <svg class="chat-mute-icon chat-mute-icon-on" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M13.7 21a2 2 0 0 1-3.4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <svg class="chat-mute-icon chat-mute-icon-off" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M13.7 21a2 2 0 0 1-3.4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
             </header>
+
+            <div id="pinned-bar" class="pinned-bar" th:if="${pinnedMessages != null and !pinnedMessages.isEmpty()}">
+                <span class="pinned-bar-icon" aria-hidden="true">📌</span>
+                <div class="pinned-bar-body">
+                    <span class="pinned-bar-title">Закреплённые сообщения</span>
+                    <div class="pinned-list">
+                        <div class="pinned-item" th:each="pm, iter : ${pinnedMessages}" th:classappend="${iter.first} ? 'is-active' : ''" th:attr="data-pinned-id=${pm.id}">
+                            <span class="pinned-bar-sender" th:text="${pm.sender.username}"></span>
+                            <span class="pinned-bar-preview" th:text="${pinnedPreviews[pm.id]}"></span>
+                            <button type="button" class="pinned-item-close" aria-label="Открепить сообщение" title="Открепить"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <main id="messages" class="chat-messages">
                 <div class="chat-empty" th:if="${#lists.isEmpty(messages)}">
@@ -46,8 +81,9 @@
                      th:each="msg : ${messages}"
                      th:if="${!((msg.sender.username == #authentication.name and msg.deletedBySender) or (msg.sender.username != #authentication.name and msg.deletedByReceiver))}"
                      th:attr="data-message-id=${msg.id}">
-                    <div class="message-bubble"
-                         th:classappend="${msg.stickerUrl != null} ? 'bubble-none' : ''">
+                        <div class="message-bubble"
+                             th:attr="data-sender=${msg.sender.username}"
+                             th:classappend="${msg.stickerUrl != null} ? 'bubble-none' : ''">
                         <span class="sender"
                               th:if="${msg.sender.username != #authentication.name}"
                               th:text="${msg.sender.username}"></span>
@@ -56,6 +92,11 @@
                             <span class="reply-sender" th:text="${msg.replyToSenderUsername}"></span>
                             <span class="reply-text" th:text="${msg.replyToContent}"></span>
                         </div>
+
+                        <div class="forward-badge" th:if="${msg.forwardedFrom != null}"
+                             th:text="'Переслано от ' + ${msg.forwardedFrom}"></div>
+
+                        <span class="pin-badge" th:if="${msg.pinnedAt != null}" title="Закреплённое сообщение" aria-label="Закреплённое сообщение">📌</span>
 
                         <th:block th:if="${msg.attachmentFilename != null}"
                                   th:replace="~{fragments/attachment :: attachment(${msg})}"></th:block>
@@ -158,19 +199,42 @@
     const activeChatUsername = /*[[${receiver != null ? receiver.username : null}]]*/ null;
     const initialReceiverOnline = /*[[${receiverOnline != null ? receiverOnline : false}]]*/ false;
     const initialReactions = /*[[${reactionsByMessage}]]*/ {};
+    const mutedDirectPartners = /*[[${mutedDirectPartners}]]*/ [];
+    const mutedGroupIds = /*[[${mutedGroupIds}]]*/ [];
 </script>
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<div id="chat-search-modal" class="chat-search-modal" hidden>
+    <div class="chat-search-modal-inner">
+        <div class="chat-search-modal-header">
+            <h3>Поиск в чате</h3>
+            <button type="button" id="chat-search-close" class="chat-search-close" aria-label="Закрыть">&times;</button>
+        </div>
+        <form id="chat-search-form" class="chat-search-form">
+            <input type="search" id="chat-search-input" placeholder="Поиск сообщений..." autocomplete="off" maxlength="100"/>
+            <button type="submit">Найти</button>
+        </form>
+        <div id="chat-search-results" class="chat-search-results"></div>
+    </div>
+</div>
 <div id="context-menu" class="context-menu" hidden>
     <button class="context-menu-item" data-action="reply">Ответить</button>
+    <button class="context-menu-item" data-action="pin">Закрепить</button>
+    <button class="context-menu-item" data-action="favorite">В избранное</button>
+    <button class="context-menu-item" data-action="edit">Редактировать</button>
+    <button class="context-menu-item" data-action="forward">Переслать</button>
     <button class="context-menu-item" data-action="delete-me">Удалить для себя</button>
     <button class="context-menu-item" data-action="delete-all">Удалить для всех</button>
 </div>
-<script th:src="@{/js/notifications.js(v=7)}"></script>
+<script th:src="@{/js/notifications.js(v=9)}"></script>
  <script th:src="@{/js/stickers.js(v=12)}"></script>
 <script th:src="@{/js/voice-player.js(v=9)}"></script>
 <script th:src="@{/js/reactions.js(v=1)}"></script>
-<script th:src="@{/js/chat-direct.js(v=21)}"></script>
+<script th:src="@{/js/forward-dialog.js(v=1)}"></script>
+<script th:src="@{/js/mute-manager.js(v=1)}"></script>
+    <script th:src="@{/js/chat-direct.js(v=24)}"></script>
+<script th:src="@{/js/chat-search.js(v=1)}"></script>
+<script th:src="@{/js/favorites.js(v=1)}"></script>
 <div id="lightbox" class="lightbox">
     <button class="lightbox-close" aria-label="Закрыть">&times;</button>
     <div class="lightbox-content"></div>

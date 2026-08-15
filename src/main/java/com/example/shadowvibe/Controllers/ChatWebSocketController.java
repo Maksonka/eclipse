@@ -1,6 +1,7 @@
 package com.example.shadowvibe.Controllers;
 
 import com.example.shadowvibe.Models.Message;
+import com.example.shadowvibe.Services.FavoriteService;
 import com.example.shadowvibe.Services.GroupService;
 import com.example.shadowvibe.Services.MessageService;
 import com.example.shadowvibe.Services.ReactionService;
@@ -26,15 +27,18 @@ public class ChatWebSocketController {
     private final MessageService messageService;
     private final GroupService groupService;
     private final ReactionService reactionService;
+    private final FavoriteService favoriteService;
     private final SimpMessagingTemplate messagingTemplate;
 
     public ChatWebSocketController(MessageService messageService,
                                    GroupService groupService,
                                    ReactionService reactionService,
+                                   FavoriteService favoriteService,
                                    SimpMessagingTemplate messagingTemplate) {
         this.messageService = messageService;
         this.groupService = groupService;
         this.reactionService = reactionService;
+        this.favoriteService = favoriteService;
         this.messagingTemplate = messagingTemplate;
     }
 
@@ -195,5 +199,101 @@ public class ChatWebSocketController {
         var reactions = reactionService.toggle(ReactionTargetType.GROUP, messageId, principal.getName(), emoji);
         ReactionEventDto event = new ReactionEventDto(messageId, "GROUP", reactions);
         messagingTemplate.convertAndSend("/topic/group." + groupId + ".reactions", event);
+    }
+
+    @MessageMapping("/chat.edit")
+    public void editDirectMessage(@Payload Map<String, Object> request, Principal principal) {
+        if (principal == null || request.get("messageId") == null || request.get("content") == null) {
+            return;
+        }
+        Long messageId = Long.valueOf(request.get("messageId").toString());
+        messageService.editMessage(messageId, principal.getName(), request.get("content").toString());
+    }
+
+    @MessageMapping("/group.edit")
+    public void editGroupMessage(@Payload Map<String, Object> request, Principal principal) {
+        if (principal == null || request.get("messageId") == null || request.get("groupId") == null
+                || request.get("content") == null) {
+            return;
+        }
+        Long messageId = Long.valueOf(request.get("messageId").toString());
+        Long groupId = Long.valueOf(request.get("groupId").toString());
+        groupService.editGroupMessage(messageId, groupId, principal.getName(), request.get("content").toString());
+    }
+
+    @MessageMapping("/chat.pin")
+    public void pinDirectMessage(@Payload Map<String, Object> request, Principal principal) {
+        if (principal == null || request.get("messageId") == null || request.get("pinned") == null) {
+            return;
+        }
+        Long messageId = Long.valueOf(request.get("messageId").toString());
+        boolean pinned = Boolean.parseBoolean(request.get("pinned").toString());
+        if (pinned) {
+            messageService.pinDirectMessage(messageId, principal.getName());
+        } else {
+            messageService.unpinDirectMessage(messageId, principal.getName());
+        }
+    }
+
+    @MessageMapping("/group.pin")
+    public void pinGroupMessage(@Payload Map<String, Object> request, Principal principal) {
+        if (principal == null || request.get("messageId") == null || request.get("groupId") == null
+                || request.get("pinned") == null) {
+            return;
+        }
+        Long messageId = Long.valueOf(request.get("messageId").toString());
+        Long groupId = Long.valueOf(request.get("groupId").toString());
+        boolean pinned = Boolean.parseBoolean(request.get("pinned").toString());
+        if (pinned) {
+            groupService.pinGroupMessage(messageId, groupId, principal.getName());
+        } else {
+            groupService.unpinGroupMessage(messageId, groupId, principal.getName());
+        }
+    }
+
+    @MessageMapping("/chat.favorite")
+    public void favoriteDirectMessage(@Payload Map<String, Object> request, Principal principal) {
+        if (principal == null || request.get("messageId") == null) {
+            return;
+        }
+        Long messageId = Long.valueOf(request.get("messageId").toString());
+        var dto = favoriteService.toggleDirect(messageId, principal.getName());
+        messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/favorites", dto);
+    }
+
+    @MessageMapping("/group.favorite")
+    public void favoriteGroupMessage(@Payload Map<String, Object> request, Principal principal) {
+        if (principal == null || request.get("messageId") == null) {
+            return;
+        }
+        Long messageId = Long.valueOf(request.get("messageId").toString());
+        var dto = favoriteService.toggleGroup(messageId, principal.getName());
+        messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/favorites", dto);
+    }
+
+    @MessageMapping("/chat.forward")
+    public void forwardToDirect(@Payload Map<String, Object> request, Principal principal) {
+        if (principal == null || request.get("sourceMessageId") == null || request.get("targetUsername") == null) {
+            return;
+        }
+        String sourceType = request.get("sourceType") != null ? request.get("sourceType").toString() : "DIRECT";
+        Long sourceMessageId = Long.valueOf(request.get("sourceMessageId").toString());
+        String targetUsername = request.get("targetUsername").toString();
+
+        var forward = messageService.forwardToUser(sourceType, sourceMessageId, targetUsername, principal.getName());
+        messageService.broadcastDirectMessage(forward);
+    }
+
+    @MessageMapping("/group.forward")
+    public void forwardToGroup(@Payload Map<String, Object> request, Principal principal) {
+        if (principal == null || request.get("sourceMessageId") == null || request.get("groupId") == null) {
+            return;
+        }
+        String sourceType = request.get("sourceType") != null ? request.get("sourceType").toString() : "GROUP";
+        Long sourceMessageId = Long.valueOf(request.get("sourceMessageId").toString());
+        Long groupId = Long.valueOf(request.get("groupId").toString());
+
+        var forward = groupService.forwardToGroup(sourceType, sourceMessageId, groupId, principal.getName());
+        groupService.broadcastGroupMessage(forward);
     }
 }

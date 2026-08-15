@@ -34,6 +34,18 @@
         }, 300);
     }
 
+    function closeForTag(tag) {
+        if (!tag || !container) {
+            return;
+        }
+        var toasts = container.querySelectorAll('.notification-toast');
+        for (var i = 0; i < toasts.length; i++) {
+            if (toasts[i].getAttribute('data-tag') === tag) {
+                removeInstant(toasts[i]);
+            }
+        }
+    }
+
     function removeInstant(toast) {
         toast.classList.remove('is-visible');
         if (toast.parentNode) {
@@ -91,8 +103,14 @@
         var text = opts.text || '';
         var sender = opts.sender || '';
         var href = opts.href || '';
+        var tag = opts.tag || '';
 
         var toasts = ensureContainer();
+
+        if (tag) {
+            closeForTag(tag);
+        }
+
         while (toasts.children.length >= MAX_VISIBLE) {
             removeInstant(toasts.firstChild);
         }
@@ -103,6 +121,9 @@
 
         var toast = document.createElement('div');
         toast.className = 'notification-toast';
+        if (tag) {
+            toast.setAttribute('data-tag', tag);
+        }
 
         var avatar = document.createElement('div');
         avatar.className = 'notification-toast-avatar';
@@ -183,7 +204,43 @@
         }
     }
 
+    function canUseSystemNotification() {
+        return document.hidden
+            && 'Notification' in window
+            && Notification.permission === 'granted';
+    }
+
+    function showSystemNotification(options) {
+        var opts = options || {};
+        var title = opts.title || 'Новое сообщение';
+        var body = opts.text || '';
+        var href = opts.href || '';
+        var tag = opts.tag || '';
+        try {
+            var notification = new Notification(title, {
+                body: body,
+                icon: '/img/icon-192.png',
+                badge: '/img/icon-512.png',
+                tag: tag || undefined,
+                data: { url: href }
+            });
+            if (href) {
+                notification.onclick = function () {
+                    notification.close();
+                    window.focus();
+                    window.location.href = href;
+                };
+            }
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
     function showNotification(options) {
+        if (canUseSystemNotification() && showSystemNotification(options)) {
+            return;
+        }
         if (!burstTimer) {
             burstTimer = setTimeout(flushBurst, BURST_WINDOW);
             burstCount = 0;
@@ -193,6 +250,7 @@
     }
 
     window.MessageNotifications = {
-        show: showNotification
+        show: showNotification,
+        closeForTag: closeForTag
     };
 })();

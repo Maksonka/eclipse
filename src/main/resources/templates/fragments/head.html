@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}"/>
     <meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : 'X-CSRF-TOKEN'}"/>
+    <meta name="pwa-authenticated" th:content="${currentUser != null ? 'true' : 'false'}"/>
+    <meta name="theme-color" content="#0f1115"/>
+    <link rel="manifest" th:href="@{/manifest.webmanifest}"/>
     <title th:replace="${title}">ShadowVibe</title>
     <link rel="icon" type="image/png" th:href="@{/img/favicon.png}"/>
-    <link rel="apple-touch-icon" th:href="@{/img/apple-touch-icon.png}"/>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=59}"/>
+    <link rel="apple-touch-icon" th:href="@{/img/icon-192.png}"/>
+    <link rel="stylesheet" th:href="@{/css/style.css?v=64}"/>
     <script th:inline="javascript">
         document.documentElement.setAttribute(
             'data-theme-preference',
@@ -17,6 +20,7 @@
     </script>
     <script th:src="@{/js/csrf.js(v=1)}"></script>
     <script th:src="@{/js/theme.js(v=3)}"></script>
+    <script th:src="@{/js/pwa.js(v=2)}"></script>
     <script th:src="@{/js/confirm-dialog.js(v=3)}"></script>
     <script th:src="@{/js/attachments.js(v=12)}"></script>
     <script th:src="@{/js/audio-player.js(v=1)}"></script>

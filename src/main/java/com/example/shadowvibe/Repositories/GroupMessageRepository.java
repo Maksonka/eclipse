@@ -1,6 +1,7 @@
 package com.example.shadowvibe.Repositories;
 
 import com.example.shadowvibe.Models.GroupMessage;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -29,4 +30,31 @@ public interface GroupMessageRepository extends JpaRepository<GroupMessage, Long
            "GROUP BY gm.group.id")
     List<Object[]> countUnreadByGroupsForUser(@Param("groupIds") List<Long> groupIds,
                                               @Param("username") String username);
+
+    @Query("SELECT gm FROM GroupMessage gm WHERE gm.group.id = :groupId " +
+           "AND gm.content <> 'Сообщение удалено' " +
+           "AND LOWER(gm.content) LIKE LOWER(CONCAT('%', :query, '%')) ESCAPE '\\' " +
+           "ORDER BY gm.timestamp DESC")
+    List<GroupMessage> searchInGroup(@Param("groupId") Long groupId,
+                                     @Param("query") String query,
+                                     Pageable pageable);
+
+    @Query("SELECT gm FROM GroupMessage gm WHERE gm.group.id IN :groupIds " +
+           "AND gm.content <> 'Сообщение удалено' " +
+           "AND LOWER(gm.content) LIKE LOWER(CONCAT('%', :query, '%')) ESCAPE '\\' " +
+           "ORDER BY gm.timestamp DESC")
+    List<GroupMessage> searchInGroups(@Param("groupIds") List<Long> groupIds,
+                                      @Param("query") String query,
+                                      Pageable pageable);
+
+    @Query("SELECT gm FROM GroupMessage gm WHERE gm.group.id = :groupId AND gm.id <= :anchorId " +
+           "ORDER BY gm.id DESC")
+    List<GroupMessage> findGroupWindowEndingAt(@Param("groupId") Long groupId,
+                                               @Param("anchorId") long anchorId,
+                                               Pageable pageable);
+
+    @Query("SELECT gm FROM GroupMessage gm WHERE gm.group.id = :groupId AND gm.pinnedAt IS NOT NULL " +
+           "ORDER BY gm.pinnedAt DESC")
+    List<GroupMessage> findAllPinnedInGroup(@Param("groupId") Long groupId);
+
 }

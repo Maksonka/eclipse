@@ -2,6 +2,8 @@ package com.example.shadowvibe.Repositories;
 
 import com.example.shadowvibe.Models.GroupMembership;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,4 +19,9 @@ public interface GroupMembershipRepository extends JpaRepository<GroupMembership
     void deleteByGroupId(Long groupId);
 
     void deleteByGroupIdAndUserUsername(Long groupId, String username);
+
+    boolean existsByGroupIdAndUserUsernameAndMutedTrue(Long groupId, String username);
+
+    @Query("select m.group.id from GroupMembership m where m.user.username = :username and m.muted = true")
+    List<Long> findMutedGroupIdsByUserUsername(@Param("username") String username);
 }
