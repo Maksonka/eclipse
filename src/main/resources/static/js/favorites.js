@@ -276,29 +276,51 @@
         }
     }
 
+    var activeStomp = null;
+
     function sendToggle(messageId, type) {
-        if (!stompClient || !stompClient.connected || messageId == null) {
+        if (!activeStomp || !activeStomp.connected || messageId == null) {
             return;
         }
         var destination = type === 'GROUP' ? '/app/group.favorite' : '/app/chat.favorite';
-        stompClient.send(destination, {}, JSON.stringify({ messageId: Number(messageId) }));
+        activeStomp.send(destination, {}, JSON.stringify({ messageId: Number(messageId) }));
     }
 
-    var socket = null;
-    var stompClient = null;
+    function ensureSubscribed(client) {
+        if (!client || !client.connected) {
+            return false;
+        }
+        if (activeStomp === client) {
+            return true;
+        }
+        activeStomp = client;
+        client.subscribe('/user/queue/favorites', function (payload) {
+            try {
+                handleFavoriteEvent(JSON.parse(payload.body));
+            } catch (e) {}
+        });
+        loadChatStars();
+        loadCount();
+        return true;
+    }
 
     function connectSocket() {
-        socket = new SockJS('/ws');
-        stompClient = Stomp.over(socket);
-        stompClient.debug = null;
-        stompClient.connect({}, function () {
-            stompClient.subscribe('/user/queue/favorites', function (payload) {
-                try {
-                    handleFavoriteEvent(JSON.parse(payload.body));
-                } catch (e) {}
-            });
-            loadChatStars();
-            loadCount();
+        var shared = (typeof stompClient !== 'undefined') ? stompClient : null;
+        if (shared) {
+            var tries = 0;
+            var poll = window.setInterval(function () {
+                tries++;
+                if (ensureSubscribed(shared) || tries >= 40) {
+                    window.clearInterval(poll);
+                }
+            }, 500);
+            return;
+        }
+        var socket = new SockJS('/ws');
+        var own = Stomp.over(socket);
+        own.debug = null;
+        own.connect({}, function () {
+            ensureSubscribed(own);
         }, function () {
             loadChatStars();
             loadCount();
