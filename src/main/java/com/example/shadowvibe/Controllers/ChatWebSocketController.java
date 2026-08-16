@@ -273,8 +273,13 @@ public class ChatWebSocketController {
             return;
         }
         Long messageId = Long.valueOf(request.get("messageId").toString());
-        var dto = favoriteService.toggleDirect(messageId, principal.getName());
-        messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/favorites", dto);
+        try {
+            var dto = favoriteService.toggleDirect(messageId, principal.getName());
+            messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/favorites", dto);
+        } catch (RuntimeException e) {
+            messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/favorites",
+                    Map.of("error", e.getMessage()));
+        }
     }
 
     @MessageMapping("/group.favorite")
@@ -283,8 +288,13 @@ public class ChatWebSocketController {
             return;
         }
         Long messageId = Long.valueOf(request.get("messageId").toString());
-        var dto = favoriteService.toggleGroup(messageId, principal.getName());
-        messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/favorites", dto);
+        try {
+            var dto = favoriteService.toggleGroup(messageId, principal.getName());
+            messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/favorites", dto);
+        } catch (RuntimeException e) {
+            messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/favorites",
+                    Map.of("error", e.getMessage()));
+        }
     }
 
     @MessageMapping("/chat.forward")

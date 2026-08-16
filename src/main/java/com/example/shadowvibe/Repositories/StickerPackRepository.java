@@ -13,4 +13,6 @@ public interface StickerPackRepository extends JpaRepository<StickerPack, Long> 
     Optional<StickerPack> findByNameIgnoreCase(String name);
 
     List<StickerPack> findAllByOrderByCreatedAtAsc();
+
+    long countByAuthorUsername(String authorUsername);
 }

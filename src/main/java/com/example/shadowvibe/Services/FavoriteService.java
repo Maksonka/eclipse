@@ -33,17 +33,20 @@ public class FavoriteService {
     private final GroupMessageRepository groupMessageRepository;
     private final ChatGroupRepository chatGroupRepository;
     private final UserService userService;
+    private final PremiumService premiumService;
 
     public FavoriteService(FavoriteMessageRepository favoriteMessageRepository,
                            MessageRepository messageRepository,
                            GroupMessageRepository groupMessageRepository,
                            ChatGroupRepository chatGroupRepository,
-                           UserService userService) {
+                           UserService userService,
+                           PremiumService premiumService) {
         this.favoriteMessageRepository = favoriteMessageRepository;
         this.messageRepository = messageRepository;
         this.groupMessageRepository = groupMessageRepository;
         this.chatGroupRepository = chatGroupRepository;
         this.userService = userService;
+        this.premiumService = premiumService;
     }
 
     public FavoriteMessageDto toggleDirect(Long messageId, String username) {
@@ -76,6 +79,12 @@ public class FavoriteService {
             favoriteMessageRepository.delete(existing.get());
             dto.setFavorited(false);
         } else {
+            if (!premiumService.isPremium(username)
+                    && favoriteMessageRepository.countByUser_Username(username) >= PremiumService.FREE_FAVORITES_LIMIT) {
+                throw new RuntimeException("Бесплатный тариф позволяет сохранить до "
+                        + PremiumService.FREE_FAVORITES_LIMIT
+                        + " сообщений. Оформите Premium для неограниченного избранного");
+            }
             User user = userService.findByUsername(username)
                     .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
             favoriteMessageRepository.save(new FavoriteMessage(user, targetType, messageId));

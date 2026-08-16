@@ -6,7 +6,7 @@
     <title th:text="${profileUser.username} + ' · Профиль'">Профиль</title>
     <link rel="icon" type="image/png" th:href="@{/img/favicon.png}"/>
     <link rel="apple-touch-icon" th:href="@{/img/apple-touch-icon.png}"/>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=10}"/>
+    <link rel="stylesheet" th:href="@{/css/style.css?v=15}"/>
     <script th:inline="javascript">
         document.documentElement.setAttribute(
             'data-theme-preference',
@@ -32,6 +32,7 @@
             <div th:replace="~{fragments/avatar :: avatar(${profileUser.username}, ${profileUser.avatarFilename}, 'profile-avatar')}"></div>
             <div class="profile-header-info">
                 <h1 th:text="${profileUser.username}">username</h1>
+                <span class="premium-badge" th:if="${profileUser.premium}" title="ShadowVibe Premium" aria-label="Premium">⭐ Premium</span>
                 <p class="profile-subtitle" th:if="${isOwnProfile}">Ваш профиль</p>
                 <p class="profile-subtitle" th:unless="${isOwnProfile}">Пользователь ShadowVibe</p>
             </div>

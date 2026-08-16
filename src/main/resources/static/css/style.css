@@ -6820,3 +6820,201 @@ body.favorites-modal-open {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* ===== PREMIUM ===== */
+
+.premium-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, #f6c453, #e8a33d);
+    color: #1a1206;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    line-height: 1.4;
+}
+
+.sidebar-premium-badge {
+    align-self: flex-start;
+    margin-top: 3px;
+    font-size: 0.68rem;
+    padding: 2px 8px;
+}
+
+body.premium-page {
+    background:
+        radial-gradient(circle at top left, rgba(246, 196, 83, 0.16), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(139, 92, 246, 0.14), transparent 32%),
+        var(--bg);
+    min-height: 100%;
+}
+
+.premium-shell {
+    width: min(640px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 24px 0 40px;
+}
+
+.premium-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+}
+
+.premium-back:hover {
+    color: var(--purple-400);
+}
+
+.premium-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 28px;
+}
+
+.premium-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.premium-icon {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-full);
+    background: linear-gradient(135deg, rgba(246, 196, 83, 0.22), rgba(232, 163, 61, 0.12));
+    border: 1px solid rgba(246, 196, 83, 0.4);
+    color: #f6c453;
+    flex-shrink: 0;
+}
+
+.premium-header h1 {
+    margin: 0 0 4px;
+    font-size: 1.4rem;
+}
+
+.premium-subtitle {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+.premium-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--radius-md);
+    background: rgba(246, 196, 83, 0.1);
+    border: 1px solid rgba(246, 196, 83, 0.35);
+    margin-bottom: 24px;
+}
+
+.premium-status-inactive {
+    background: var(--surface);
+    border-color: var(--border);
+}
+
+.premium-status-text {
+    color: var(--text);
+    font-size: 0.92rem;
+}
+
+.premium-features {
+    margin-bottom: 26px;
+}
+
+.premium-features h2 {
+    margin: 0 0 12px;
+    font-size: 1.05rem;
+}
+
+.premium-feature-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.premium-feature-row:last-child {
+    border-bottom: none;
+}
+
+.premium-feature-name {
+    flex: 1;
+    color: var(--text);
+    font-size: 0.92rem;
+}
+
+.premium-feature-free {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    text-align: right;
+}
+
+.premium-feature-paid {
+    min-width: 96px;
+    text-align: right;
+    color: #f6c453;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.premium-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.premium-cancel {
+    color: var(--danger, #ef4444);
+    border-color: rgba(239, 68, 68, 0.35);
+}
+
+.premium-cancel:hover {
+    background: rgba(239, 68, 68, 0.08);
+}
+
+.premium-hint {
+    width: 100%;
+    margin: 8px 0 0;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+}
+
+.sidebar-premium-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    color: #f6c453;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-premium-link:hover {
+    background: rgba(246, 196, 83, 0.12);
+    color: #ffd97a;
+}
+
+.sidebar-premium-link svg {
+    flex-shrink: 0;
+}

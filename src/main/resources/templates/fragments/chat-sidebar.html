@@ -7,6 +7,7 @@
             <div th:replace="~{fragments/avatar :: avatar(${currentUser.username}, ${currentUser.avatarFilename}, 'sidebar-avatar')}"></div>
             <div class="sidebar-user-info">
                 <span class="sidebar-username" th:text="${currentUser.username}">user</span>
+                <span class="premium-badge sidebar-premium-badge" th:if="${currentUser.premium}" title="ShadowVibe Premium" aria-label="Premium">⭐</span>
                 <span class="sidebar-user-label">Мой профиль</span>
             </div>
         </a>
@@ -159,6 +160,12 @@
                 <path d="M17 11l3-3m0 0l-3-3m3 3h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <span>Создать группу</span>
+        </a>
+        <a class="sidebar-premium-link" th:href="@{/premium}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 3l2.1 4.6 5 .6-3.7 3.5.9 5-4.3-2.3-4.3 2.3.9-5L4.9 8.2l5-.6L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+            <span>Premium</span>
         </a>
     </div>
 

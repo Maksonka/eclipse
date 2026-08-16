@@ -259,7 +259,14 @@
     }
 
     function handleFavoriteEvent(event) {
-        if (!event || event.messageId == null || typeof event.favorited !== 'boolean') {
+        if (!event) {
+            return;
+        }
+        if (event.error) {
+            alert(event.error);
+            return;
+        }
+        if (event.messageId == null || typeof event.favorited !== 'boolean') {
             return;
         }
         var key = String(event.messageId);

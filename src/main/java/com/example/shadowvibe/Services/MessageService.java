@@ -48,6 +48,7 @@ public class MessageService {
     private final PresenceService presenceService;
     private final MuteService muteService;
     private final FavoriteService favoriteService;
+    private final PremiumService premiumService;
 
 
     public MessageService(MessageRepository messageRepository,
@@ -60,7 +61,8 @@ public class MessageService {
                           PushService pushService,
                           PresenceService presenceService,
                           MuteService muteService,
-                          FavoriteService favoriteService) {
+                          FavoriteService favoriteService,
+                          PremiumService premiumService) {
         this.messageRepository = messageRepository;
         this.groupMessageRepository = groupMessageRepository;
         this.userService = userService;
@@ -72,6 +74,7 @@ public class MessageService {
         this.presenceService = presenceService;
         this.muteService = muteService;
         this.favoriteService = favoriteService;
+        this.premiumService = premiumService;
     }
 
 
@@ -116,6 +119,7 @@ public class MessageService {
 
     public Message saveAttachmentMessage(String senderUsername, String receiverUsername, MultipartFile file,
                                          String content, Long replyToMessageId) throws IOException {
+        premiumService.enforceFileSize(senderUsername, file.getSize());
         AttachmentService.AttachmentInfo info = attachmentService.save(file);
 
         User receiver = userService.findByUsername(receiverUsername)

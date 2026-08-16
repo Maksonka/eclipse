@@ -4,6 +4,8 @@ import com.example.shadowvibe.enums.UserRole;
 import com.example.shadowvibe.enums.ThemePreference;
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
 public class User {
@@ -29,6 +31,12 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(name = "theme_preference", nullable = false)
     private ThemePreference themePreference = ThemePreference.DARK;
+
+    @Column(name = "premium_until")
+    private LocalDateTime premiumUntil;
+
+    @Column(name = "premium_trial_used", nullable = false)
+    private boolean premiumTrialUsed = false;
 
     public UserRole getRole() {
         return role;
@@ -107,5 +115,25 @@ public class User {
 
     public void setThemePreference(ThemePreference themePreference) {
         this.themePreference = themePreference;
+    }
+
+    public LocalDateTime getPremiumUntil() {
+        return premiumUntil;
+    }
+
+    public void setPremiumUntil(LocalDateTime premiumUntil) {
+        this.premiumUntil = premiumUntil;
+    }
+
+    public boolean isPremiumTrialUsed() {
+        return premiumTrialUsed;
+    }
+
+    public void setPremiumTrialUsed(boolean premiumTrialUsed) {
+        this.premiumTrialUsed = premiumTrialUsed;
+    }
+
+    public boolean isPremium() {
+        return premiumUntil != null && premiumUntil.isAfter(java.time.LocalDateTime.now());
     }
 }

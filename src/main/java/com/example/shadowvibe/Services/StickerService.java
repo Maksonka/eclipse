@@ -49,6 +49,7 @@ public class StickerService {
     private final StickerPackRepository stickerPackRepository;
     private final UserRepository userRepository;
     private final UserStickerPackRepository userStickerPackRepository;
+    private final PremiumService premiumService;
 
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
@@ -56,11 +57,13 @@ public class StickerService {
     public StickerService(StickerRepository stickerRepository,
                           StickerPackRepository stickerPackRepository,
                           UserRepository userRepository,
-                          UserStickerPackRepository userStickerPackRepository) {
+                          UserStickerPackRepository userStickerPackRepository,
+                          PremiumService premiumService) {
         this.stickerRepository = stickerRepository;
         this.stickerPackRepository = stickerPackRepository;
         this.userRepository = userRepository;
         this.userStickerPackRepository = userStickerPackRepository;
+        this.premiumService = premiumService;
     }
 
     public List<StickerPackDto> listPacks(String currentUsername) {
@@ -123,6 +126,12 @@ public class StickerService {
         }
         if (stickerPackRepository.findByNameIgnoreCase(clean).isPresent()) {
             throw new IllegalArgumentException("Набор с таким названием уже существует");
+        }
+        if (!premiumService.isPremium(authorUsername)
+                && stickerPackRepository.countByAuthorUsername(authorUsername) >= PremiumService.FREE_STICKER_PACKS) {
+            throw new IllegalArgumentException("На бесплатном тарифе можно создать до "
+                    + PremiumService.FREE_STICKER_PACKS
+                    + " наборов стикеров. Оформите Premium для создания без ограничений");
         }
 
         StickerPack pack = stickerPackRepository.save(new StickerPack(clean, authorUsername));

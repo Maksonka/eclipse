@@ -38,12 +38,14 @@ class StickerServiceTest {
     private UserRepository userRepository;
     @Mock
     private UserStickerPackRepository userStickerPackRepository;
+    @Mock
+    private PremiumService premiumService;
 
     private StickerService service;
 
     @BeforeEach
     void setUp() {
-        service = new StickerService(stickerRepository, stickerPackRepository, userRepository, userStickerPackRepository);
+        service = new StickerService(stickerRepository, stickerPackRepository, userRepository, userStickerPackRepository, premiumService);
     }
 
     @Test

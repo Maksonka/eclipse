@@ -66,6 +66,7 @@ public class GroupService {
     private final PresenceService presenceService;
     private final MuteService muteService;
     private final FavoriteService favoriteService;
+    private final PremiumService premiumService;
 
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
@@ -79,10 +80,11 @@ public class GroupService {
                         AttachmentService attachmentService,
                         StickerService stickerService,
                         ReactionService reactionService,
-                        PushService pushService,
-                        PresenceService presenceService,
-                        MuteService muteService,
-                        FavoriteService favoriteService) {
+        PushService pushService,
+        PresenceService presenceService,
+        MuteService muteService,
+        FavoriteService favoriteService,
+        PremiumService premiumService) {
         this.chatGroupRepository = chatGroupRepository;
         this.groupMessageRepository = groupMessageRepository;
         this.groupMembershipRepository = groupMembershipRepository;
@@ -96,6 +98,7 @@ public class GroupService {
         this.presenceService = presenceService;
         this.muteService = muteService;
         this.favoriteService = favoriteService;
+        this.premiumService = premiumService;
     }
 
     public ChatGroup createGroup(String creatorUsername, String name, String memberUsernames) {
@@ -113,11 +116,17 @@ public class GroupService {
                     .filter(s -> !s.equalsIgnoreCase(creatorUsername))
                     .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
 
-            for (String username : usernames) {
-                User member = userService.findByUsername(username)
-                        .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден: " + username));
-                members.add(member);
-            }
+        for (String username : usernames) {
+            User member = userService.findByUsername(username)
+                    .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден: " + username));
+            members.add(member);
+        }
+        }
+
+        if (!premiumService.isPremium(creatorUsername) && members.size() > PremiumService.FREE_GROUP_MEMBERS) {
+            throw new IllegalArgumentException("На бесплатном тарифе в группе может быть до "
+                    + PremiumService.FREE_GROUP_MEMBERS
+                    + " участников. Оформите Premium для групп любого размера");
         }
 
         group.setMembers(members);
@@ -226,6 +235,7 @@ public class GroupService {
 
     public GroupMessage saveGroupAttachmentMessage(String senderUsername, Long groupId, MultipartFile file,
                                                    String content, Long replyToMessageId) throws IOException {
+        premiumService.enforceFileSize(senderUsername, file.getSize());
         AttachmentService.AttachmentInfo info = attachmentService.save(file);
 
         ChatGroup group = getGroupForMember(groupId, senderUsername);
@@ -401,6 +411,13 @@ public class GroupService {
 
         if (usernames.isEmpty()) {
             throw new IllegalArgumentException("Все указанные пользователи уже являются участниками группы");
+        }
+
+        if (!premiumService.isPremium(creatorUsername)
+                && group.getMembers().size() + usernames.size() > PremiumService.FREE_GROUP_MEMBERS) {
+            throw new IllegalArgumentException("На бесплатном тарифе в группе может быть до "
+                    + PremiumService.FREE_GROUP_MEMBERS
+                    + " участников. Оформите Premium для групп любого размера");
         }
 
         for (String username : usernames) {
