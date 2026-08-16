@@ -225,103 +225,103 @@
             <div id="digest-content" class="digest-content"></div>
         </div>
     </div>
-</aside>
-<script>
-(function () {
-    var toggle = document.getElementById('digest-toggle');
-    var modal = document.getElementById('digest-modal');
-    var close = document.getElementById('digest-close');
-    var period = document.getElementById('digest-period');
-    var refresh = document.getElementById('digest-refresh');
-    var content = document.getElementById('digest-content');
-    if (!toggle || !modal || !content) {
-        return;
-    }
-
-    function escapeHtml(t) {
-        return String(t == null ? '' : t)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
-
-    function openModal() {
-        modal.hidden = false;
-        document.body.classList.add('favorites-modal-open');
-        toggle.classList.add('is-active');
-    }
-
-    function closeModal() {
-        modal.hidden = true;
-        document.body.classList.remove('favorites-modal-open');
-        toggle.classList.remove('is-active');
-    }
-
-    function loadDigest() {
-        var days = parseInt(period ? period.value : '1', 10) || 1;
-        var since = Date.now() - days * 24 * 3600 * 1000;
-        content.innerHTML = '<div class="digest-loading">Собираю дайджест...</div>';
-        fetch('/api/ai/digest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ since: since })
-        })
-            .then(function (r) {
-                return r.json().then(function (d) {
-                    return { ok: r.ok, data: d };
-                });
-            })
-            .then(function (res) {
-                if (!res.ok || !res.data) {
-                    var err = res.data && res.data.error ? res.data.error : 'Доступно только с Premium';
-                    content.innerHTML = '<div class="digest-premium">' + escapeHtml(err) +
-                        '<a class="digest-premium-link" href="/premium">Оформить Premium</a></div>';
-                    return;
-                }
-                var d = res.data;
-                var stats = '<div class="digest-stats">За период: <strong>' + d.total +
-                    '</strong> сообщений · личные: ' + d.directCount + ' · группы: ' + d.groupCount + '</div>';
-                var topics = (d.topics && d.topics.length)
-                    ? '<div class="digest-topics">Темы: ' + d.topics.map(escapeHtml).join(', ') + '</div>'
-                    : '';
-                content.innerHTML = '<div class="digest-text">' + escapeHtml(d.text) + '</div>' + stats + topics;
-            })
-            .catch(function () {
-                content.innerHTML = '<div class="digest-loading">Ошибка сети</div>';
-            });
-    }
-
-    toggle.addEventListener('click', function () {
-        if (!modal.hidden) {
-            closeModal();
+    <script>
+    (function () {
+        var toggle = document.getElementById('digest-toggle');
+        var modal = document.getElementById('digest-modal');
+        var close = document.getElementById('digest-close');
+        var period = document.getElementById('digest-period');
+        var refresh = document.getElementById('digest-refresh');
+        var content = document.getElementById('digest-content');
+        if (!toggle || !modal || !content) {
             return;
         }
-        openModal();
-        loadDigest();
-    });
-    if (close) {
-        close.addEventListener('click', closeModal);
-    }
-    if (refresh) {
-        refresh.addEventListener('click', loadDigest);
-    }
-    if (modal) {
-        modal.addEventListener('click', function (e) {
-            if (e.target === modal) {
+
+        function escapeHtml(t) {
+            return String(t == null ? '' : t)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function openModal() {
+            modal.hidden = false;
+            document.body.classList.add('favorites-modal-open');
+            toggle.classList.add('is-active');
+        }
+
+        function closeModal() {
+            modal.hidden = true;
+            document.body.classList.remove('favorites-modal-open');
+            toggle.classList.remove('is-active');
+        }
+
+        function loadDigest() {
+            var days = parseInt(period ? period.value : '1', 10) || 1;
+            var since = Date.now() - days * 24 * 3600 * 1000;
+            content.innerHTML = '<div class="digest-loading">Собираю дайджест...</div>';
+            fetch('/api/ai/digest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ since: since })
+            })
+                .then(function (r) {
+                    return r.json().then(function (d) {
+                        return { ok: r.ok, data: d };
+                    });
+                })
+                .then(function (res) {
+                    if (!res.ok || !res.data) {
+                        var err = res.data && res.data.error ? res.data.error : 'Доступно только с Premium';
+                        content.innerHTML = '<div class="digest-premium">' + escapeHtml(err) +
+                            '<a class="digest-premium-link" href="/premium">Оформить Premium</a></div>';
+                        return;
+                    }
+                    var d = res.data;
+                    var stats = '<div class="digest-stats">За период: <strong>' + d.total +
+                        '</strong> сообщений · личные: ' + d.directCount + ' · группы: ' + d.groupCount + '</div>';
+                    var topics = (d.topics && d.topics.length)
+                        ? '<div class="digest-topics">Темы: ' + d.topics.map(escapeHtml).join(', ') + '</div>'
+                        : '';
+                    content.innerHTML = '<div class="digest-text">' + escapeHtml(d.text) + '</div>' + stats + topics;
+                })
+                .catch(function () {
+                    content.innerHTML = '<div class="digest-loading">Ошибка сети</div>';
+                });
+        }
+
+        toggle.addEventListener('click', function () {
+            if (!modal.hidden) {
+                closeModal();
+                return;
+            }
+            openModal();
+            loadDigest();
+        });
+        if (close) {
+            close.addEventListener('click', closeModal);
+        }
+        if (refresh) {
+            refresh.addEventListener('click', loadDigest);
+        }
+        if (modal) {
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+        }
+        if (period) {
+            period.addEventListener('change', loadDigest);
+        }
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && modal && !modal.hidden) {
                 closeModal();
             }
         });
-    }
-    if (period) {
-        period.addEventListener('change', loadDigest);
-    }
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && modal && !modal.hidden) {
-            closeModal();
-        }
-    });
-})();
-</script>
+    })();
+    </script>
+</aside>
 </body>
 </html>

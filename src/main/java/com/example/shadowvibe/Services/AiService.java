@@ -222,7 +222,7 @@ public class AiService {
         if (own.isEmpty()) {
             return "Ты пока не писал в этом чате — не из чего уловить стиль. Напиши пару сообщений, и я предложу ответ в твоём стиле.";
         }
-        return "Твой стиль — короткие сообщения, последнее: «" + trimQuote(own.get(0)) + "». Предлагаю ответ: «" + template + "»";
+        return "Твой стиль — короткие сообщения, последнее: «" + trimQuote(own.get(own.size() - 1)) + "». Предлагаю ответ: «" + template + "»";
     }
 
     private List<String> recentOwnTexts(String username, String chatType, String target) {
