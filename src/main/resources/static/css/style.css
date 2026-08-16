@@ -5180,10 +5180,9 @@ html, body {
 
 .sticker-image {
     display: block;
-    width: 170px;
-    height: 170px;
-    max-width: 170px;
-    max-height: 170px;
+    width: 140px;
+    height: 140px;
+    max-width: 100%;
     object-fit: contain;
     border-radius: 12px;
     margin: 2px 0;
@@ -5195,6 +5194,7 @@ html, body {
     border: none;
     box-shadow: none;
     padding: 0;
+    overflow: visible;
 }
 
 .message-row.incoming .message-bubble.bubble-none .message-time,
