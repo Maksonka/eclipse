@@ -6727,3 +6727,95 @@ body.favorites-modal-open {
 .composer-schedule:active {
     transform: scale(0.92);
 }
+
+/* Custom file picker */
+.file-picker {
+    display: block;
+    position: relative;
+    cursor: pointer;
+}
+
+.file-picker-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.file-picker-box {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-muted);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.file-picker:hover .file-picker-box,
+.file-picker-input:focus-visible + .file-picker-box {
+    border-color: var(--purple-500);
+    background: var(--surface-hover);
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
+}
+
+.file-picker-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--purple-700), var(--purple-500));
+    color: #fff;
+    box-shadow: 0 0 16px var(--purple-glow);
+    transition: transform 0.15s ease;
+}
+
+.file-picker:hover .file-picker-icon {
+    transform: scale(1.05);
+}
+
+.file-picker-preview {
+    display: none;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+}
+
+.file-picker.has-file .file-picker-preview {
+    display: block;
+}
+
+.file-picker.has-file .file-picker-icon {
+    display: none;
+}
+
+.file-picker-text {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.file-picker-name {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

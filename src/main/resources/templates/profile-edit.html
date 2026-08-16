@@ -6,7 +6,7 @@
     <title>Редактирование профиля</title>
     <link rel="icon" type="image/png" th:href="@{/img/favicon.png}"/>
     <link rel="apple-touch-icon" th:href="@{/img/apple-touch-icon.png}"/>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=10}"/>
+    <link rel="stylesheet" th:href="@{/css/style.css?v=11}"/>
     <script th:inline="javascript">
         document.documentElement.setAttribute(
             'data-theme-preference',
@@ -14,8 +14,7 @@
         );
     </script>
     <script th:src="@{/js/theme.js}"></script>
-</head>
-<body class="profile-page">
+</head><body class="profile-page">
 
 <div class="profile-shell">
     <a class="profile-back" th:href="@{/profile/{username}(username=${profileUser.username})}">
@@ -39,7 +38,23 @@
         <form class="profile-form" th:action="@{/profile/edit}" method="post" enctype="multipart/form-data">
             <label class="field">
                 <span>Аватар</span>
-                <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif"/>
+                <span class="file-picker">
+                    <input type="file" class="file-picker-input" name="avatar"
+                           accept="image/jpeg,image/png,image/webp,image/gif"/>
+                    <span class="file-picker-box">
+                        <span class="file-picker-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M12 16V4M12 4l-4 4M12 4l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                        <img class="file-picker-preview" alt="" aria-hidden="true"/>
+                        <span>
+                            <span class="file-picker-text">Выберите файл</span>
+                            <span class="file-picker-name"></span>
+                        </span>
+                    </span>
+                </span>
                 <small class="field-hint">JPG, PNG, WEBP или GIF, до 10 МБ</small>
             </label>
 
@@ -57,5 +72,6 @@
     </div>
 </div>
 
+    <script th:src="@{/js/file-picker.js(v=1)}"></script>
 </body>
 </html>

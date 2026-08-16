@@ -36,7 +36,23 @@
                   method="post" enctype="multipart/form-data">
                 <label class="field">
                     <span>Новый аватар</span>
-                    <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif" required/>
+                    <span class="file-picker">
+                        <input type="file" class="file-picker-input" name="avatar" required
+                               accept="image/jpeg,image/png,image/webp,image/gif"/>
+                        <span class="file-picker-box">
+                            <span class="file-picker-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M12 16V4M12 4l-4 4M12 4l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
+                            <img class="file-picker-preview" alt="" aria-hidden="true"/>
+                            <span>
+                                <span class="file-picker-text">Выберите файл</span>
+                                <span class="file-picker-name"></span>
+                            </span>
+                        </span>
+                    </span>
                     <small class="field-hint">JPG, PNG, WEBP или GIF, до 10 МБ</small>
                 </label>
                 <button type="submit" class="btn-primary">Загрузить аватар</button>
@@ -97,5 +113,6 @@
     </div>
 </div>
 
+    <script th:src="@{/js/file-picker.js(v=1)}"></script>
 </body>
 </html>
