@@ -1,6 +1,6 @@
 'use strict';
 
-var CACHE_NAME = 'shadowvibe-v1';
+var CACHE_NAME = 'shadowvibe-v2';
 
 self.addEventListener('install', function (event) {
     event.waitUntil(caches.open(CACHE_NAME).then(function (cache) {

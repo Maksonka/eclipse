@@ -1,0 +1,83 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------------< com.example:ShadowVibe >-----------------------
+[INFO] Building ShadowVibe 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:4.1.0:run (default-cli) > test-compile @ ShadowVibe >>>
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ ShadowVibe ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 63 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ ShadowVibe ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 126 source files with javac [debug parameters release 25] to target\classes
+[INFO] /C:/Users/Максим/Desktop/eclipse-main/src/main/java/com/example/shadowvibe/Services/VideoMetadataService.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/Максим/Desktop/eclipse-main/src/main/java/com/example/shadowvibe/Services/VideoMetadataService.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ ShadowVibe ---
+[INFO] skip non existing resourceDirectory C:\Users\Максим\Desktop\eclipse-main\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ ShadowVibe ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 6 source files with javac [debug parameters release 25] to target\test-classes
+[INFO] 
+[INFO] <<< spring-boot:4.1.0:run (default-cli) < test-compile @ ShadowVibe <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:4.1.0:run (default-cli) @ ShadowVibe ---
+[INFO] Attaching agents: []
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.0)
+
+2026-08-16T06:43:25.913+05:00  INFO 16912 --- [ShadowVibe] [           main] c.e.shadowvibe.ShadowVibeApplication     : Starting ShadowVibeApplication using Java 25.0.3 with PID 16912 (C:\Users\РњР°РєСЃРёРј\Desktop\eclipse-main\target\classes started by Maksim in C:\Users\РњР°РєСЃРёРј\Desktop\eclipse-main)
+2026-08-16T06:43:25.916+05:00  INFO 16912 --- [ShadowVibe] [           main] c.e.shadowvibe.ShadowVibeApplication     : No active profile set, falling back to 1 default profile: "default"
+2026-08-16T06:43:25.970+05:00  INFO 16912 --- [ShadowVibe] [           main] .s.b.d.c.l.DockerComposeLifecycleManager : Using Docker Compose file C:\Users\РњР°РєСЃРёРј\Desktop\eclipse-main\compose.yaml
+2026-08-16T06:43:26.706+05:00  INFO 16912 --- [ShadowVibe] [           main] .s.b.d.c.l.DockerComposeLifecycleManager : There are already Docker Compose services running, skipping startup
+2026-08-16T06:43:27.556+05:00  INFO 16912 --- [ShadowVibe] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-08-16T06:43:27.641+05:00  INFO 16912 --- [ShadowVibe] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 67 ms. Found 16 JPA repository interfaces.
+2026-08-16T06:43:28.136+05:00  INFO 16912 --- [ShadowVibe] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 1010 (http)
+2026-08-16T06:43:28.150+05:00  INFO 16912 --- [ShadowVibe] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-08-16T06:43:28.150+05:00  INFO 16912 --- [ShadowVibe] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.22]
+2026-08-16T06:43:28.198+05:00  INFO 16912 --- [ShadowVibe] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 1272 ms
+2026-08-16T06:43:28.500+05:00  INFO 16912 --- [ShadowVibe] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://127.0.0.1:60811/eclipsedb?ApplicationName=ShadowVibe (PostgreSQL 18.4)
+2026-08-16T06:43:28.621+05:00  INFO 16912 --- [ShadowVibe] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 9 migrations (execution time 00:00.055s)
+2026-08-16T06:43:28.685+05:00  INFO 16912 --- [ShadowVibe] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 8
+2026-08-16T06:43:28.693+05:00  INFO 16912 --- [ShadowVibe] [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-08-16T06:43:28.815+05:00  INFO 16912 --- [ShadowVibe] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-08-16T06:43:28.861+05:00  INFO 16912 --- [ShadowVibe] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.1.Final
+2026-08-16T06:43:29.204+05:00  INFO 16912 --- [ShadowVibe] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-08-16T06:43:29.239+05:00  INFO 16912 --- [ShadowVibe] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-08-16T06:43:29.267+05:00  INFO 16912 --- [ShadowVibe] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@67396475
+2026-08-16T06:43:29.268+05:00  INFO 16912 --- [ShadowVibe] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-08-16T06:43:29.330+05:00  INFO 16912 --- [ShadowVibe] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://127.0.0.1:60811/eclipsedb?ApplicationName=ShadowVibe]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 18.4
+	Default catalog/schema: eclipsedb/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-08-16T06:43:30.445+05:00  INFO 16912 --- [ShadowVibe] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-08-16T06:43:30.502+05:00  INFO 16912 --- [ShadowVibe] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-08-16T06:43:30.559+05:00  INFO 16912 --- [ShadowVibe] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-08-16T06:43:32.259+05:00  INFO 16912 --- [ShadowVibe] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-08-16T06:43:32.323+05:00  WARN 16912 --- [ShadowVibe] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-08-16T06:43:32.794+05:00  INFO 16912 --- [ShadowVibe] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Starting...
+2026-08-16T06:43:32.795+05:00  INFO 16912 --- [ShadowVibe] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@33e54876]]
+2026-08-16T06:43:32.795+05:00  INFO 16912 --- [ShadowVibe] [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Started.
+2026-08-16T06:43:32.806+05:00  INFO 16912 --- [ShadowVibe] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 1010 (http) with context path '/'
+2026-08-16T06:43:32.813+05:00  INFO 16912 --- [ShadowVibe] [           main] c.e.shadowvibe.ShadowVibeApplication     : Started ShadowVibeApplication in 7.301 seconds (process running for 7.67)
