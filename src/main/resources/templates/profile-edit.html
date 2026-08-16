@@ -1,12 +1,12 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="ru">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Редактирование профиля</title>
+    <title>Р РµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ РїСЂРѕС„РёР»СЏ</title>
     <link rel="icon" type="image/png" th:href="@{/img/favicon.png}"/>
     <link rel="apple-touch-icon" th:href="@{/img/apple-touch-icon.png}"/>
-    <link rel="stylesheet" th:href="@{/css/style.css?v=11}"/>
+    <link rel="stylesheet" th:href="@{/css/style.css?v=12}"/>
     <script th:inline="javascript">
         document.documentElement.setAttribute(
             'data-theme-preference',
@@ -21,7 +21,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        К профилю
+        Рљ РїСЂРѕС„РёР»СЋ
     </a>
 
     <div class="profile-card">
@@ -29,7 +29,7 @@
             <div th:replace="~{fragments/avatar :: avatar(${profileUser.username}, ${profileUser.avatarFilename}, 'profile-avatar')}"></div>
             <div class="profile-header-info">
                 <h1 th:text="${profileUser.username}">username</h1>
-                <p class="profile-subtitle">Редактирование профиля</p>
+                <p class="profile-subtitle">Р РµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ РїСЂРѕС„РёР»СЏ</p>
             </div>
         </div>
 
@@ -37,7 +37,7 @@
 
         <form class="profile-form" th:action="@{/profile/edit}" method="post" enctype="multipart/form-data">
             <label class="field">
-                <span>Аватар</span>
+                <span>РђРІР°С‚Р°СЂ</span>
                 <span class="file-picker">
                     <input type="file" class="file-picker-input" name="avatar"
                            accept="image/jpeg,image/png,image/webp,image/gif"/>
@@ -50,24 +50,24 @@
                         </span>
                         <img class="file-picker-preview" alt="" aria-hidden="true"/>
                         <span>
-                            <span class="file-picker-text">Выберите файл</span>
+                            <span class="file-picker-text">Р’С‹Р±РµСЂРёС‚Рµ С„Р°Р№Р»</span>
                             <span class="file-picker-name"></span>
                         </span>
                     </span>
                 </span>
-                <small class="field-hint">JPG, PNG, WEBP или GIF, до 10 МБ</small>
+                <small class="field-hint">JPG, PNG, WEBP РёР»Рё GIF, РґРѕ 10 РњР‘</small>
             </label>
 
             <label class="field">
-                <span>О себе</span>
+                <span>Рћ СЃРµР±Рµ</span>
                 <textarea name="about"
                           rows="5"
                           maxlength="500"
-                          placeholder="Расскажите немного о себе..."
+                          placeholder="Р Р°СЃСЃРєР°Р¶РёС‚Рµ РЅРµРјРЅРѕРіРѕ Рѕ СЃРµР±Рµ..."
                           th:text="${profileUser.about}"></textarea>
             </label>
 
-            <button type="submit" class="btn-primary">Сохранить</button>
+            <button type="submit" class="btn-primary">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
         </form>
     </div>
 </div>
@@ -75,3 +75,4 @@
     <script th:src="@{/js/file-picker.js(v=1)}"></script>
 </body>
 </html>
+
