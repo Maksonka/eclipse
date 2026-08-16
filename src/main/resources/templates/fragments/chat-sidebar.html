@@ -161,6 +161,12 @@
             </svg>
             <span>Создать группу</span>
         </a>
+        <button type="button" id="digest-toggle" class="sidebar-favorites-link" aria-label="Что я пропустил" title="Что я пропустил">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 3l1.9 5.6 5.9.5-4.5 3.9 1.4 5.8-4.7-3.1-4.7 3.1 1.4-5.8L3.5 9.1l5.9-.5L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+            <span>Что я пропустил</span>
+        </button>
         <a class="sidebar-premium-link" th:href="@{/premium}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M12 3l2.1 4.6 5 .6-3.7 3.5.9 5-4.3-2.3-4.3 2.3.9-5L4.9 8.2l5-.6L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
@@ -200,6 +206,122 @@
             </div>
         </div>
     </div>
+
+    <div id="digest-modal" class="favorites-modal" hidden>
+        <div class="favorites-modal-inner digest-inner">
+            <div class="favorites-modal-header">
+                <h3>Что я пропустил</h3>
+                <button type="button" id="digest-close" class="favorites-close" aria-label="Закрыть">&times;</button>
+            </div>
+            <div class="digest-controls">
+                <label class="digest-period-label" for="digest-period">Период:</label>
+                <select id="digest-period" class="digest-period" aria-label="Период дайджеста">
+                    <option value="1">24 часа</option>
+                    <option value="3">3 дня</option>
+                    <option value="7">Неделя</option>
+                </select>
+                <button type="button" id="digest-refresh" class="digest-refresh">Суммировать</button>
+            </div>
+            <div id="digest-content" class="digest-content"></div>
+        </div>
+    </div>
 </aside>
+<script>
+(function () {
+    var toggle = document.getElementById('digest-toggle');
+    var modal = document.getElementById('digest-modal');
+    var close = document.getElementById('digest-close');
+    var period = document.getElementById('digest-period');
+    var refresh = document.getElementById('digest-refresh');
+    var content = document.getElementById('digest-content');
+    if (!toggle || !modal || !content) {
+        return;
+    }
+
+    function escapeHtml(t) {
+        return String(t == null ? '' : t)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function openModal() {
+        modal.hidden = false;
+        document.body.classList.add('favorites-modal-open');
+        toggle.classList.add('is-active');
+    }
+
+    function closeModal() {
+        modal.hidden = true;
+        document.body.classList.remove('favorites-modal-open');
+        toggle.classList.remove('is-active');
+    }
+
+    function loadDigest() {
+        var days = parseInt(period ? period.value : '1', 10) || 1;
+        var since = Date.now() - days * 24 * 3600 * 1000;
+        content.innerHTML = '<div class="digest-loading">Собираю дайджест...</div>';
+        fetch('/api/ai/digest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ since: since })
+        })
+            .then(function (r) {
+                return r.json().then(function (d) {
+                    return { ok: r.ok, data: d };
+                });
+            })
+            .then(function (res) {
+                if (!res.ok || !res.data) {
+                    var err = res.data && res.data.error ? res.data.error : 'Доступно только с Premium';
+                    content.innerHTML = '<div class="digest-premium">' + escapeHtml(err) +
+                        '<a class="digest-premium-link" href="/premium">Оформить Premium</a></div>';
+                    return;
+                }
+                var d = res.data;
+                var stats = '<div class="digest-stats">За период: <strong>' + d.total +
+                    '</strong> сообщений · личные: ' + d.directCount + ' · группы: ' + d.groupCount + '</div>';
+                var topics = (d.topics && d.topics.length)
+                    ? '<div class="digest-topics">Темы: ' + d.topics.map(escapeHtml).join(', ') + '</div>'
+                    : '';
+                content.innerHTML = '<div class="digest-text">' + escapeHtml(d.text) + '</div>' + stats + topics;
+            })
+            .catch(function () {
+                content.innerHTML = '<div class="digest-loading">Ошибка сети</div>';
+            });
+    }
+
+    toggle.addEventListener('click', function () {
+        if (!modal.hidden) {
+            closeModal();
+            return;
+        }
+        openModal();
+        loadDigest();
+    });
+    if (close) {
+        close.addEventListener('click', closeModal);
+    }
+    if (refresh) {
+        refresh.addEventListener('click', loadDigest);
+    }
+    if (modal) {
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    }
+    if (period) {
+        period.addEventListener('change', loadDigest);
+    }
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modal && !modal.hidden) {
+            closeModal();
+        }
+    });
+})();
+</script>
 </body>
 </html>

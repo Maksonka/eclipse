@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{fragments/head :: head(~{::title})}">
+    <title>E2E шифрование · ShadowVibe</title>
+</head>
+<body class="premium-page e2e-page">
+
+<div class="premium-shell">
+    <a class="premium-back" th:href="@{/chat}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Назад к чатам
+    </a>
+
+    <div class="premium-card">
+        <div class="premium-header">
+            <div class="premium-icon e2e-icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <rect x="4" y="10" width="16" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+                    <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="2"/>
+                    <circle cx="12" cy="15.5" r="1.5" fill="currentColor"/>
+                </svg>
+            </div>
+            <div>
+                <h1>Сквозное шифрование</h1>
+                <p class="premium-subtitle">E2E — только вы и собеседник читаете переписку</p>
+            </div>
+        </div>
+
+        <div class="premium-status" th:if="${premiumActive}">
+            <span class="premium-badge">⭐ Premium</span>
+            <span class="premium-status-text">E2E включено для вашего аккаунта — статус <strong>скоро</strong></span>
+        </div>
+        <div class="premium-status premium-status-inactive" th:unless="${premiumActive}">
+            <span class="premium-status-text">E2E шифрование — фича Premium</span>
+        </div>
+
+        <section class="premium-features">
+            <h2>Что даст E2E</h2>
+            <div class="premium-feature-row">
+                <span class="premium-feature-name">Сообщения шифруются на вашем устройстве</span>
+                <span class="premium-feature-paid">скоро</span>
+            </div>
+            <div class="premium-feature-row">
+                <span class="premium-feature-name">Даже сервер не сможет прочитать переписку</span>
+                <span class="premium-feature-paid">скоро</span>
+            </div>
+            <div class="premium-feature-row">
+                <span class="premium-feature-name">Ключи шифрования не покидают устройство</span>
+                <span class="premium-feature-paid">скоро</span>
+            </div>
+            <div class="premium-feature-row">
+                <span class="premium-feature-name">Подтверждение ключей собеседника</span>
+                <span class="premium-feature-paid">скоро</span>
+            </div>
+        </section>
+
+        <p class="e2e-note">
+            Реальная реализация E2E — большой этап: генерация ключей на клиенте, обмен ключами,
+            шифрование каждого сообщения до отправки на сервер. Мы работаем над этим —
+            следите за обновлениями.
+        </p>
+
+        <section class="premium-actions">
+            <form th:if="${!premiumActive}" th:action="@{/premium}" method="get">
+                <button type="submit" class="btn-primary">Оформить Premium</button>
+            </form>
+        </section>
+    </div>
+</div>
+
+</body>
+</html>

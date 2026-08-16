@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -18,6 +19,10 @@ public interface GroupMessageRepository extends JpaRepository<GroupMessage, Long
 
     @Query("SELECT gm FROM GroupMessage gm WHERE gm.group.id IN :groupIds ORDER BY gm.timestamp DESC")
     List<GroupMessage> findRecentByGroupIds(@Param("groupIds") List<Long> groupIds);
+
+    @Query("SELECT gm FROM GroupMessage gm WHERE gm.group.id IN :groupIds AND gm.timestamp >= :since ORDER BY gm.timestamp ASC")
+    List<GroupMessage> findByGroupIdsAndTimestampAfter(@Param("groupIds") List<Long> groupIds,
+                                                      @Param("since") LocalDateTime since);
 
     @Modifying
     @Query("DELETE FROM GroupMessage gm WHERE gm.group.id = :groupId")

@@ -23,6 +23,10 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Query("SELECT m FROM Message m WHERE m.sender.username = :username OR m.receiver.username = :username ORDER BY m.timestamp DESC")
     List<Message> findAllByUserInvolvedOrderByTimestampDesc(@Param("username") String username);
 
+    @Query("SELECT m FROM Message m WHERE (m.sender.username = :username OR m.receiver.username = :username) " +
+           "AND m.timestamp >= :since ORDER BY m.timestamp ASC")
+    List<Message> findSinceInvolving(@Param("username") String username, @Param("since") LocalDateTime since);
+
     @Query("SELECT m.sender.username, COUNT(m) FROM Message m WHERE m.receiver.username = :username AND m.sender.username <> :username AND m.readAt IS NULL GROUP BY m.sender.username")
     List<Object[]> countUnreadByPartner(@Param("username") String username);
 

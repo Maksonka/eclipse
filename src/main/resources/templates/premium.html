@@ -40,6 +40,22 @@
         <section class="premium-features">
             <h2>Что даёт Premium</h2>
             <div class="premium-feature-row">
+                <span class="premium-feature-name">AI-дайджест пропущенного<br><small class="premium-feature-desc">«Что я пропустил» — ИИ суммаризирует пропущенное</small></span>
+                <span class="premium-feature-free">—</span>
+                <span class="premium-feature-paid">✓</span>
+            </div>
+            <div class="premium-feature-row">
+                <span class="premium-feature-name">AI-ассистент в каждом чате<br><small class="premium-feature-desc">поиск по чату, автоперевод, транскрипция голосовых</small></span>
+                <span class="premium-feature-free">—</span>
+                <span class="premium-feature-paid">✓</span>
+            </div>
+            <div class="premium-feature-row">
+                <span class="premium-feature-name">Сквозное шифрование (E2E)<br><small class="premium-feature-desc">сервер не читает переписку — статус «скоро»</small></span>
+                <span class="premium-feature-free">—</span>
+                <span class="premium-feature-paid">✓</span>
+            </div>
+            <div class="premium-feature-divider"></div>
+            <div class="premium-feature-row">
                 <span class="premium-feature-name">Избранные сообщения</span>
                 <span class="premium-feature-free">до <strong th:text="${freeFavoritesLimit}">50</strong></span>
                 <span class="premium-feature-paid">без лимита</span>
@@ -65,6 +81,8 @@
                 <span class="premium-feature-paid">до 25 МБ</span>
             </div>
         </section>
+
+        <a class="premium-more-link" th:href="@{/e2e}">Подробнее о сквозном шифровании →</a>
 
         <section class="premium-actions">
             <form th:if="${!premiumActive and !premiumTrialUsed}" th:action="@{/premium/trial}" method="post">
