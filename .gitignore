@@ -43,3 +43,7 @@ boot.log
 ### Uploads (user content) ###
 uploads/
 !uploads/.gitkeep
+
+run*.log
+run*.err*
+
