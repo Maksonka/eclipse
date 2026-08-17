@@ -452,6 +452,16 @@ function scrollToBottom() {
     }
 }
 
+function jumpToBottom() {
+    if (!messagesContainer) {
+        return;
+    }
+    var prev = messagesContainer.style.scrollBehavior;
+    messagesContainer.style.scrollBehavior = 'auto';
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    messagesContainer.style.scrollBehavior = prev;
+}
+
 function scrollToMessage(messageId) {
     var target = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
     if (target) {
@@ -1163,7 +1173,12 @@ if (messageForm) {
     window.addEventListener('beforeunload', stopLocalTyping);
 
     hidePeerTyping();
-    requestAnimationFrame(function () { scrollToBottom(); });
+    requestAnimationFrame(function () { jumpToBottom(); });
+    if (window.addEventListener) {
+        window.addEventListener('load', function () {
+            requestAnimationFrame(function () { jumpToBottom(); });
+        });
+    }
     messageInput.focus();
 }
 
