@@ -20,22 +20,30 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 public class AiService {
 
-    private static final Set<String> STOPWORDS = Set.of(
-            "и", "в", "во", "не", "что", "он", "на", "я", "с", "со", "как", "а", "то", "все", "она",
-            "так", "его", "но", "да", "ты", "к", "у", "же", "вы", "за", "бы", "по", "ее", "при", "или",
-            "это", "еще", "меня", "мне", "этот", "был", "была", "были", "быть", "о", "от", "из", "об",
-            "для", "их", "мы", "них", "там", "тут", "где", "когда", "потому", "тот", "какой", "будет",
-            "можно", "нужно", "надо", "очень", "уже", "даже", "только", "чтобы", "также", "почему",
-            "зачем", "ли", "сейчас", "теперь", "тоже", "потом", "снова", "опять", "сегодня", "завтра",
-            "который", "которая", "которые", "сам", "сама", "самое", "один", "одна", "если", "нибудь",
-            "привет", "здравствуй", "спасибо", "пожалуйста", "ок", "окей", "ага", "угу", "ну", "эх", "вот"
-    );
+    private static final Map<String, List<String>> TOPIC_KEYWORDS = topicKeywords();
+
+    private static Map<String, List<String>> topicKeywords() {
+        Map<String, List<String>> m = new LinkedHashMap<>();
+        m.put("кино", List.of("фильм", "кино", "сериал", "кинотеатр", "комеди"));
+        m.put("погода", List.of("погод", "дождь", "солнц", "ветер", "зонт", "тепло", "холодн", "рассвет"));
+        m.put("отпуск и путешествия", List.of("отпуск", "путешеств", "поездк", "отдых", "море", "гор", "билет", "чемодан", "природа", "озер"));
+        m.put("спорт", List.of("футбол", "матч", "команд", "гол", "турнир", "спорт", "рыбалк", "пикник", "прогулк"));
+        m.put("работа", List.of("работ", "офис", "планёрк", "отчёт", "задач", "систем", "встреч", "проект", "обновлен", "заказчик"));
+        m.put("еда", List.of("еда", "ужин", "обед", "суп", "борщ", "кофе", "завтрак", "ресторан", "кафе", "макарон", "сыр", "бутерброд", "термос", "чай", "ланч"));
+        m.put("музыка", List.of("музык", "плейлист", "джаз", "песн", "концерт", "саксофон"));
+        m.put("книги", List.of("книг", "читат", "привычк", "страниц"));
+        m.put("техника", List.of("телефон", "приложен", "зарядк", "компьютер"));
+        m.put("игры", List.of("игра", "игру", "шахмат", "кооперативн"));
+        m.put("здоровье и сон", List.of("сон", "спать", "выспат", "устал", "здоров", "спортзал", "гаджет"));
+        m.put("юмор", List.of("шутк", "смешн", "юмор"));
+        m.put("планы", List.of("план", "расписан", "спланируем", "планирую"));
+        return m;
+    }
 
     private static final List<String> STYLE_REPLIES = List.of(
             "Да, согласен 👍",
@@ -352,23 +360,31 @@ public class AiService {
     }
 
     private List<String> extractTopics(List<String> texts, String username, int limit) {
-        Map<String, Integer> freq = new HashMap<>();
+        Map<String, Integer> hits = new LinkedHashMap<>();
+        Map<String, Integer> docs = new LinkedHashMap<>();
         for (String text : texts) {
-            String normalized = text.toLowerCase(Locale.ROOT)
-                    .replaceAll("[^а-яёa-z0-9 ]", " ")
-                    .trim();
-            for (String token : normalized.split("\\s+")) {
-                if (token.length() < 4) {
-                    continue;
+            String normalized = text.toLowerCase(Locale.ROOT);
+            for (Map.Entry<String, List<String>> entry : TOPIC_KEYWORDS.entrySet()) {
+                boolean matched = false;
+                for (String kw : entry.getValue()) {
+                    if (normalized.contains(kw)) {
+                        matched = true;
+                        break;
+                    }
                 }
-                if (STOPWORDS.contains(token) || token.equals(username.toLowerCase(Locale.ROOT))) {
-                    continue;
+                if (matched) {
+                    hits.merge(entry.getKey(), 1, Integer::sum);
+                    docs.merge(entry.getKey(), 1, Integer::sum);
                 }
-                freq.merge(token, 1, Integer::sum);
             }
         }
-        return freq.entrySet().stream()
-                .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+        return hits.entrySet().stream()
+                .sorted((a, b) -> {
+                    int cmp = Integer.compare(
+                            b.getValue() * docs.get(b.getKey()),
+                            a.getValue() * docs.get(a.getKey()));
+                    return cmp != 0 ? cmp : a.getKey().compareTo(b.getKey());
+                })
                 .limit(limit)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
