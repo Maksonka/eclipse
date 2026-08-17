@@ -57,7 +57,7 @@ function messagePreview(message) {
         return 'Голосовое сообщение';
     }
     if (message.content && message.content.trim()) {
-        return message.content;
+        return message.content.indexOf('e2e1:') === 0 ? '🔒 Сообщение' : message.content;
     }
     const type = message.attachmentType;
     if (type === 'image') {

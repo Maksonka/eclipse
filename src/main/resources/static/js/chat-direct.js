@@ -10,7 +10,7 @@ function pinnedPreviewText(message) {
     if (!message) return '';
     if (message.stickerUrl) return 'Стикер';
     if (message.audioUrl) return 'Голосовое сообщение';
-    if (message.content && message.content.trim()) return message.content;
+    if (message.content && message.content.trim()) return message.content.indexOf('e2e1:') === 0 ? '🔒 Сообщение' : message.content;
     if (message.attachmentType) return messagePreview(message);
     return 'Сообщение';
 }
@@ -564,8 +564,20 @@ function buildMessageRow(message) {
     if (message.content) {
         var contentEl = document.createElement('span');
         contentEl.className = 'content';
-        contentEl.innerHTML = linkifyText(message.content);
-        bubbleEl.appendChild(contentEl);
+        if (window.E2E && E2E.isEncrypted(message.content)) {
+            contentEl.textContent = '🔒 Зашифрованное сообщение';
+            contentEl.classList.add('e2e-pending');
+            bubbleEl.appendChild(contentEl);
+            E2E.decryptMessage(message.content, getPartnerUsername(message)).then(function (plain) {
+                if (plain && contentEl.parentNode) {
+                    contentEl.classList.remove('e2e-pending');
+                    contentEl.innerHTML = linkifyText(plain);
+                }
+            });
+        } else {
+            contentEl.innerHTML = linkifyText(message.content);
+            bubbleEl.appendChild(contentEl);
+        }
     }
 
     var metaEl = document.createElement('span');
@@ -1134,6 +1146,9 @@ if (messageForm) {
             receiverUsername: activeChatUsername,
             content: content
         };
+        if (window.E2E && E2E.isReadyFor(activeChatUsername)) {
+            payload.content = E2E.encryptFor(activeChatUsername, content);
+        }
         if (replyState && replyState.messageId) {
             payload.replyToMessageId = replyState.messageId;
         }

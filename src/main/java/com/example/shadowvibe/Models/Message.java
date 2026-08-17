@@ -10,7 +10,7 @@ public class Message {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
-    @Column(name = "content", length = 2000)
+    @Column(name = "content", length = 8000)
     private String content;
     @Column(name = "time")
     private LocalDateTime timestamp;

@@ -7342,3 +7342,16 @@ body.premium-page {
 .premium-more-link:hover {
     text-decoration: underline;
 }
+
+/* ===== E2E ===== */
+
+.e2e-header-btn.is-active {
+    color: #6ee7b7;
+    border-color: rgba(110, 231, 183, 0.35);
+    background: rgba(110, 231, 183, 0.08);
+}
+
+.content.e2e-pending {
+    color: var(--text-dim);
+    font-style: italic;
+}

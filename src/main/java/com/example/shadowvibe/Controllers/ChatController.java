@@ -5,6 +5,7 @@ import com.example.shadowvibe.Models.GroupMessage;
 import com.example.shadowvibe.Models.Message;
 import com.example.shadowvibe.Models.User;
 import com.example.shadowvibe.Services.AttachmentService;
+import com.example.shadowvibe.Services.E2eKeyService;
 import com.example.shadowvibe.Services.GroupService;
 import com.example.shadowvibe.Services.MessageService;
 import com.example.shadowvibe.Services.MuteService;
@@ -42,6 +43,7 @@ public class ChatController {
     private final SidebarModelService sidebarModelService;
     private final ReactionService reactionService;
     private final MuteService muteService;
+    private final E2eKeyService e2eKeyService;
 
     public ChatController(MessageService messageService,
                           UserService userService,
@@ -49,7 +51,8 @@ public class ChatController {
                           PresenceService presenceService,
                           SidebarModelService sidebarModelService,
                           ReactionService reactionService,
-                          MuteService muteService) {
+                          MuteService muteService,
+                          E2eKeyService e2eKeyService) {
         this.messageService = messageService;
         this.userService = userService;
         this.groupService = groupService;
@@ -57,6 +60,7 @@ public class ChatController {
         this.sidebarModelService = sidebarModelService;
         this.reactionService = reactionService;
         this.muteService = muteService;
+        this.e2eKeyService = e2eKeyService;
     }
 
     @GetMapping("/account")
@@ -122,6 +126,7 @@ public class ChatController {
         model.addAttribute("receiver", receiver);
         model.addAttribute("chatMuted", muteService.isDirectMuted(principal.getName(), receiverUsername));
         model.addAttribute("receiverOnline", presenceService.isOnline(receiverUsername));
+        model.addAttribute("peerE2e", e2eKeyService.hasKey(receiverUsername));
         populateSidebar(model, principal, receiverUsername, null, q, mode);
         return "chat";
     }

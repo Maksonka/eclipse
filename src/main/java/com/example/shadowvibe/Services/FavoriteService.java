@@ -194,6 +194,9 @@ public class FavoriteService {
             return "Голосовое сообщение";
         }
         if (content != null && !content.isBlank()) {
+            if (content.startsWith("e2e1:")) {
+                return "🔒 Зашифрованное сообщение";
+            }
             return content.length() > 200 ? content.substring(0, 200) + "…" : content;
         }
         return AttachmentService.labelForType(attachmentType);

@@ -100,13 +100,13 @@ public class AiService {
         List<String> allTexts = new ArrayList<>();
         for (Message m : direct) {
             countSender(senders, m.getSender());
-            if (hasText(m)) {
+            if (hasText(m) && !isEncrypted(m.getContent())) {
                 allTexts.add(m.getContent());
             }
         }
         for (GroupMessage gm : group) {
             countSender(senders, gm.getSender());
-            if (hasText(gm.getContent())) {
+            if (hasText(gm.getContent()) && !isEncrypted(gm.getContent())) {
                 allTexts.add(gm.getContent());
             }
         }
@@ -122,7 +122,8 @@ public class AiService {
         List<String> mentionQuotes = new ArrayList<>();
         String mentionPattern = "@" + username;
         for (Message m : direct) {
-            if (m.getContent() != null && m.getContent().toLowerCase(Locale.ROOT).contains(mentionPattern.toLowerCase(Locale.ROOT))) {
+            if (m.getContent() != null && !isEncrypted(m.getContent())
+                    && m.getContent().toLowerCase(Locale.ROOT).contains(mentionPattern.toLowerCase(Locale.ROOT))) {
                 mentionCount++;
                 if (mentionQuotes.size() < 2 && hasText(m)) {
                     mentionQuotes.add(m.getSender() == null ? "?" : m.getSender().getUsername() + ": «" + trimQuote(m.getContent()) + "»");
@@ -130,7 +131,8 @@ public class AiService {
             }
         }
         for (GroupMessage gm : group) {
-            if (gm.getContent() != null && gm.getContent().toLowerCase(Locale.ROOT).contains(mentionPattern.toLowerCase(Locale.ROOT))) {
+            if (gm.getContent() != null && !isEncrypted(gm.getContent())
+                    && gm.getContent().toLowerCase(Locale.ROOT).contains(mentionPattern.toLowerCase(Locale.ROOT))) {
                 mentionCount++;
                 if (mentionQuotes.size() < 2 && hasText(gm.getContent())) {
                     mentionQuotes.add(gm.getSender() == null ? "?" : gm.getSender().getUsername() + ": «" + trimQuote(gm.getContent()) + "»");
@@ -291,6 +293,10 @@ public class AiService {
     private boolean visibleDirect(Message m, String username) {
         boolean own = m.getSender() != null && username.equals(m.getSender().getUsername());
         return own ? !m.isDeletedBySender() : !m.isDeletedByReceiver();
+    }
+
+    private boolean isEncrypted(String content) {
+        return content != null && content.startsWith("e2e1:");
     }
 
     private boolean hasText(Message m) {

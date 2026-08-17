@@ -88,7 +88,7 @@ public class MessageService {
         if (original.hasSticker()) {
             return "Стикер";
         }
-        return original.getContent() != null ? original.getContent() : "";
+        return e2ePreview(original.getContent());
     }
 
     public Message saveMessage(String senderUsername, String receiverUsername, String content, Long replyToMessageId) {
@@ -236,7 +236,7 @@ public class MessageService {
         }
         String content = message.getContent();
         if (content != null && !content.isBlank()) {
-            return content.length() > 120 ? content.substring(0, 120) + "…" : content;
+            return e2ePreview(content.length() > 120 ? content.substring(0, 120) + "…" : content);
         }
         return AttachmentService.labelForType(message.getAttachmentType());
     }
@@ -541,7 +541,7 @@ public class MessageService {
         String preview = message.hasSticker() ? "Стикер"
                 : message.hasAudio() ? "Голосовое сообщение"
                 : (message.getContent() != null && !message.getContent().isBlank()
-                        ? message.getContent()
+                        ? e2ePreview(message.getContent())
                         : AttachmentService.labelForType(message.getAttachmentType()));
         if (preview.length() > 48) {
             preview = preview.substring(0, 48) + "…";
@@ -609,7 +609,14 @@ public class MessageService {
         if (content == null || content.isBlank()) {
             return AttachmentService.labelForType(message.getAttachmentType());
         }
-        return content.length() > 200 ? content.substring(0, 200) + "…" : content;
+        return e2ePreview(content.length() > 200 ? content.substring(0, 200) + "…" : content);
+    }
+
+    private String e2ePreview(String content) {
+        if (content != null && content.startsWith("e2e1:")) {
+            return "🔒 Зашифрованное сообщение";
+        }
+        return content != null ? content : "";
     }
 
     private String sanitizeQuery(String query) {
