@@ -51,7 +51,7 @@
         }
         if (!panel.getAttribute('data-welcomed')) {
             panel.setAttribute('data-welcomed', '1');
-            addBubble('Я — AI-ассистент (тестовый режим). Попробуй: «найди про файлы», «переведи hello», «напиши ответ», «расшифруй голосовые».', 'ai');
+            addBubble('Я — AI-ассистент. Попробуй: «найди про файлы», «переведи hello», «напиши ответ», «расшифруй голосовые».', 'ai');
         }
         setTimeout(function () { input.focus(); }, 30);
     }
@@ -119,6 +119,66 @@
         }
     }
 
+    function addTag(b) {
+        if (b.querySelector('.ai-translated-tag')) {
+            return;
+        }
+        var tag = document.createElement('span');
+        tag.className = 'ai-translated-tag';
+        tag.textContent = 'переведено автоматически';
+        b.appendChild(tag);
+    }
+
+    function bubbleOriginal(b) {
+        var c = b.querySelector ? b.querySelector('.content') : null;
+        var target = c || b;
+        var original = target.getAttribute('data-original');
+        if (original == null) {
+            original = target.textContent.trim();
+            target.setAttribute('data-original', original);
+        }
+        return original;
+    }
+
+    function translateBubble(b) {
+        if (!b || b.getAttribute('data-translated')) {
+            return;
+        }
+        var c = b.querySelector ? b.querySelector('.content') : null;
+        var target = c || b;
+        if (target.classList && target.classList.contains('e2e-pending')) {
+            return;
+        }
+        if (b.querySelector('.ai-translated-tag')) {
+            return;
+        }
+        var original = bubbleOriginal(b);
+        if (!original || original === '🔒 Зашифрованное сообщение') {
+            return;
+        }
+        b.setAttribute('data-translated', 'pending');
+        fetch('/api/ai/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: original, to: 'ru' })
+        })
+            .then(function (r) {
+                return r.json().catch(function () { return {}; });
+            })
+            .then(function (d) {
+                if (d && d.translated && d.translated.trim() && d.translated.trim() !== original.trim()) {
+                    b.setAttribute('data-translated', '1');
+                    target.textContent = d.translated.trim();
+                    addTag(b);
+                } else {
+                    b.removeAttribute('data-translated');
+                }
+            })
+            .catch(function () {
+                b.removeAttribute('data-translated');
+            });
+    }
+
     function setTranslateOn(on) {
         try {
             localStorage.setItem('ai_translate_' + translateKey, on ? '1' : '0');
@@ -130,12 +190,7 @@
         }
         if (on && chatMessages) {
             chatMessages.querySelectorAll('.message-row.incoming .message-bubble').forEach(function (b) {
-                if (!b.querySelector('.ai-translated-tag')) {
-                    var tag = document.createElement('span');
-                    tag.className = 'ai-translated-tag';
-                    tag.textContent = 'переведено автоматически';
-                    b.appendChild(tag);
-                }
+                translateBubble(b);
             });
         }
     }
@@ -165,11 +220,8 @@
                             return;
                         }
                         var b = row.querySelector('.message-bubble');
-                        if (b && !b.querySelector('.ai-translated-tag')) {
-                            var tag = document.createElement('span');
-                            tag.className = 'ai-translated-tag';
-                            tag.textContent = 'переведено автоматически';
-                            b.appendChild(tag);
+                        if (b) {
+                            translateBubble(b);
                         }
                     });
                 });

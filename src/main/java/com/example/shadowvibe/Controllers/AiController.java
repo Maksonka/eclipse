@@ -2,6 +2,7 @@ package com.example.shadowvibe.Controllers;
 
 import com.example.shadowvibe.Services.AiService;
 import com.example.shadowvibe.Services.PremiumService;
+import com.example.shadowvibe.Services.TranslationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,10 +19,27 @@ public class AiController {
 
     private final AiService aiService;
     private final PremiumService premiumService;
+    private final TranslationService translationService;
 
-    public AiController(AiService aiService, PremiumService premiumService) {
+    public AiController(AiService aiService, PremiumService premiumService, TranslationService translationService) {
         this.aiService = aiService;
         this.premiumService = premiumService;
+        this.translationService = translationService;
+    }
+
+    @PostMapping("/translate")
+    public ResponseEntity<?> translate(@AuthenticationPrincipal UserDetails userDetails,
+                                       @RequestBody Map<String, Object> body) {
+        if (!premiumService.isPremium(userDetails.getUsername())) {
+            return premiumError();
+        }
+        String text = body.get("text") == null ? "" : String.valueOf(body.get("text"));
+        String target = body.get("to") == null ? "" : String.valueOf(body.get("to"));
+        if (text.isBlank()) {
+            return ResponseEntity.ok(Map.of("translated", "", "from", "auto", "to", target));
+        }
+        String translated = aiService.translateText(text, target);
+        return ResponseEntity.ok(Map.of("translated", translated, "from", "auto", "to", target));
     }
 
     @PostMapping("/digest")

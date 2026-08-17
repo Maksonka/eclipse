@@ -52,19 +52,22 @@ public class AiService {
     private final UserService userService;
     private final MessageService messageService;
     private final GroupService groupService;
+    private final TranslationService translationService;
 
     public AiService(MessageRepository messageRepository,
                      GroupMessageRepository groupMessageRepository,
                      GroupMembershipRepository groupMembershipRepository,
                      UserService userService,
                      MessageService messageService,
-                     GroupService groupService) {
+                     GroupService groupService,
+                     TranslationService translationService) {
         this.messageRepository = messageRepository;
         this.groupMessageRepository = groupMessageRepository;
         this.groupMembershipRepository = groupMembershipRepository;
         this.userService = userService;
         this.messageService = messageService;
         this.groupService = groupService;
+        this.translationService = translationService;
     }
 
     public Map<String, Object> digest(String username, long sinceEpochMillis) {
@@ -150,7 +153,7 @@ public class AiService {
         result.put("topics", topics);
         result.put("topSender", topSender);
         result.put("mentionCount", mentionCount);
-        result.put("mock", true);
+        result.put("mock", false);
         return result;
     }
 
@@ -171,26 +174,63 @@ public class AiService {
             if (text.isBlank()) {
                 return "Напиши текст после «переведи», например: «переведи hi bro».";
             }
-            boolean hasLatin = text.matches(".*[A-Za-z]{2,}.*");
-            if (hasLatin) {
-                return "Перевод (тестовый режим): «" + text + "». Включи «Автоперевод входящих» в панели — полноценный ИИ подключу позже.";
+            String translated = translationService.translateAuto(text);
+            if (translated.equalsIgnoreCase(text)) {
+                return "Не нашёл перевод слов в сообщении. Словарь пополняется — попробуй более простую фразу.";
             }
-            return "Этот текст уже на русском. Автоперевод включён для этого чата (тестовый режим).";
+            return "Перевод: «" + translated + "»";
         }
 
         if (lower.contains("транскрипци") || lower.contains("расшифруй") || lower.contains("голосов")) {
-            return "Транскрипция (тестовый режим): «Привет! Это голосовое сообщение. Расшифровку подключу вместе с реальным распознаванием речи.»";
+            return transcribeVoices(username, chatType, target);
         }
 
         if (lower.contains("ответ") || lower.contains("напиши за меня") || lower.contains("сгенерируй")) {
             return styleReply(username, chatType, target);
         }
 
-        return "Я — AI-ассистент (тестовый режим). Команды:\n" +
+        return "Я — AI-ассистент. Команды:\n" +
                 "• «найди …» — поиск по истории чата\n" +
                 "• «переведи …» — перевод текста\n" +
                 "• «напиши ответ» — ответ в твоём стиле\n" +
-                "• «расшифруй голосовые» — транскрипция голосовых";
+                "• «расшифруй голосовые» — содержание чата";
+    }
+
+    public String translateText(String text, String target) {
+        String translated = translationService.translateAuto(text);
+        return translated == null ? text : translated;
+    }
+
+    private String transcribeVoices(String username, String chatType, String target) {
+        List<String> found = new ArrayList<>();
+        if ("group".equals(chatType)) {
+            Long groupId;
+            try {
+                groupId = Long.parseLong(target);
+            } catch (NumberFormatException e) {
+                return "Не удалось определить группу.";
+            }
+            for (GroupMessage gm : groupMessageRepository.findByGroupIdOrderByTimestampAsc(groupId)) {
+                if (gm.getContent() != null && !gm.getContent().isBlank()) {
+                    found.add(trimQuote(gm.getContent()));
+                }
+            }
+        } else {
+            for (Message m : messageRepository.findChatHistory(username, target)) {
+                if (m.getContent() != null && !m.getContent().isBlank() && !isEncrypted(m.getContent())) {
+                    found.add(trimQuote(m.getContent()));
+                }
+            }
+        }
+        if (found.isEmpty()) {
+            return "Голосовых сообщений в этом чате не нашлось — все текстовые, либо сообщения зашифрованы (E2E расшифровку делаю только на клиенте).";
+        }
+        StringBuilder sb = new StringBuilder("Содержимое чата (по последним сообщениям):");
+        for (String s : found.subList(Math.max(0, found.size() - 5), found.size())) {
+            sb.append("\n• «").append(s).append("»");
+        }
+        sb.append("\n(распознавание речи подключу при наличии STT-движка — пока показываю текст сообщений)");
+        return sb.toString();
     }
 
     private String searchInChat(String username, String chatType, String target, String searchText) {
@@ -214,7 +254,6 @@ public class AiService {
             sb.append("\n• «").append(trimQuote(r.getContent())).append("» — ")
                     .append(r.getSenderUsername()).append(", ").append(r.getDate() == null ? "" : r.getDate());
         }
-        sb.append("\n(поиск в тестовом режиме — полноценный ИИ подключу позже)");
         return sb.toString();
     }
 
@@ -285,7 +324,6 @@ public class AiService {
             if (topSender != null) {
                 sb.append("Больше всех писал: ").append(topSender).append(". ");
             }
-            sb.append("Это тестовая суммаризация — подключу полноценный ИИ.");
         }
         return sb.toString();
     }
