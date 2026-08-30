@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{fragments/head :: head(~{::title})}">
+    <title>Premium · ShadowVibe</title>
+</head>
+<body class="premium-page">
+
+<div class="premium-shell">
+    <a class="premium-back" th:href="@{/chat}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Назад к чатам
+    </a>
+
+    <div class="premium-card">
+        <div class="premium-header">
+            <div class="premium-icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 3l2.1 4.6 5 .6-3.7 3.5.9 5-4.3-2.3-4.3 2.3.9-5L4.9 8.2l5-.6L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div>
+                <h1>ShadowVibe Premium</h1>
+                <p class="premium-subtitle">Больше возможностей для общения и просмотра видео</p>
+            </div>
+        </div>
+
+        <div th:if="${premiumMessage}" class="premium-status">
+            <span class="premium-status-text" th:text="${premiumMessage}"></span>
+        </div>
+        <div th:if="${premiumError}" class="premium-status" style="border-color: var(--danger,#ef4444); background: rgba(239,68,68,0.08);">
+            <span class="premium-status-text" th:text="${premiumError}"></span>
+        </div>
+
+        <div class="premium-status" th:classappend="${premiumActive} ? '' : 'premium-status-inactive'">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" th:style="${premiumActive} ? 'color:#f6c453' : 'color:var(--text-muted)'">
+                <path d="M12 3l2.1 4.6 5 .6-3.7 3.5.9 5-4.3-2.3-4.3 2.3.9-5L4.9 8.2l5-.6L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+            <span class="premium-status-text">
+                <th:block th:if="${premiumActive}">Premium активен до <strong th:text="${premiumUntilFormatted}"></strong></th:block>
+                <th:block th:unless="${premiumActive}">Premium не активен</th:block>
+            </span>
+        </div>
+
+        <div class="premium-features">
+            <h2>Возможности Premium</h2>
+
+            <div class="premium-feature-row">
+                <span class="premium-feature-name">Эксклюзивные темы
+                    <span class="premium-feature-desc">Премиальные темы Aurora и Sunset (тёмная и светлая — бесплатно)</span>
+                </span>
+                <span class="premium-feature-paid">PREMIUM</span>
+            </div>
+            <div class="premium-feature-row">
+                <span class="premium-feature-name">Расшифровка голосовых
+                    <span class="premium-feature-desc">Автоматический перевод голосовых сообщений в текст прямо в чате</span>
+                </span>
+                <span class="premium-feature-paid">PREMIUM</span>
+            </div>
+            <div class="premium-feature-row">
+                <span class="premium-feature-name">Значок Premium в профиле
+                    <span class="premium-feature-desc">Отличайтесь в лентах и чатах</span>
+                </span>
+                <span class="premium-feature-paid">PREMIUM</span>
+            </div>
+            <div class="premium-feature-row">
+                <span class="premium-feature-name">Расширенное видео
+                    <span class="premium-feature-desc">До 500 участников в комнате совместного просмотра (на бесплатном — до 5)</span>
+                </span>
+                <span class="premium-feature-paid">PREMIUM</span>
+            </div>
+            <div class="premium-feature-row">
+                <span class="premium-feature-name">Эксклюзивные реакции с эффектом на весь экран
+                    <span class="premium-feature-desc">Салют, радуга, единорог, дьявол, взрыв, "вау" — полноэкранные анимации в комнате просмотра</span>
+                </span>
+                <span class="premium-feature-paid">PREMIUM</span>
+            </div>
+        </div>
+
+        <div class="premium-actions">
+            <th:block th:if="${premiumActive}">
+                <form th:action="@{/premium/cancel}" method="post" style="display:inline">
+                    <button type="submit" class="btn-secondary premium-cancel">Отменить Premium</button>
+                </form>
+            </th:block>
+            <th:block th:unless="${premiumActive}">
+                <form th:action="@{/premium/activate-mock}" method="post" style="display:inline">
+                    <button type="submit" class="btn-primary">Купить на 30 дней за 99 ₽</button>
+                </form>
+                <form th:if="${!premiumTrialUsed}" th:action="@{/premium/trial}" method="post" style="display:inline">
+                    <button type="submit" class="btn-secondary">Попробовать бесплатно 7 дней</button>
+                </form>
+            </th:block>
+        </div>
+
+        <p class="premium-hint">Купить можно разово за 99 ₽ на 30 дней.</p>
+    </div>
+</div>
+
+</body>
+</html>

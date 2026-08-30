@@ -1,0 +1,66 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Server logs ###
+run.log
+run.out.log
+run.err.log
+server.pid
+app.log
+boot.log
+
+### Uploads (user content) ###
+uploads/
+!uploads/.gitkeep
+
+run*.log
+run*.err*
+
+### Local STT (whisper / faster-whisper) — binaries and models are downloaded at runtime ###
+whisper/bin/
+whisper/models/
+whisper/models-ct2/
+whisper/*.zip
+
+### Local secrets (DB credentials, VAPID keys) ###
+src/main/resources/application.properties
+
+### Android local build state ###
+android/.gradle/
+android/local.properties
+android/**/build/
+android/captures/
+android/.idea/
+android/*.iml
+

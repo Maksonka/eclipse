@@ -1,0 +1,2 @@
+ALTER TABLE message ADD COLUMN transcript VARCHAR(4000) NULL;
+ALTER TABLE message ADD COLUMN audio_duration_ms BIGINT NULL;

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{fragments/head :: head(~{::title})}">
+    <title th:text="'Группа · ' + ${group.name}">Настройки группы</title>
+</head>
+<body class="settings-page">
+
+<div class="settings-shell">
+    <a class="settings-back" th:href="@{/chat/group/{id}(id=${group.id})}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        К чату группы
+    </a>
+
+    <div class="settings-card">
+        <div class="settings-header">
+            <div th:replace="~{fragments/avatar :: groupAvatar(${group.avatarFilename}, 'group-settings-avatar')}"></div>
+            <div>
+                <h1 th:text="${group.name}">Группа</h1>
+                <p class="settings-subtitle"
+                   th:text="${#lists.size(group.members)} + ' участников · создал(а) ' + ${group.createdBy.username}">
+                    участники
+                </p>
+            </div>
+        </div>
+
+        <div class="auth-alert auth-alert-error" th:if="${avatarError}" th:text="${avatarError}">Ошибка</div>
+        <div class="auth-alert auth-alert-success" th:if="${avatarSuccess}" th:text="${avatarSuccess}">Готово</div>
+
+        <section class="settings-section" th:if="${isCreator}">
+            <h2>Аватар группы</h2>
+            <p class="settings-hint">Аватар может менять только создатель группы</p>
+
+            <form class="settings-form" th:action="@{/group/{id}/avatar(id=${group.id})}"
+                  method="post" enctype="multipart/form-data">
+                <label class="field">
+                    <span>Новый аватар</span>
+                    <span class="file-picker">
+                        <input type="file" class="file-picker-input" name="avatar" required
+                               accept="image/jpeg,image/png,image/webp,image/gif"/>
+                        <span class="file-picker-box">
+                            <span class="file-picker-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M12 16V4M12 4l-4 4M12 4l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
+                            <img class="file-picker-preview" alt="" aria-hidden="true"/>
+                            <span>
+                                <span class="file-picker-text">Выберите файл</span>
+                                <span class="file-picker-name"></span>
+                            </span>
+                        </span>
+                    </span>
+                    <small class="field-hint">JPG, PNG, WEBP или GIF, до 10 МБ</small>
+                </label>
+                <button type="submit" class="btn-primary">Загрузить аватар</button>
+            </form>
+        </section>
+
+        <section class="settings-section">
+            <h2>Участники</h2>
+            <p class="settings-hint" th:text="${#lists.size(group.members)} + ' участников'">Участники</p>
+            <div class="auth-alert auth-alert-success" th:if="${groupSuccess}" th:text="${groupSuccess}">Готово</div>
+            <div class="auth-alert auth-alert-error" th:if="${groupError}" th:text="${groupError}">Ошибка</div>
+
+            <form class="settings-form" th:if="${isCreator}" th:action="@{/group/{id}/members/add(id=${group.id})}"
+                  method="post" style="margin-bottom:16px">
+                <label class="field">
+                    <span>Добавить участников</span>
+                    <input type="text" name="members" placeholder="user1, user2, user3"/>
+                    <small class="field-hint">Ники через запятую. Добавлять участников может только создатель группы</small>
+                </label>
+                <button type="submit" class="btn-primary">Добавить</button>
+            </form>
+
+            <div class="group-members-list">
+                <div class="group-member-item"
+                     th:each="member : ${groupMembers}"
+                     th:classappend="${member.username == #authentication.name ? 'is-me' : ''}">
+                    <a th:href="@{/profile/{username}(username=${member.username})}"
+                       class="group-member-link">
+                        <div th:replace="~{fragments/avatar :: avatar(${member.username}, ${member.avatarFilename}, 'group-member-avatar')}"></div>
+                        <span class="group-member-name">
+                            <span th:text="${member.username}">user</span>
+                            <span class="group-member-role" th:if="${member.username == group.createdBy.username}">Создатель</span>
+                        </span>
+                    </a>
+                    <form th:if="${isCreator and member.username != group.createdBy.username}"
+                          th:action="@{/group/{id}/members/{username}/remove(id=${group.id}, username=${member.username})}"
+                          method="post"
+                          th:attr="data-confirm-message=|Удалить ${member.username} из группы?|">
+                        <button type="submit" class="group-member-remove" title="Удалить из группы" aria-label="Удалить из группы">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <section class="settings-section danger-zone" th:if="${isCreator}">
+            <h2>Опасная зона</h2>
+            <p class="settings-hint">Удаление группы безвозвратно удалит все сообщения и участников</p>
+            <form th:action="@{/group/{id}/delete(id=${group.id})}"
+                  method="post"
+                  th:attr="data-confirm-message=|Удалить группу «${group.name}» полностью? Это действие нельзя отменить.|">
+                <button type="submit" class="btn-danger">Удалить группу</button>
+            </form>
+        </section>
+
+        <section class="settings-section danger-zone" th:unless="${isCreator}">
+            <h2>Выход из группы</h2>
+            <p class="settings-hint">Вы покинете группу и потеряете доступ к сообщениям</p>
+            <form th:action="@{/group/{id}/leave(id=${group.id})}"
+                  method="post"
+                  th:attr="data-confirm-message=|Покинуть группу «${group.name}»?|">
+                <button type="submit" class="btn-danger">Покинуть группу</button>
+            </form>
+        </section>
+    </div>
+</div>
+
+    <script th:src="@{/js/file-picker.js(v=1)}"></script>
+</body>
+</html>

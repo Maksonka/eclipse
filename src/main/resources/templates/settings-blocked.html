@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{fragments/head :: head(~{::title})}">
+    <title>Заблокированные пользователи — ShadowVibe</title>
+</head>
+<body class="settings-page">
+<div class="settings-shell">
+    <a class="back-link" th:href="@{/settings}">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Назад к настройкам
+    </a>
+
+    <div class="blocked-page-card">
+        <div class="blocked-page-header">
+            <span class="blocked-page-icon">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M4.9 4.9l14.2 14.2"/></svg>
+            </span>
+            <h1>Заблокированные пользователи</h1>
+        </div>
+        <p class="blocked-page-subtitle">Они не могут писать вам, а вы им. Разблокировать можно здесь или на странице их профиля.</p>
+
+        <div th:if="${settingsSaved}" class="auth-alert auth-alert-success">Пользователь разблокирован</div>
+
+        <div class="blocked-list blocked-list-page" th:if="${!#lists.isEmpty(blockedUsers)}">
+            <div class="blocked-item" th:each="blocked : ${blockedUsers}">
+                <a class="blocked-user-info" th:href="@{'/profile/' + ${blocked.username}}">
+                    <div th:replace="~{fragments/avatar :: avatar(${blocked.username}, ${blocked.avatarFilename}, 'blocked-avatar')}"></div>
+                    <span class="blocked-username" th:text="${blocked.username}">username</span>
+                </a>
+                <form th:action="@{/settings/unblock}" method="post">
+                    <input type="hidden" name="username" th:value="${blocked.username}"/>
+                    <button type="submit" class="btn-secondary blocked-unblock-btn">Разблокировать</button>
+                </form>
+            </div>
+        </div>
+        <p class="blocked-empty" th:if="${#lists.isEmpty(blockedUsers)}">Нет заблокированных пользователей. Блокировать можно на странице профиля пользователя.</p>
+    </div>
+</div>
+</body>
+</html>

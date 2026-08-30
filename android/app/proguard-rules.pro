@@ -1,0 +1,2 @@
+-keep class com.shadowvibe.app.data.model.** { *; }
+-keepclassmembers class com.shadowvibe.app.data.model.** { *; }

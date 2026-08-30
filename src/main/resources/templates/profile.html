@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${profileUser.username} + ' · Профиль'">Профиль</title>
+    <link rel="icon" type="image/png" th:href="@{/img/favicon.png}"/>
+    <link rel="apple-touch-icon" th:href="@{/img/apple-touch-icon.png}"/>
+    <link rel="stylesheet" th:href="@{/css/style.css?v=88}"/>
+    <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}"/>
+    <meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : 'X-CSRF-TOKEN'}"/>
+    <script th:inline="javascript">
+        document.documentElement.setAttribute(
+            'data-theme-preference',
+            /*[[${isOwnProfile ? profileUser.themePreference.name().toLowerCase() : 'dark'}]]*/ 'dark'
+        );
+    </script>
+    <script th:src="@{/js/theme.js}"></script>
+    <script th:src="@{/js/confirm-dialog.js(v=5)}"></script>
+</head>
+<body class="profile-page">
+
+<div class="profile-shell">
+    <a class="profile-back" th:href="@{/chat}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Назад к чатам
+    </a>
+
+    <div class="profile-card">
+        <div class="auth-alert auth-alert-success" th:if="${profileSaved}">Профиль успешно сохранён</div>
+        <div class="auth-alert auth-alert-success" th:if="${profileNotice}" th:text="${profileNotice}"></div>
+        <div class="auth-alert auth-alert-error" th:if="${profileError}" th:text="${profileError}"></div>
+
+        <div class="profile-header">
+            <div th:replace="~{fragments/avatar :: avatar(${profileUser.username}, ${profileUser.avatarFilename}, 'profile-avatar')}"></div>
+            <div class="profile-header-info">
+                <h1 th:text="${profileUser.username}">username</h1>
+                <span class="premium-badge" th:if="${profileUser.premium}" title="ShadowVibe Premium" aria-label="Premium">⭐ Premium</span>
+                <p class="profile-subtitle" th:if="${isOwnProfile}">Ваш профиль</p>
+                <p class="profile-subtitle" th:unless="${isOwnProfile}">Пользователь ShadowVibe</p>
+            </div>
+        </div>
+
+        <div class="profile-section">
+            <h2>О себе</h2>
+            <p class="profile-about" th:if="${profileUser.about != null and !#strings.isEmpty(profileUser.about)}"
+               th:text="${profileUser.about}">О себе</p>
+            <p class="profile-about profile-about-empty" th:unless="${profileUser.about != null and !#strings.isEmpty(profileUser.about)}">
+                <span th:if="${isOwnProfile}">Вы ещё не заполнили информацию о себе</span>
+                <span th:unless="${isOwnProfile}">Пользователь пока ничего не написал</span>
+            </p>
+        </div>
+
+        <div class="profile-section" th:if="${isOwnProfile}" id="profile-invites-section" hidden>
+            <h2>Приглашения в группы <span class="invites-count-badge" id="profile-invites-count"></span></h2>
+            <div id="profile-invites-list" class="profile-invites-list"></div>
+        </div>
+
+        <div class="profile-section" th:unless="${isOwnProfile}" id="profile-common-section" hidden>
+            <h2>Общее</h2>
+            <div id="profile-common-groups" class="profile-common-groups" hidden>
+                <span class="profile-common-count" id="profile-common-count"></span>
+                <span class="profile-common-label">совместных групп</span>
+            </div>
+        </div>
+
+        <div class="profile-section" th:unless="${isOwnProfile}" id="profile-media-section" hidden>
+            <h2>Общие медиа</h2>
+            <div id="profile-media-grid" class="profile-media-grid"></div>
+        </div>
+
+        <div class="profile-actions">
+            <a th:if="${isOwnProfile}" class="btn-primary profile-action-btn" th:href="@{/profile/edit}">Редактировать профиль</a>
+            <a th:unless="${isOwnProfile and viewerBlocksProfile}" class="btn-primary profile-action-btn"
+               th:href="@{/chat/{username}(username=${profileUser.username})}">Написать сообщение</a>
+            <a th:if="${isOwnProfile}" class="btn-secondary profile-action-btn" th:href="@{/chat}">Открыть чаты</a>
+            <form th:unless="${isOwnProfile}" th:action="@{/profile/{username}/block(username=${profileUser.username})}"
+                  method="post" class="profile-block-form" th:if="${!viewerBlocksProfile}"
+                  th:attr="data-confirm-message=|Вы точно хотите заблокировать «${profileUser.username}»?|, data-confirm-label=Заблокировать">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn-secondary profile-action-btn profile-block-btn">Заблокировать</button>
+            </form>
+            <form th:unless="${isOwnProfile}" th:action="@{/profile/{username}/unblock(username=${profileUser.username})}"
+                  method="post" class="profile-block-form" th:if="${viewerBlocksProfile}">
+                <input type="hidden" name="_csrf" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn-secondary profile-action-btn profile-unblock-btn">Разблокировать</button>
+            </form>
+        </div>
+        <p class="profile-blocked-hint" th:if="${not isOwnProfile and viewerBlocksProfile}">
+            Вы заблокировали этого пользователя — он не может писать вам и видеть ваш статус «в сети»
+        </p>
+    </div>
+</div>
+
+<div id="lightbox" class="lightbox">
+    <button class="lightbox-close" aria-label="Закрыть">&times;</button>
+    <div class="lightbox-content"></div>
+</div>
+
+<script th:inline="javascript">
+    var profileUsername = /*[[${profileUser.username}]]*/ '';
+</script>
+<script th:src="@{/js/csrf.js(v=1)}"></script>
+<script th:src="@{/js/profile.js(v=1)}"></script>
+<script th:src="@{/js/group-invites.js(v=6)}"></script>
+</body>
+</html>

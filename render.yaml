@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: shadowvibe
+    runtime: docker
+    repo: https://github.com/Maksonka/eclipse
+    plan: free
+    healthCheckPath: /login
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: DB_HOST
+        fromDatabase:
+          name: eclipse-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: eclipse-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: eclipse-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: eclipse-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: eclipse-db
+          property: password
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_EMAIL
+        value: admin@example.com
+      - key: UPLOAD_DIR
+        value: /app/uploads
+    disk:
+      name: uploads
+      mountPath: /app/uploads
+      sizeGB: 1
+
+databases:
+  - name: eclipse-db
+    plan: free
+    databaseName: eclipse

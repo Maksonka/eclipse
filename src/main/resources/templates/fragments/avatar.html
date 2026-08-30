@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="avatar(username, avatarFilename, extraClass)"
+     class="user-avatar"
+     th:data-name="${username}"
+     th:classappend="${extraClass}">
+    <img th:if="${avatarFilename != null and !#strings.isEmpty(avatarFilename)}"
+         th:src="@{/uploads/avatars/{file}(file=${avatarFilename})}"
+         th:alt="${username}"
+         class="user-avatar-img"/>
+    <span th:unless="${avatarFilename != null and !#strings.isEmpty(avatarFilename)}"
+          class="user-avatar-letter"
+          th:text="${#strings.toUpperCase(#strings.substring(username, 0, 1))}">U</span>
+</div>
+<div th:fragment="groupAvatar(avatarFilename, extraClass)"
+     class="group-avatar"
+     th:classappend="${extraClass}">
+    <img th:if="${avatarFilename != null and !#strings.isEmpty(avatarFilename)}"
+         th:src="@{/uploads/group-avatars/{file}(file=${avatarFilename})}"
+         th:alt="'Аватар группы'"
+         class="group-avatar-img"/>
+    <span th:unless="${avatarFilename != null and !#strings.isEmpty(avatarFilename)}"
+          class="group-avatar-icon" aria-hidden="true">
+        <svg width="60%" height="60%" viewBox="0 0 24 24" fill="none"
+             xmlns="http://www.w3.org/2000/svg" class="group-avatar-svg">
+            <circle cx="9" cy="8" r="3.4" fill="#fff" fill-opacity="0.96"/>
+            <path d="M2.6 19.2c0-3.1 2.6-5.2 6.4-5.2s6.4 2.1 6.4 5.2"
+                  fill="#fff" fill-opacity="0.96"/>
+            <circle cx="16.6" cy="9" r="2.8" fill="#fff" fill-opacity="0.75"/>
+            <path d="M16 14.4c3.2 0 5.4 1.7 5.4 4.4" fill="none"
+                  stroke="#fff" stroke-opacity="0.75" stroke-width="1.7"
+                  stroke-linecap="round"/>
+        </svg>
+    </span>
+</div>
+</body>
+</html>

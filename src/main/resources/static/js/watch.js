@@ -1,0 +1,2948 @@
+var hub = document.getElementById('watch-hub');
+var roomView = document.getElementById('watch-room-view');
+var roomTitle = document.getElementById('room-title');
+var roomMeta = document.getElementById('room-meta');
+var roomsList = document.getElementById('rooms-list');
+var createForm = document.getElementById('create-room-form');
+var roomNameInput = document.getElementById('room-name');
+var joinForm = document.getElementById('join-room-form');
+var roomCodeInput = document.getElementById('room-code');
+var leaveBtn = document.getElementById('leave-room-btn');
+var inviteBtn = document.getElementById('invite-btn');
+var videoEl = document.getElementById('watch-video');
+var ytWrap = document.getElementById('watch-yt');
+var embedNote = document.getElementById('watch-embed-note');
+var playerEmpty = document.getElementById('player-empty');
+var playerEmptySub = document.getElementById('player-empty-sub');
+var playerOverlay = document.getElementById('player-overlay');
+var playerOverlayBtn = document.getElementById('player-overlay-btn');
+var playBtn = document.getElementById('play-btn');
+var pauseBtn = document.getElementById('pause-btn');
+var nextBtn = document.getElementById('next-btn');
+var videoUrlInput = document.getElementById('video-url-input');
+var setUrlBtn = document.getElementById('set-url-btn');
+var hostHint = document.getElementById('host-hint');
+var playlistList = document.getElementById('playlist-list');
+var playlistAddForm = document.getElementById('playlist-add-form');
+var playlistUrlInput = document.getElementById('playlist-url-input');
+var playlistTitleInput = document.getElementById('playlist-title-input');
+var playlistHostHint = document.getElementById('playlist-host-hint');
+var videoSearchBtn = document.getElementById('video-search-btn');
+var videoSearchOverlay = document.getElementById('video-search-overlay');
+var videoSearchClose = document.getElementById('video-search-close');
+var videoSearchForm = document.getElementById('video-search-form');
+var videoSearchInput = document.getElementById('video-search-input');
+var videoSearchStatus = document.getElementById('video-search-status');
+var videoSearchResults = document.getElementById('video-search-results');
+var chatMessages = document.getElementById('watch-chat-messages');
+var chatForm = document.getElementById('watch-chat-form');
+var chatInput = document.getElementById('watch-chat-input');
+var voiceMsgBtn = document.getElementById('voice-msg-btn');
+var voiceMsgRec = document.getElementById('voice-msg-rec');
+var voiceMsgTimer = document.getElementById('voice-msg-timer');
+var voiceMsgSend = document.getElementById('voice-msg-send');
+var voiceMsgCancel = document.getElementById('voice-msg-cancel');
+var voiceJoinBtn = document.getElementById('voice-join-btn');
+var voiceChatPanel = document.getElementById('watch-voice-chat');
+var voiceMembersEl = document.getElementById('voice-members');
+var voiceMuteBtn = document.getElementById('voice-mute-btn');
+var voiceLeaveBtn = document.getElementById('voice-leave-btn');
+var voiceChatStatus = document.getElementById('voice-chat-status');
+var toast = document.getElementById('watch-toast');
+var seekRow = document.getElementById('seek-row');
+var seekBar = document.getElementById('seek-bar');
+var seekTime = document.getElementById('seek-time');
+var hostScrubbing = false;
+var scrubTick = null;
+var lastSeekTime = 0;
+var lastSendControlTs = 0;
+
+var inviteModalOverlay = document.getElementById('invite-modal-overlay');
+var inviteModalClose = document.getElementById('invite-modal-close');
+var inviteChatList = document.getElementById('invite-chat-list');
+var inviteFilter = document.getElementById('invite-filter');
+var inviteCopyLinkBtn = document.getElementById('invite-copy-link-btn');
+var inviteCodeLabel = document.getElementById('invite-code-label');
+
+var socket = new SockJS('/ws');
+var stompClient = Stomp.over(socket);
+stompClient.debug = null;
+
+var activeRoom = null;
+var isHost = false;
+var currentVideoUrl = null;
+var applyingSync = false;
+var syncSub = null;
+var chatSub = null;
+var chatReactionsSub = null;
+var playlistSub = null;
+var reactionSub = null;
+var reactionLayer = document.getElementById('reaction-layer');
+var reactionBar = document.getElementById('reaction-bar');
+var liveBadge = document.getElementById('room-live-badge');
+var fullscreenBtn = document.getElementById('fullscreen-btn');
+var playlist = { currentItemId: null, items: [] };
+var didInitialJoin = false;
+var connectErrorShown = false;
+var watchReactionsBound = false;
+
+function bindWatchReactions() {
+    if (watchReactionsBound || !chatMessages || !window.ReactionsUI) return;
+    watchReactionsBound = true;
+    ReactionsUI.initContainer(chatMessages, {
+        username: currentUsername,
+        bubbleSelector: '.chat-msg-content',
+        getMessageId: function (row) {
+            return row.getAttribute('data-msg-id');
+        },
+        getReactions: function (messageId) {
+            var row = chatMessages.querySelector('[data-msg-id="' + messageId + '"]');
+            if (row) {
+                var bar = row.querySelector(':scope > .message-reactions');
+                if (bar) {
+                    var map = {};
+                    bar.querySelectorAll('.reaction-badge').forEach(function (b) {
+                        map[b.getAttribute('data-emoji')] = b.getAttribute('data-users') ? b.getAttribute('data-users').split(',') : [];
+                    });
+                    return map;
+                }
+            }
+            return {};
+        },
+        onPick: function (messageId, emoji) {
+            sendWatchMessageReaction(messageId, emoji);
+        }
+    });
+}
+
+/* ===== Voice ===== */
+var voiceState = {
+    joined: false,
+    stream: null,
+    pcs: {},
+    audioEls: {},
+    participants: [],
+    muted: false
+};
+var voiceSub = null;
+var voiceQueueSub = null;
+var RTC_CONFIG = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'stun:stun.services.mozilla.com' },
+        { urls: 'stun:stun.1und1.de:3478' }
+    ]
+};
+var voiceRecorder = null;
+var voiceChunks = [];
+var voiceRecTimer = null;
+var voiceRecStarted = 0;
+var VOICE_REC_MAX = 60 * 1000;
+
+/* Player adapter: html5 | youtube | embed */
+var playerMode = null;
+var currentMeta = null;
+var ytPlayer = null;
+var ytApiReady = false;
+var ytPlayAttempt = 0;
+var ytAutoplayResolved = false;
+var ytControlsForHost = -1;
+var pendingYt = null;
+var embedStarted = false;
+var embedTiming = { posMs: 0, startedAt: 0, playing: false };
+var hlsPlayer = null;
+var directSrc = null;
+var pendingHtml5Snap = null;
+
+function embedTimeMs() {
+    if (!embedTiming.playing) return embedTiming.posMs;
+    return embedTiming.posMs + (Date.now() - embedTiming.startedAt);
+}
+
+function driftTargetMs(posMs, updatedAtMs) {
+    var t = posMs || 0;
+    if (updatedAtMs) {
+        var elapsed = Date.now() - updatedAtMs;
+        if (elapsed > 0 && elapsed < 60000) t += elapsed;
+    }
+    return t;
+}
+
+function parseVideoUrl(url) {
+    if (!url) return null;
+    var yt = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/);
+    if (yt) return { type: 'youtube', id: yt[1] };
+    var vk = url.match(/(?:vk\.com\/video|vkvideo\.ru\/(?:video|play))(-?\d+)_(\d+)/i);
+    if (vk) return { type: 'vk', oid: vk[1], id: vk[2] };
+    var rt = url.match(/rutube\.ru\/(?:video|play\/embed)\/([\w-]+)/i);
+    if (rt) return { type: 'rutube', id: rt[1] };
+    var vim = url.match(/vimeo\.com\/(\d+)/i);
+    if (vim) return { type: 'vimeo', id: vim[1] };
+    if (/\.(mp4|webm|ogv|ogg|mov)(\?.*)?$/i.test(url)) return { type: 'html5', url: url };
+    return null;
+}
+
+function isSupportedVideoUrl(url) {
+    return parseVideoUrl(url) !== null;
+}
+
+function embedUrl(meta, autoplay, startSec) {
+    if (meta.type === 'vk') {
+        var u = 'https://vk.com/video_ext.php?oid=' + meta.oid + '&id=' + meta.id;
+        if (autoplay) u += '&autoplay=1';
+        if (startSec) u += '&start=' + Math.floor(startSec);
+        return u;
+    }
+    if (meta.type === 'rutube') {
+        var r = 'https://rutube.ru/play/embed/' + meta.id;
+        var q = [];
+        if (autoplay) q.push('autoplay=1');
+        if (startSec) q.push('start=' + Math.floor(startSec));
+        return q.length ? r + '?' + q.join('&') : r;
+    }
+    if (meta.type === 'vimeo') {
+        var v = 'https://player.vimeo.com/video/' + meta.id;
+        if (autoplay) v += '?autoplay=1';
+        if (startSec) v += '#t=' + Math.floor(startSec) + 's';
+        return v;
+    }
+    return '';
+}
+
+function mountEmbed(meta, autoplay, startSec) {
+    if (!ytWrap || !meta) return;
+    ytWrap.innerHTML = '<iframe src="' + embedUrl(meta, autoplay, startSec) + '" allow="autoplay; fullscreen; encrypted-media; picture-in-picture; clipboard-write" frameborder="0" scrolling="no" allowfullscreen></iframe>';
+}
+
+function destroyHls() {
+    if (hlsPlayer) { try { hlsPlayer.destroy(); } catch (e) {} hlsPlayer = null; }
+    directSrc = null;
+}
+
+function playHls(el, src) {
+    destroyHls();
+    directSrc = src;
+    if (window.Hls && Hls.isSupported()) {
+        var hls = new Hls({ maxBufferLength: 30 });
+        hlsPlayer = hls;
+        hls.on(Hls.Events.ERROR, function (evt, data) {
+            if (!data.fatal) return;
+            if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                try { hls.recoverMediaError(); } catch (e) {}
+            } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                try { hls.startLoad(); } catch (e) {}
+            } else {
+                fallbackToEmbed();
+            }
+        });
+        hls.loadSource(src);
+        hls.attachMedia(el);
+    } else if (el.canPlayType('application/vnd.apple.mpegurl')) {
+        el.src = src;
+        el.load();
+    } else {
+        fallbackToEmbed();
+    }
+}
+
+function fallbackToEmbed() {
+    if (!currentMeta || !directSrc || !currentVideoUrl) return;
+    var wasPlaying = !!activeRoom && activeRoom.status === 'PLAYING';
+    var pos = activeRoom ? (activeRoom.positionMs || 0) : 0;
+    var meta = currentMeta;
+    destroyHls();
+    playerMode = meta.type;
+    videoEl.pause();
+    videoEl.removeAttribute('src');
+    videoEl.load();
+    videoEl.hidden = true;
+    ytWrap.hidden = false;
+    embedNote.hidden = false;
+    mountEmbed(meta, wasPlaying, pos / 1000);
+    embedStarted = wasPlaying;
+    embedTiming.posMs = pos;
+    embedTiming.startedAt = Date.now();
+    embedTiming.playing = wasPlaying;
+    hidePlayerOverlay();
+    showToast('Прямое воспроизведение недоступно — включена вставка');
+}
+
+function loadYouTubeApi() {
+    if (window.YT && YT.Player) { ytApiReady = true; maybeCreateYt(); return; }
+    var tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    tag.async = true;
+    document.head.appendChild(tag);
+}
+
+function maybeCreateYt() {
+    if (!ytApiReady || !pendingYt) return;
+    var p = pendingYt;
+    pendingYt = null;
+    ensureYtPlayer(p.id, function () {
+        syncPlayback(p.status, p.posMs, p.updatedAtMs, false);
+    });
+}
+
+function ensureYtPlayer(videoId, cb) {
+    if (ytPlayer) {
+        if (ytPlayer.videoId === videoId) { if (cb) cb(); return; }
+        try { ytPlayer.destroy(); } catch (e) {}
+        ytPlayer = null;
+    }
+    ytPlayer = new YT.Player('watch-yt', {
+        width: '100%',
+        height: '100%',
+        videoId: videoId,
+        playerVars: {
+            autoplay: 0,
+            controls: isHost ? 1 : 0,
+            disablekb: isHost ? 0 : 1,
+            modestbranding: 1,
+            rel: 0,
+            playsinline: 1
+        },
+        events: {
+            onReady: function () { if (cb) cb(); },
+            onStateChange: function (e) { onYtStateChange(e.data); }
+        }
+    });
+    ytControlsForHost = isHost ? 1 : 0;
+    ytPlayer.videoId = videoId;
+}
+
+function onYtStateChange(state) {
+    if (state === 1) {
+        ytAutoplayResolved = true;
+        hidePlayerOverlay();
+    }
+    if (!activeRoom || !ytPlayer || applyingSync || !isHost) return;
+    var pos = (ytPlayer.getCurrentTime() || 0) * 1000;
+    if (state === 1) {
+        sendControl('PLAYING', pos);
+    } else if (state === 2) {
+        sendControl('PAUSED', pos);
+    } else if (state === 0) {
+        if (hasNextInPlaylist()) {
+            stompClient.send('/app/room.playlist.next', {}, JSON.stringify({ roomId: activeRoom.roomId }));
+        } else {
+            sendControl('PAUSED', pos);
+        }
+    }
+}
+
+function checkYtAutoplay() {
+    if (!ytPlayer || playerMode !== 'youtube' || ytPlayAttempt === 0 || ytAutoplayResolved) return;
+    var st;
+    try { st = ytPlayer.getPlayerState(); } catch (e) { return; }
+    if (st === 1) {
+        ytAutoplayResolved = true;
+        hidePlayerOverlay();
+        return;
+    }
+    if (st === 2 || st === 0) return;
+    if (Date.now() - ytPlayAttempt > 1500) showPlayerOverlay();
+}
+
+function getCurrentTimeMs() {
+    if (playerMode === 'youtube' && ytPlayer) return (ytPlayer.getCurrentTime() || 0) * 1000;
+    if (playerMode === 'html5') {
+        if (activeRoom && typeof activeRoom.positionMs === 'number') return activeRoom.positionMs;
+        return videoEl && videoEl.currentTime ? videoEl.currentTime * 1000 : 0;
+    }
+    return embedTimeMs();
+}
+
+function showToast(text) {
+    if (!toast) return;
+    toast.textContent = text;
+    toast.hidden = false;
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function () {
+        toast.hidden = true;
+    }, 3500);
+}
+
+function saveRoom(room) {
+    try {
+        localStorage.setItem('eclipseWatchRoom', JSON.stringify({ roomId: room.roomId, roomCode: room.roomCode }));
+    } catch (e) {}
+}
+
+function getSavedRoom() {
+    try {
+        var raw = localStorage.getItem('eclipseWatchRoom');
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function clearSavedRoom() {
+    try {
+        localStorage.removeItem('eclipseWatchRoom');
+    } catch (e) {}
+}
+
+function inviteUrl() {
+    if (!activeRoom) return null;
+    var code = activeRoom.roomCode;
+    var origin = window.location.origin;
+    return origin + '/watch?room=' + encodeURIComponent(code);
+}
+
+function copyTextFallback(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+}
+
+function copyInviteLink() {
+    var url = inviteUrl();
+    if (!url) return;
+    function ok() { showToast('Ссылка скопирована'); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(ok, function () {
+            copyTextFallback(url);
+            ok();
+        });
+    } else {
+        copyTextFallback(url);
+        ok();
+    }
+}
+
+function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+}
+
+function openInviteModal() {
+    if (!activeRoom) return;
+    if (inviteCodeLabel) inviteCodeLabel.textContent = 'Код комнаты: ' + activeRoom.roomCode;
+    if (inviteFilter) inviteFilter.value = '';
+    if (inviteModalOverlay) inviteModalOverlay.hidden = false;
+    loadInviteChats();
+    if (inviteFilter) setTimeout(function () { inviteFilter.focus(); }, 30);
+}
+
+function closeInviteModal() {
+    if (inviteModalOverlay) inviteModalOverlay.hidden = true;
+}
+
+function loadInviteChats() {
+    if (!inviteChatList) return;
+    inviteChatList.innerHTML = '<p class="invite-chat-loading">Загрузка чатов...</p>';
+    var query = inviteFilter ? inviteFilter.value.trim().toLowerCase() : '';
+    var done = { d: false, g: false };
+
+    function maybeRender() {
+        if (!done.d || !done.g) return;
+        if (!inviteChatList) return;
+        var rows = inviteChatList.querySelectorAll('.invite-chat-item');
+        var visible = 0;
+        for (var i = 0; i < rows.length; i++) {
+            var match = !query || rows[i].getAttribute('data-search').indexOf(query) !== -1;
+            rows[i].style.display = match ? '' : 'none';
+            if (match) visible++;
+        }
+        if (!visible) {
+            inviteChatList.innerHTML = '<p class="invite-chat-empty">Нет подходящих чатов</p>';
+        } else {
+            var loading = inviteChatList.querySelector('.invite-chat-loading');
+            if (loading) loading.remove();
+        }
+    }
+
+    fetch('/api/conversations', { headers: { 'Accept': 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (list) {
+            (list || []).forEach(function (c) { appendInviteRow(c.partnerUsername, 'direct'); });
+            done.d = true;
+            maybeRender();
+        })
+        .catch(function () { done.d = true; maybeRender(); });
+
+    fetch('/api/groups', { headers: { 'Accept': 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (list) {
+            (list || []).forEach(function (g) { appendInviteRow(g.groupName, 'group', g.groupId); });
+            done.g = true;
+            maybeRender();
+        })
+        .catch(function () { done.g = true; maybeRender(); });
+}
+
+function appendInviteRow(title, type, groupId) {
+    if (!inviteChatList) return;
+    var row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'invite-chat-item';
+    var icon = type === 'group'
+        ? '<span class="invite-chat-icon">👥</span>'
+        : '<span class="invite-chat-icon">👤</span>';
+    row.innerHTML = icon + '<span class="invite-chat-name">' + escapeHtml(title || 'Без названия') + '</span>';
+    row.setAttribute('data-type', type);
+    if (type === 'group') row.setAttribute('data-group-id', groupId);
+    row.setAttribute('data-search', (title || '').toLowerCase() + ' ' + (type === 'group' ? 'группа' : 'чат'));
+    row.addEventListener('click', function () {
+        var url = inviteUrl();
+        if (!url) return;
+        row.disabled = true;
+        var labelEl = row.querySelector('.invite-chat-name');
+        if (labelEl) labelEl.textContent = 'Отправляем...';
+        sendInviteMessage(type, groupId, title, url, row);
+    });
+    inviteChatList.appendChild(row);
+}
+
+function sendInviteMessage(type, groupId, title, url, row) {
+    var text = 'Присоединяйся к моей комнате просмотра: ' + url;
+    if (!stompClient || !stompClient.connected) {
+        showToast('Нет соединения с сервером');
+        resetInviteRow(row, title);
+        return;
+    }
+    if (type === 'group') {
+        stompClient.send('/app/group.send', {}, JSON.stringify({
+            groupId: groupId,
+            content: text
+        }));
+    } else {
+        stompClient.send('/app/chat.send', {}, JSON.stringify({
+            receiverUsername: title,
+            content: text
+        }));
+    }
+    var labelEl = row.querySelector('.invite-chat-name');
+    if (labelEl) labelEl.textContent = 'Отправлено ✓';
+    setTimeout(function () {
+        closeInviteModal();
+    }, 700);
+}
+
+function resetInviteRow(row, title) {
+    if (!row) return;
+    row.disabled = false;
+    var labelEl = row.querySelector('.invite-chat-name');
+    if (labelEl) labelEl.textContent = title;
+}
+
+function scrollChat() {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function sendControl(status, positionMs, videoUrl, restart) {
+    if (!stompClient.connected || !activeRoom) return;
+    var payload = { roomId: activeRoom.roomId };
+    if (status) payload.status = status;
+    if (typeof positionMs === 'number') payload.positionMs = Math.round(positionMs);
+    if (videoUrl) payload.videoUrl = videoUrl;
+    if (restart) payload.restart = true;
+    lastSendControlTs = Date.now();
+    stompClient.send('/app/room.control', {}, JSON.stringify(payload));
+}
+
+/* ===== Room view ===== */
+
+function showRoomView() {
+    hub.hidden = true;
+    roomView.hidden = false;
+    chatMessages.innerHTML = '<div class="sidebar-empty">Загрузка…</div>';
+    resetPlayer();
+}
+
+function resetRoomView() {
+    if (syncSub) { try { syncSub.unsubscribe(); } catch (e) {} syncSub = null; }
+    if (chatSub) { try { chatSub.unsubscribe(); } catch (e) {} chatSub = null; }
+    if (chatReactionsSub) { try { chatReactionsSub.unsubscribe(); } catch (e) {} chatReactionsSub = null; }
+    if (playlistSub) { try { playlistSub.unsubscribe(); } catch (e) {} playlistSub = null; }
+    if (reactionSub) { try { reactionSub.unsubscribe(); } catch (e) {} reactionSub = null; }
+    if (voiceSub) { try { voiceSub.unsubscribe(); } catch (e) {} voiceSub = null; }
+    if (voiceQueueSub) { try { voiceQueueSub.unsubscribe(); } catch (e) {} voiceQueueSub = null; }
+    cancelVoiceRecording();
+    leaveVoiceChat(false);
+    clearReactions();
+    resetPlayer();
+    if (window.VideoPreloader) VideoPreloader.clearAll();
+    activeRoom = null;
+    isHost = false;
+    currentVideoUrl = null;
+    playlist = { currentItemId: null, items: [] };
+    chatMessages.innerHTML = '';
+    roomView.hidden = true;
+    hub.hidden = false;
+    videoUrlInput.disabled = true;
+    setUrlBtn.disabled = true;
+    playBtn.disabled = true;
+    pauseBtn.disabled = true;
+    nextBtn.disabled = true;
+    hostHint.hidden = true;
+    playlistHostHint.hidden = true;
+    if (liveBadge) liveBadge.hidden = true;
+    var visBadge = document.getElementById('room-visibility-badge');
+    if (visBadge) visBadge.hidden = true;
+    renderPlaylist();
+    hidePlayerOverlay();
+}
+
+function resetPlayer() {
+    currentVideoUrl = null;
+    playerMode = null;
+    currentMeta = null;
+    if (ytPlayer) { try { ytPlayer.destroy(); } catch (e) {} ytPlayer = null; }
+    ytPlayAttempt = 0;
+    ytAutoplayResolved = false;
+    embedStarted = false;
+    embedTiming = { posMs: 0, startedAt: 0, playing: false };
+    pendingHtml5Snap = null;
+    destroyHls();
+    videoEl.pause();
+    videoEl.removeAttribute('src');
+    videoEl.load();
+    ytWrap.hidden = true;
+    embedNote.hidden = true;
+    playerEmpty.hidden = false;
+    playerEmptySub.textContent = isHost ? 'Вставьте ссылку на видео в поле ниже' : 'Хост ещё не добавил видео';
+    if (seekRow) seekRow.hidden = true;
+    hidePlayerOverlay();
+}
+
+function loadVideo(url, posMs, status, updatedAtMs) {
+    var meta = parseVideoUrl(url);
+    currentVideoUrl = url;
+    if (!meta) {
+        resetPlayer();
+        return;
+    }
+    var idChanged = !currentMeta || currentMeta.type !== meta.type
+        || (meta.type === 'youtube' && currentMeta.id !== meta.id)
+        || (meta.type !== 'html5' && currentMeta.type === meta.type && currentMeta.id !== meta.id);
+    currentMeta = meta;
+    if (idChanged) {
+        if (ytPlayer) { try { ytPlayer.destroy(); } catch (e) {} ytPlayer = null; }
+        ytPlayAttempt = 0;
+        ytAutoplayResolved = false;
+        pendingHtml5Snap = null;
+        videoEl.pause();
+        videoEl.removeAttribute('src');
+        videoEl.load();
+        videoEl.hidden = true;
+        ytWrap.hidden = true;
+        embedNote.hidden = true;
+    }
+    playerMode = meta.type;
+    playerEmpty.hidden = true;
+    updateSeekControls();
+
+    var preloaded = VideoPreloader.get(url);
+
+    if (meta.type === 'html5') {
+        playerMode = 'html5';
+        videoEl.hidden = false;
+        if (preloaded && preloaded.type === 'html5' && preloaded.el) {
+            var preSrc = preloaded.el.src;
+            VideoPreloader.release(url);
+            videoEl.src = preSrc;
+            videoEl.load();
+            syncPlayback(status, posMs, updatedAtMs, true);
+        } else if (videoEl.src !== meta.url) {
+            videoEl.src = meta.url;
+            videoEl.load();
+            syncPlayback(status, posMs, updatedAtMs, false);
+        } else {
+            syncPlayback(status, posMs, updatedAtMs, false);
+        }
+    } else if (meta.type === 'youtube') {
+        ytWrap.hidden = false;
+        if (idChanged) {
+            pendingYt = { id: meta.id, status: status, posMs: posMs, updatedAtMs: updatedAtMs };
+            loadYouTubeApi();
+        } else {
+            syncPlayback(status, posMs, updatedAtMs, false);
+        }
+    } else if (meta.type === 'rutube') {
+        playerMode = 'html5';
+        videoEl.hidden = false;
+        var playSrc = '/api/video/play/rutube?id=' + encodeURIComponent(meta.id);
+        if (preloaded && preloaded.type === 'hls') {
+            destroyHls();
+            VideoPreloader.release(url);
+            videoEl.hidden = false;
+            if (window.Hls && Hls.isSupported()) {
+                var hls = preloaded.hls;
+                try { hls.attachMedia(videoEl); } catch (e) {
+                    hls = new Hls({ maxBufferLength: 30 });
+                    hls.loadSource(preloaded.src);
+                    hls.attachMedia(videoEl);
+                }
+                hlsPlayer = hls;
+                directSrc = preloaded.src;
+                syncPlayback(status, posMs, updatedAtMs, true);
+            } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+                videoEl.src = preloaded.src;
+                videoEl.load();
+                syncPlayback(status, posMs, updatedAtMs, true);
+            } else {
+                syncPlayback(status, posMs, updatedAtMs, true);
+            }
+        } else if (idChanged || directSrc !== playSrc) {
+            videoEl.removeAttribute('src');
+            videoEl.load();
+            playHls(videoEl, playSrc);
+            syncPlayback(status, posMs, updatedAtMs, false);
+        } else {
+            syncPlayback(status, posMs, updatedAtMs, false);
+        }
+    } else if (meta.type === 'vk') {
+        playerMode = 'html5';
+        videoEl.hidden = false;
+        videoEl.muted = false;
+        var vkSrc = '/api/video/play/vk?id=' + encodeURIComponent(meta.oid + '_' + meta.id);
+        if (preloaded && (preloaded.type === 'html5' || preloaded.type === 'hls')) {
+            VideoPreloader.release(url);
+            if (preloaded.type === 'hls') {
+                destroyHls();
+                if (window.Hls && Hls.isSupported()) {
+                    var vkHls = preloaded.hls;
+                    try { vkHls.attachMedia(videoEl); } catch (e) {
+                        vkHls = new Hls({ maxBufferLength: 30 });
+                        vkHls.loadSource(preloaded.src);
+                        vkHls.attachMedia(videoEl);
+                    }
+                    hlsPlayer = vkHls;
+                    directSrc = preloaded.src;
+                } else {
+                    videoEl.src = preloaded.src;
+                    videoEl.load();
+                }
+            } else {
+                videoEl.src = preloaded.el.src;
+                videoEl.load();
+            }
+            syncPlayback(status, posMs, updatedAtMs, true);
+        } else if (idChanged || directSrc !== vkSrc) {
+            videoEl.removeAttribute('src');
+            videoEl.load();
+            destroyHls();
+            directSrc = vkSrc;
+            fetch(vkSrc).then(function (r) { return r.ok ? r.text() : null; }).then(function (t) {
+                if (!t) { fallbackToEmbed(); return; }
+                if (!currentMeta || currentMeta.id !== meta.id) return;
+                var sep = t.indexOf('|');
+                var u = sep > 0 ? t.substring(sep + 1) : t;
+                if (sep > 0 && t.substring(0, sep) === 'hls') {
+                    playHls(videoEl, u);
+                } else {
+                    videoEl.src = u;
+                    videoEl.load();
+                }
+                syncPlayback(status, posMs, updatedAtMs, false);
+            });
+        } else {
+            syncPlayback(status, posMs, updatedAtMs, false);
+        }
+    } else {
+        ytWrap.hidden = false;
+        embedNote.hidden = false;
+        if (idChanged || ytWrap.querySelector('iframe') === null) {
+            mountEmbed(meta, status === 'PLAYING', (posMs || 0) / 1000);
+            embedStarted = status === 'PLAYING';
+        }
+        if (status === 'PLAYING') {
+            embedTiming.posMs = posMs || 0;
+            embedTiming.startedAt = Date.now();
+            embedTiming.playing = true;
+        } else {
+            embedTiming.posMs = posMs || 0;
+            embedTiming.playing = false;
+        }
+        hidePlayerOverlay();
+    }
+}
+
+function syncPlayback(status, posMs, updatedAtMs, restart) {
+    if (!status) return;
+    if (playerMode === 'html5') {
+        if (!videoEl.src) {
+            if (restart && !isHost) {
+                pendingHtml5Snap = { target: driftTargetMs(posMs, updatedAtMs) / 1000, play: status === 'PLAYING', ts: Date.now() };
+            }
+            return;
+        }
+        if (status === 'PLAYING') {
+            var target = driftTargetMs(posMs, updatedAtMs) / 1000;
+            if (restart) {
+                pendingHtml5Snap = { target: target, play: true, ts: Date.now() };
+                showToast('[sync] прыжок на ' + target.toFixed(1) + 'с (было ' + videoEl.currentTime.toFixed(1) + 'с)');
+            }
+            if (restart || (!isHost && Math.abs(videoEl.currentTime - target) > 2)) {
+                applyingSync = true;
+                try { videoEl.currentTime = target; } catch (e) {}
+                applyingSync = false;
+            }
+            var p = videoEl.play();
+            if (p && p.catch) p.catch(function () { showPlayerOverlay(); });
+        } else {
+            applyingSync = true;
+            videoEl.pause();
+            if (!isHost) {
+                var pv = (posMs || 0) / 1000;
+                if (Math.abs(videoEl.currentTime - pv) > 2) {
+                    try { videoEl.currentTime = pv; } catch (e) {}
+                }
+            }
+            applyingSync = false;
+            hidePlayerOverlay();
+        }
+    } else if (playerMode === 'youtube') {
+        if (!ytApiReady || !ytPlayer) {
+            if (!pendingYt) {
+                pendingYt = { id: currentMeta ? currentMeta.id : null, status: status, posMs: posMs, updatedAtMs: updatedAtMs };
+                loadYouTubeApi();
+            }
+            return;
+        }
+        var t = driftTargetMs(posMs, updatedAtMs) / 1000;
+        var cur = 0;
+        try { cur = ytPlayer.getCurrentTime() || 0; } catch (e) {}
+        var st = -1;
+        try { st = ytPlayer.getPlayerState(); } catch (e) {}
+        if (restart || (!isHost && Math.abs(cur - t) > 2)) {
+            applyingSync = true;
+            try { ytPlayer.seekTo(t, true); } catch (e) {}
+            applyingSync = false;
+        }
+        if (status === 'PLAYING') {
+            if (st !== 1) {
+                applyingSync = true;
+                try {
+                    ytPlayAttempt = Date.now();
+                    ytPlayer.playVideo();
+                } catch (e) {}
+                applyingSync = false;
+            }
+        } else {
+            if (st !== 2) {
+                applyingSync = true;
+                try { ytPlayer.pauseVideo(); } catch (e) {}
+                applyingSync = false;
+            }
+            hidePlayerOverlay();
+        }
+    } else {
+        if (status === 'PLAYING') {
+            if (((restart && !isHost) || !embedStarted) && currentMeta) {
+                embedStarted = true;
+                mountEmbed(currentMeta, true, (posMs || 0) / 1000);
+            }
+            embedTiming.posMs = posMs || 0;
+            embedTiming.startedAt = Date.now();
+            embedTiming.playing = true;
+            hidePlayerOverlay();
+        } else {
+            var wasStarted = embedStarted;
+            embedStarted = false;
+            embedTiming.playing = false;
+            if (posMs != null) embedTiming.posMs = posMs || 0;
+            if (wasStarted && currentMeta) mountEmbed(currentMeta, false, embedTiming.posMs / 1000);
+        }
+    }
+}
+
+function updateHeader() {
+    roomTitle.textContent = activeRoom.name || 'Комната';
+    var members = activeRoom.members ? activeRoom.members.length : 0;
+    roomMeta.textContent = 'Код: ' + activeRoom.roomCode + ' · ' + activeRoom.hostUsername + ' · ' + members + ' чел.';
+    if (liveBadge) {
+        liveBadge.hidden = false;
+        liveBadge.setAttribute('title', 'Вы уже в комнате ' + activeRoom.roomCode);
+    }
+    var visBadge = document.getElementById('room-visibility-badge');
+    if (visBadge) {
+        var isPrivate = activeRoom.visibility === 'PRIVATE';
+        visBadge.hidden = false;
+        visBadge.className = 'room-visibility-badge' + (isPrivate ? ' is-private' : ' is-public');
+        visBadge.textContent = isPrivate ? '🔒 Приватная' : '🌍 Публичная';
+        visBadge.setAttribute('title', isPrivate
+            ? 'Комната по приглашению: вход только по коду'
+            : 'Публичная комната: видна в ленте активных комнат');
+    }
+}
+
+function formatTime(sec) {
+    if (!isFinite(sec) || sec < 0) return '0:00';
+    var s = Math.floor(sec);
+    var m = Math.floor(s / 60);
+    s = s % 60;
+    var h = Math.floor(m / 60);
+    m = m % 60;
+    var out = (h > 0 ? h + ':' + (m < 10 ? '0' : '') : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    return out;
+}
+
+function seekPosSec() {
+    if (playerMode === 'html5') return videoEl && isFinite(videoEl.currentTime) ? videoEl.currentTime : 0;
+    if (playerMode === 'youtube' && ytPlayer && ytApiReady) {
+        try { return ytPlayer.getCurrentTime() || 0; } catch (e) {}
+    }
+    return 0;
+}
+
+function seekDurationSec() {
+    if (playerMode === 'html5') return videoEl && isFinite(videoEl.duration) ? videoEl.duration : 0;
+    if (playerMode === 'youtube' && ytPlayer && ytApiReady) {
+        try { return ytPlayer.getDuration() || 0; } catch (e) {}
+    }
+    return 0;
+}
+
+function updateSeekBar() {
+    if (!seekBar || !seekTime) return;
+    if (playerMode !== 'html5' && playerMode !== 'youtube') {
+        seekRow.hidden = true;
+        return;
+    }
+    seekRow.hidden = false;
+    var dur = seekDurationSec();
+    var maxV = dur > 0 && isFinite(dur) ? Math.round(dur * 1000) : 1000;
+    if (maxV > 0 && seekBar.max !== String(maxV)) seekBar.max = String(maxV);
+    var pos;
+    if (isHost && activeRoom) {
+        pos = (activeRoom.positionMs || 0) / 1000;
+    } else {
+        pos = seekPosSec();
+    }
+    var val = Math.min(Math.max(pos * 1000, 0), maxV);
+    if (!hostScrubbing) seekBar.value = String(val);
+    var pct = maxV > 0 ? (val / maxV) * 100 : 0;
+    pct = Math.min(Math.max(pct, 0), 100);
+    seekBar.style.setProperty('--fill', pct + '%');
+    seekTime.textContent = formatTime(pos) + ' / ' + formatTime(dur);
+    seekBar.disabled = !isHost;
+}
+
+function updateSeekControls() {
+    if (!seekRow) return;
+    if (!currentVideoUrl || (playerMode !== 'html5' && playerMode !== 'youtube')) {
+        seekRow.hidden = true;
+        return;
+    }
+    updateSeekBar();
+}
+
+function updateControls() {
+    var hostNow = isHost;
+    var hasUrl = !!currentVideoUrl;
+    playBtn.disabled = !hostNow || !hasUrl;
+    pauseBtn.disabled = !hostNow || !hasUrl;
+    nextBtn.disabled = !hostNow || !(playlist.items || []).length;
+    setUrlBtn.disabled = !hostNow;
+    videoUrlInput.disabled = !hostNow;
+    hostHint.hidden = !hostNow;
+    playlistHostHint.hidden = !hostNow;
+    playlistUrlInput.disabled = !hostNow;
+    playlistTitleInput.disabled = !hostNow;
+    if (videoSearchBtn) videoSearchBtn.disabled = !hostNow;
+    playBtn.style.display = hostNow ? '' : 'none';
+    pauseBtn.style.display = hostNow ? '' : 'none';
+    nextBtn.style.display = hostNow ? '' : 'none';
+    if (!hostNow && !currentVideoUrl) {
+        playerEmptySub.textContent = 'Синхронизация с хостом…';
+    }
+    updateSeekControls();
+    syncNativeControls();
+    renderPlaylist();
+}
+
+/* Только хост управляет воспроизведением: гостям скрываем нативные контролы.
+   HTML5 — переключаем атрибут; YouTube — controls задаётся при создании,
+   поэтому при смене хоста пересоздаём плеер. */
+function syncNativeControls() {
+    if (playerMode === 'html5') {
+        videoEl.controls = false;
+    } else if (playerMode === 'youtube' && ytPlayer && ytApiReady) {
+        var want = isHost ? 1 : 0;
+        if (ytControlsForHost !== want) {
+            var vid = currentMeta ? currentMeta.id : null;
+            if (vid) {
+                var r = activeRoom || {};
+                pendingYt = { id: vid, status: r.status, posMs: r.positionMs || 0, updatedAtMs: r.updatedAtMs || 0 };
+                if (ytPlayer) { try { ytPlayer.destroy(); } catch (e) {} ytPlayer = null; }
+                maybeCreateYt();
+            }
+        }
+    }
+}
+
+/* Принудительно возвращает воспроизведение гостя, если он как-то поставил паузу,
+   а комната проигрывается. Покрывает все платформы (html5, youtube, embed). */
+function enforceHostPlayback() {
+    if (!activeRoom || activeRoom.status !== 'PLAYING') return;
+    if (playerMode === 'html5') {
+        if (videoEl && videoEl.paused && !videoEl.ended) {
+            applyingSync = true;
+            var p = videoEl.play();
+            if (p && p.catch) p.catch(function () {});
+            applyingSync = false;
+        }
+    } else if (playerMode === 'youtube') {
+        if (!ytPlayer || !ytApiReady) return;
+        var st;
+        try { st = ytPlayer.getPlayerState(); } catch (e) { return; }
+        if (st === 2) {
+            applyingSync = true;
+            try { ytPlayer.playVideo(); } catch (e) {}
+            applyingSync = false;
+        }
+    } else if (currentMeta && !embedTiming.playing) {
+        var realPos = embedTimeMs();
+        embedTiming.posMs = realPos;
+        embedTiming.startedAt = Date.now();
+        embedTiming.playing = true;
+        embedStarted = true;
+        mountEmbed(currentMeta, true, realPos / 1000);
+    }
+}
+
+function showPlayerOverlay() {
+    playerOverlay.hidden = false;
+}
+
+function hidePlayerOverlay() {
+    playerOverlay.hidden = true;
+}
+
+function isEmbedMode() {
+    return playerMode && playerMode !== 'html5' && playerMode !== 'youtube';
+}
+
+function unlockEmbedAutoplay() {
+    if (!isEmbedMode() || !currentMeta || !activeRoom) return;
+    if (activeRoom.status !== 'PLAYING') return;
+    embedStarted = true;
+    var pos = activeRoom.positionMs || 0;
+    embedTiming.posMs = pos;
+    embedTiming.startedAt = Date.now();
+    embedTiming.playing = true;
+    mountEmbed(currentMeta, true, pos / 1000);
+    hidePlayerOverlay();
+}
+
+document.addEventListener('pointerdown', unlockEmbedAutoplay, { once: true, capture: true });
+
+function setVideoSource(url, posMs, status, updatedAtMs) {
+    loadVideo(url, posMs, status, updatedAtMs);
+}
+
+function handleRoomDeleted() {
+    clearSavedRoom();
+    if (activeRoom) {
+        showToast('Комната «' + activeRoom.name + '» закрыта');
+    }
+    resetRoomView();
+}
+
+function applyRoomUpdate(update) {
+    if (!activeRoom || update.roomId !== activeRoom.roomId) return;
+
+    if (update.deleted) {
+        handleRoomDeleted();
+        return;
+    }
+
+    if (update.hostUsername) {
+        activeRoom.hostUsername = update.hostUsername;
+        isHost = update.hostUsername === currentUsername;
+    }
+    if (update.members) activeRoom.members = update.members;
+    if (update.name) activeRoom.name = update.name;
+    if (update.roomCode) activeRoom.roomCode = update.roomCode;
+    if (update.status) activeRoom.status = update.status;
+    if (update.visibility) activeRoom.visibility = update.visibility;
+    if (typeof update.positionMs === 'number') activeRoom.positionMs = update.positionMs;
+    if (typeof update.updatedAtMs === 'number') activeRoom.updatedAtMs = update.updatedAtMs;
+    if (typeof update.videoUrl === 'string') activeRoom.videoUrl = update.videoUrl;
+
+    updateHeader();
+
+    if (update.videoUrl !== currentVideoUrl) {
+        setVideoSource(update.videoUrl, update.positionMs, update.status, update.updatedAtMs);
+    } else if (isHost && update.lastControlBy === currentUsername) {
+        if (playerMode === 'html5' && videoEl.src) {
+            if (update.status === 'PLAYING') { var p = videoEl.play(); if (p && p.catch) p.catch(function(){}); }
+            else { videoEl.pause(); }
+        } else if (playerMode === 'youtube' && ytPlayer && ytApiReady) {
+            if (update.status === 'PLAYING') { try { ytPlayer.playVideo(); } catch(e){} }
+            else { try { ytPlayer.pauseVideo(); } catch(e){} }
+        }
+    } else {
+        syncPlayback(update.status, update.positionMs, update.updatedAtMs, !!update.restart);
+    }
+    updateControls();
+}
+
+function onRoomJoined(room) {
+    if (!room || !room.roomId) return;
+    bindWatchReactions();
+    activeRoom = room;
+    isHost = room.hostUsername === currentUsername;
+    saveRoom(room);
+    showRoomView();
+
+    if (syncSub) { try { syncSub.unsubscribe(); } catch (e) {} }
+    if (chatSub) { try { chatSub.unsubscribe(); } catch (e) {} }
+    if (playlistSub) { try { playlistSub.unsubscribe(); } catch (e) {} }
+    if (reactionSub) { try { reactionSub.unsubscribe(); } catch (e) {} }
+    if (voiceSub) { try { voiceSub.unsubscribe(); } catch (e) {} }
+    if (voiceQueueSub) { try { voiceQueueSub.unsubscribe(); } catch (e) {} }
+    syncSub = stompClient.subscribe('/topic/room.' + room.roomId, function (payload) {
+        applyRoomUpdate(JSON.parse(payload.body));
+    });
+    chatSub = stompClient.subscribe('/topic/room.' + room.roomId + '.chat', function (payload) {
+        appendChatMessage(JSON.parse(payload.body));
+    });
+    var chatReactionsSub = stompClient.subscribe('/topic/room.' + room.roomId + '.chat.reactions', function (payload) {
+        handleWatchChatReactionEvent(JSON.parse(payload.body));
+    });
+    playlistSub = stompClient.subscribe('/topic/room.' + room.roomId + '.playlist', function (payload) {
+        onPlaylistUpdate(JSON.parse(payload.body));
+    });
+    reactionSub = stompClient.subscribe('/topic/room.' + room.roomId + '.reactions', function (payload) {
+        var r = JSON.parse(payload.body);
+        if (r && r.emoji) spawnReaction(r.emoji, r.username);
+    });
+    voiceSub = stompClient.subscribe('/topic/room.' + room.roomId + '.voice', function (payload) {
+        onVoiceMembers(JSON.parse(payload.body));
+    });
+    voiceQueueSub = stompClient.subscribe('/user/queue/voice', function (payload) {
+        handleVoiceSignal(JSON.parse(payload.body));
+    });
+
+    loadChatHistory(room.roomId);
+    loadPlaylist(room.roomId);
+    applyRoomUpdate(room);
+}
+
+/* ===== Chat ===== */
+
+function loadChatHistory(roomId) {
+    fetch('/watch/' + roomId + '/messages').then(function (r) {
+        return r.json();
+    }).then(function (messages) {
+        chatMessages.innerHTML = '';
+        if (Array.isArray(messages) && messages.length) {
+            messages.forEach(function (m) {
+                appendChatMessage(m, false);
+            });
+            scrollChat();
+        } else {
+            chatMessages.innerHTML = '<div class="sidebar-empty">Сообщений пока нет</div>';
+        }
+    }).catch(function () {
+        chatMessages.innerHTML = '<div class="sidebar-empty">Не удалось загрузить чат</div>';
+    });
+}
+
+function showMsgNote(msg) {
+    var noteBox = document.getElementById('watch-msg-note');
+    if (!noteBox) return;
+
+    var card = document.createElement('div');
+    card.className = 'watch-msg-note-card';
+
+    var avatar = document.createElement('span');
+    avatar.className = 'watch-msg-note-avatar';
+    avatar.textContent = (msg.senderUsername || '?').charAt(0).toUpperCase();
+
+    var body = document.createElement('span');
+    body.className = 'watch-msg-note-body';
+
+    var sender = document.createElement('span');
+    sender.className = 'watch-msg-note-sender';
+    sender.textContent = msg.senderUsername;
+
+    var text = document.createElement('span');
+    text.className = 'watch-msg-note-text';
+    text.textContent = msg.stickerUrl ? 'Стикер' : (msg.audioUrl ? 'Голосовое сообщение' : (msg.content || 'Файл'));
+
+    body.appendChild(sender);
+    body.appendChild(text);
+    card.appendChild(avatar);
+    card.appendChild(body);
+    noteBox.appendChild(card);
+
+    while (noteBox.children.length > 3) {
+        noteBox.removeChild(noteBox.firstChild);
+    }
+
+    setTimeout(function () {
+        card.classList.add('is-leaving');
+    }, 4000);
+    setTimeout(function () {
+        if (card.parentNode) card.parentNode.removeChild(card);
+    }, 4600);
+}
+
+function appendChatMessage(msg, notify) {
+    var empty = chatMessages.querySelector('.sidebar-empty');
+    if (empty) empty.remove();
+
+    var row = document.createElement('div');
+    row.className = 'chat-msg ' + (msg.senderUsername === currentUsername ? 'outgoing' : 'incoming');
+    if (msg.messageId) row.setAttribute('data-msg-id', msg.messageId);
+
+    var sender = document.createElement('span');
+    sender.className = 'chat-msg-sender';
+    sender.textContent = msg.senderUsername;
+
+    if (msg.stickerUrl) {
+        row.classList.add('chat-msg-sticker');
+        var stickerImg = document.createElement('img');
+        stickerImg.className = 'chat-msg-content sticker-image';
+        stickerImg.src = msg.stickerUrl;
+        stickerImg.alt = 'Стикер';
+        if (msg.stickerCode) {
+            stickerImg.setAttribute('data-sticker-code', msg.stickerCode);
+        }
+        if (msg.senderUsername === currentUsername) {
+            stickerImg.setAttribute('data-outgoing', '1');
+        }
+        row.appendChild(sender);
+        row.appendChild(stickerImg);
+    } else if (msg.audioUrl) {
+        row.classList.add('chat-msg-audio');
+        row.classList.add('bubble-none');
+        var audioWrap = document.createElement('div');
+        audioWrap.className = 'chat-msg-content';
+        if (window.VoicePlayer) {
+            var voiceEl = VoicePlayer.create(msg.audioUrl, msg.audioDurationMs);
+            if (voiceEl) {
+                audioWrap.appendChild(voiceEl);
+            }
+        } else {
+            var audio = document.createElement('audio');
+            audio.controls = true;
+            audio.preload = 'metadata';
+            audio.src = msg.audioUrl;
+            audioWrap.appendChild(audio);
+        }
+        if (msg.content) {
+            var audioText = document.createElement('span');
+            audioText.className = 'chat-msg-audio-text';
+            audioText.innerHTML = linkifyText(msg.content);
+            audioWrap.appendChild(audioText);
+        }
+        row.appendChild(sender);
+        row.appendChild(audioWrap);
+    } else {
+        var content = document.createElement('span');
+        content.className = 'chat-msg-content';
+        content.innerHTML = linkifyText(msg.content);
+        row.appendChild(sender);
+        row.appendChild(content);
+    }
+
+    var meta = document.createElement('time');
+    meta.className = 'chat-msg-time';
+    meta.textContent = msg.timestamp || '';
+
+    row.appendChild(meta);
+    if (window.ReactionsUI && msg.messageId) {
+        ReactionsUI.renderBar(row, msg.messageId, msg.reactions || {}, currentUsername, function (emoji) {
+            sendWatchMessageReaction(msg.messageId, emoji);
+        });
+    }
+    chatMessages.appendChild(row);
+    scrollChat();
+
+    if (msg.senderUsername !== currentUsername && activeRoom && notify !== false && window.MessageNotifications) {
+        MessageNotifications.show({
+            sender: msg.senderUsername,
+            title: msg.senderUsername,
+            text: msg.stickerUrl ? 'Стикер' : (msg.audioUrl ? 'Голосовое сообщение' : (msg.content || 'Файл')),
+            href: '/watch?room=' + activeRoom.roomId,
+            silent: true,
+            tag: 'room-' + activeRoom.roomId
+        });
+    }
+
+    if (msg.senderUsername !== currentUsername && notify !== false) {
+        showMsgNote(msg);
+    }
+}
+
+/* ===== Voice messages ===== */
+
+function formatVoiceTime(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000));
+    var m = Math.floor(s / 60);
+    s = s % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function updateVoiceRecTimer() {
+    if (!voiceMsgTimer) return;
+    var elapsed = Date.now() - voiceRecStarted;
+    voiceMsgTimer.textContent = formatVoiceTime(elapsed);
+    if (elapsed >= VOICE_REC_MAX) {
+        finishVoiceRecording();
+    }
+}
+
+function startVoiceRecording() {
+    if (!activeRoom) { showToast('Сначала войдите в комнату'); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+        showToast('Запись голоса не поддерживается этим браузером');
+        return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        var mime = 'audio/webm';
+        if (!window.MediaRecorder.isTypeSupported(mime)) mime = '';
+        try {
+            voiceRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+        } catch (e) {
+            stream.getTracks().forEach(function (t) { t.stop(); });
+            showToast('Не удалось запустить запись');
+            return;
+        }
+        voiceChunks = [];
+        voiceRecorder.ondataavailable = function (e) {
+            if (e.data && e.data.size) voiceChunks.push(e.data);
+        };
+        voiceRecorder.onstop = function () {
+            stream.getTracks().forEach(function (t) { t.stop(); });
+            uploadVoiceRecording();
+        };
+        voiceRecorder.onerror = function () {
+            showToast('Ошибка записи');
+            if (voiceMsgRec) voiceMsgRec.hidden = true;
+            if (voiceMsgBtn) voiceMsgBtn.disabled = false;
+        };
+        voiceRecorder.start();
+        voiceRecStarted = Date.now();
+        if (voiceMsgRec) voiceMsgRec.hidden = false;
+        if (voiceMsgBtn) voiceMsgBtn.disabled = true;
+        updateVoiceRecTimer();
+        voiceRecTimer = setInterval(updateVoiceRecTimer, 250);
+    }).catch(function () {
+        showToast('Нет доступа к микрофону');
+    });
+}
+
+function cancelVoiceRecording() {
+    voiceChunks = [];
+    if (voiceRecTimer) { clearInterval(voiceRecTimer); voiceRecTimer = null; }
+    if (voiceRecorder) {
+        try {
+            voiceRecorder.onstop = null;
+            if (voiceRecorder.state !== 'inactive') voiceRecorder.stop();
+        } catch (e) {}
+        voiceRecorder = null;
+    }
+    if (voiceMsgRec) voiceMsgRec.hidden = true;
+    if (voiceMsgBtn) voiceMsgBtn.disabled = false;
+}
+
+function finishVoiceRecording() {
+    if (voiceRecTimer) { clearInterval(voiceRecTimer); voiceRecTimer = null; }
+    if (voiceMsgRec) voiceMsgRec.hidden = true;
+    if (voiceMsgBtn) voiceMsgBtn.disabled = false;
+    if (voiceRecorder && voiceRecorder.state !== 'inactive') {
+        try { voiceRecorder.stop(); } catch (e) {}
+    }
+}
+
+function uploadVoiceRecording() {
+    if (!voiceChunks.length || !activeRoom) {
+        showToast('Запись пустая — ничего не отправлено');
+        return;
+    }
+    var blob = new Blob(voiceChunks, { type: 'audio/webm' });
+    var durationMs = Date.now() - voiceRecStarted;
+    var fd = new FormData();
+    fd.append('file', blob, 'voice.webm');
+    fd.append('durationMs', String(durationMs));
+    fetch('/api/voice/upload', { method: 'POST', body: fd })
+        .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+        })
+        .then(function (res) {
+            if (!res.ok || !res.data || !res.data.url) {
+                showToast('Не удалось отправить голосовое сообщение');
+                return;
+            }
+            if (!activeRoom || !stompClient.connected) {
+                showToast('Нет соединения — голосовое не отправлено');
+                return;
+            }
+            stompClient.send('/app/room.message', {}, JSON.stringify({
+                roomId: activeRoom.roomId,
+                audioUrl: res.data.url,
+                audioDurationMs: durationMs
+            }));
+        })
+        .catch(function () {
+            showToast('Ошибка сети при отправке голосового');
+        });
+}
+
+/* ===== Voice chat (WebRTC mesh) ===== */
+
+function voiceConnected() {
+    return voiceState.joined && voiceState.stream && voiceState.stream.getAudioTracks().length > 0;
+}
+
+function joinVoiceChat() {
+    if (!activeRoom || !stompClient.connected) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.RTCPeerConnection) {
+        showToast('Голосовой чат не поддерживается этим браузером');
+        return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        voiceState.stream = stream;
+        voiceState.joined = true;
+        voiceState.muted = false;
+        stream.getAudioTracks().forEach(function (t) { t.enabled = true; });
+        if (voiceChatPanel) voiceChatPanel.hidden = false;
+        if (voiceJoinBtn) voiceJoinBtn.hidden = true;
+        setVoiceMuteUi();
+        setVoiceStatus('Вход в голосовой чат…');
+        stompClient.send('/app/room.voice.join', {}, JSON.stringify({ roomId: activeRoom.roomId }));
+        monitorSelfSpeaking();
+    }).catch(function () {
+        showToast('Нет доступа к микрофону — голосовой чат недоступен');
+    });
+}
+
+function leaveVoiceChat(notify) {
+    if (voiceState.joined && activeRoom && stompClient.connected && notify !== false) {
+        try {
+            stompClient.send('/app/room.voice.leave', {}, JSON.stringify({ roomId: activeRoom.roomId }));
+        } catch (e) {}
+    }
+    closeAllPeers();
+    if (voiceState.stream) {
+        voiceState.stream.getTracks().forEach(function (t) { t.stop(); });
+    }
+    voiceState.stream = null;
+    voiceState.joined = false;
+    voiceState.muted = false;
+    voiceState.participants = [];
+    if (voiceMembersEl) voiceMembersEl.innerHTML = '';
+    if (voiceChatPanel) voiceChatPanel.hidden = true;
+    if (voiceJoinBtn) voiceJoinBtn.hidden = false;
+}
+
+function setVoiceStatus(text) {
+    if (voiceChatStatus) voiceChatStatus.textContent = text || '';
+}
+
+function setVoiceMuteUi() {
+    if (!voiceMuteBtn) return;
+    var muted = voiceState.muted || !voiceConnected();
+    voiceMuteBtn.textContent = muted ? '🔇' : '🔊';
+    voiceMuteBtn.title = muted ? 'Включить микрофон' : 'Заглушить микрофон';
+    voiceMuteBtn.disabled = !voiceConnected();
+}
+
+function sendVoiceSignal(to, type, payload) {
+    if (!activeRoom || !stompClient.connected) return;
+    var msg = { roomId: activeRoom.roomId, to: to, type: type };
+    if (payload) {
+        if (payload.sdp) msg.sdp = payload.sdp;
+        if (payload.candidate) msg.candidate = payload.candidate;
+    }
+    stompClient.send('/app/room.voice.signal', {}, JSON.stringify(msg));
+}
+
+function onVoiceMembers(members) {
+    if (!voiceState.joined) return;
+    voiceState.participants = members || [];
+    renderVoiceMembers();
+    var present = {};
+    voiceState.participants.forEach(function (u) { present[u] = true; });
+    Object.keys(voiceState.pcs).forEach(function (u) {
+        if (u !== currentUsername && !present[u]) closePeer(u);
+    });
+    if (!voiceState.participants.length) {
+        setVoiceStatus('Вы один в голосовом чате');
+        return;
+    }
+    setVoiceStatus('Участников: ' + voiceState.participants.length);
+    voiceState.participants.forEach(function (u) {
+        if (u !== currentUsername && !voiceState.pcs[u]) createPeer(u);
+    });
+}
+
+function renderVoiceMembers() {
+    if (!voiceMembersEl) return;
+    voiceMembersEl.innerHTML = '';
+    if (!voiceState.participants.length) {
+        var empty = document.createElement('span');
+        empty.className = 'watch-voice-empty';
+        empty.textContent = 'Пока только вы в голосовом чате';
+        voiceMembersEl.appendChild(empty);
+        return;
+    }
+    voiceState.participants.forEach(function (u) {
+        var item = document.createElement('span');
+        item.className = 'watch-voice-member' + (u === currentUsername ? ' is-self' : '');
+        item.textContent = u === currentUsername ? 'Вы' : u;
+        item.setAttribute('data-voice-user', u);
+        voiceMembersEl.appendChild(item);
+    });
+}
+
+function setSpeakingClass(u, speaking) {
+    if (!voiceMembersEl) return;
+    var items = voiceMembersEl.querySelectorAll('.watch-voice-member');
+    for (var i = 0; i < items.length; i++) {
+        if (items[i].getAttribute('data-voice-user') === u) {
+            items[i].classList.toggle('is-speaking', !!speaking);
+        }
+    }
+}
+
+function createPeer(u) {
+    if (!voiceState.stream) return;
+    var pc = new RTCPeerConnection(RTC_CONFIG);
+    voiceState.pcs[u] = pc;
+    voiceState.stream.getTracks().forEach(function (t) { pc.addTrack(t, voiceState.stream); });
+    pc.onicecandidate = function (e) {
+        if (e.candidate) sendVoiceSignal(u, 'ice', { candidate: e.candidate });
+    };
+    pc.ontrack = function (e) {
+        var stream = e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track]);
+        attachRemoteAudio(u, stream);
+    };
+    pc.onconnectionstatechange = function () {
+        if (pc.connectionState === 'connected') {
+            setVoiceStatus('Соединение установлено');
+        } else if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+            closePeer(u);
+        }
+    };
+    pc.oniceconnectionstatechange = function () {
+        if (pc.iceConnectionState === 'failed') {
+            closePeer(u);
+        }
+    };
+    if (u > currentUsername) {
+        pc.createOffer().then(function (offer) {
+            return pc.setLocalDescription(offer);
+        }).then(function () {
+            if (pc.localDescription) sendVoiceSignal(u, 'offer', { sdp: pc.localDescription });
+        }).catch(function () {
+            closePeer(u);
+        });
+    }
+}
+
+function attachRemoteAudio(u, stream) {
+    var audioEl = voiceState.audioEls[u];
+    if (!audioEl) {
+        audioEl = document.createElement('audio');
+        audioEl.autoplay = true;
+        audioEl.setAttribute('data-remote-audio', u);
+        audioEl.style.display = 'none';
+        document.body.appendChild(audioEl);
+        voiceState.audioEls[u] = audioEl;
+        monitorSpeaking(u, stream);
+    }
+    try { audioEl.srcObject = stream; } catch (e) {}
+    var p = audioEl.play();
+    if (p && p.catch) p.catch(function () {});
+}
+
+function monitorSpeaking(u, stream) {
+    try {
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        var ctx = new Ctx();
+        var src = ctx.createMediaStreamSource(stream);
+        var analyser = ctx.createAnalyser();
+        analyser.fftSize = 512;
+        src.connect(analyser);
+        var buf = new Uint8Array(analyser.fftSize);
+        (function tick() {
+            if (!voiceState.audioEls[u]) return;
+            analyser.getByteTimeDomainData(buf);
+            var sum = 0;
+            for (var i = 0; i < buf.length; i++) {
+                var v = buf[i] - 128;
+                sum += v * v;
+            }
+            var rms = Math.sqrt(sum / buf.length);
+            setSpeakingClass(u, rms > 12);
+            requestAnimationFrame(tick);
+        })();
+    } catch (e) {}
+}
+
+function monitorSelfSpeaking() {
+    if (!voiceState.stream) return;
+    try {
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        var ctx = new Ctx();
+        var src = ctx.createMediaStreamSource(voiceState.stream);
+        var analyser = ctx.createAnalyser();
+        analyser.fftSize = 512;
+        src.connect(analyser);
+        var buf = new Uint8Array(analyser.fftSize);
+        (function tick() {
+            if (!voiceState.joined || !voiceState.stream) return;
+            analyser.getByteTimeDomainData(buf);
+            var sum = 0;
+            for (var i = 0; i < buf.length; i++) {
+                var v = buf[i] - 128;
+                sum += v * v;
+            }
+            var rms = Math.sqrt(sum / buf.length);
+            setSpeakingClass(currentUsername, rms > 12);
+            requestAnimationFrame(tick);
+        })();
+    } catch (e) {}
+}
+
+function handleVoiceSignal(sig) {
+    if (!voiceState.joined || !sig || !sig.from || !sig.type) return;
+    if (sig.type === 'offer') {
+        var u = sig.from;
+        var pc = voiceState.pcs[u];
+        if (!pc) {
+            pc = new RTCPeerConnection(RTC_CONFIG);
+            voiceState.pcs[u] = pc;
+            pc.onicecandidate = function (e) {
+                if (e.candidate) sendVoiceSignal(u, 'ice', { candidate: e.candidate });
+            };
+            pc.ontrack = function (e) {
+                var stream = e.streams && e.streams[0] ? e.streams[0] : new MediaStream([e.track]);
+                attachRemoteAudio(u, stream);
+            };
+            pc.onconnectionstatechange = function () {
+                if (pc.connectionState === 'failed' || pc.connectionState === 'closed') closePeer(u);
+            };
+            voiceState.stream.getTracks().forEach(function (t) { pc.addTrack(t, voiceState.stream); });
+        }
+        var applyOffer = function () {
+            return pc.setRemoteDescription(new RTCSessionDescription(sig.sdp));
+        };
+        var p;
+        if (pc.signalingState === 'have-local-offer') {
+            p = pc.setLocalDescription({ type: 'rollback' }).then(applyOffer);
+        } else {
+            p = applyOffer();
+        }
+        p.then(function () {
+            return pc.createAnswer();
+        }).then(function (answer) {
+            return pc.setLocalDescription(answer);
+        }).then(function () {
+            if (pc.localDescription) sendVoiceSignal(u, 'answer', { sdp: pc.localDescription });
+        }).catch(function () {});
+    } else if (sig.type === 'answer') {
+        var pcA = voiceState.pcs[sig.from];
+        if (pcA && pcA.signalingState === 'have-local-offer') {
+            pcA.setRemoteDescription(new RTCSessionDescription(sig.sdp)).catch(function () {});
+        }
+    } else if (sig.type === 'ice') {
+        var pcI = voiceState.pcs[sig.from];
+        if (pcI && sig.candidate) {
+            pcI.addIceCandidate(new RTCIceCandidate(sig.candidate)).catch(function () {});
+        }
+    }
+}
+
+function closePeer(u) {
+    var pc = voiceState.pcs[u];
+    if (pc) { try { pc.close(); } catch (e) {} }
+    delete voiceState.pcs[u];
+    var el = voiceState.audioEls[u];
+    if (el) {
+        try { el.srcObject = null; } catch (e) {}
+        el.remove();
+    }
+    delete voiceState.audioEls[u];
+    setSpeakingClass(u, false);
+}
+
+function closeAllPeers() {
+    Object.keys(voiceState.pcs).forEach(closePeer);
+}
+
+/* ===== Reactions ===== */
+
+var REACTION_EMOJIS = ['🔥', '😂', '😮', '❤️', '👍', '👏'];
+
+function sendReaction(emoji) {
+    if (!activeRoom || !stompClient.connected) return;
+    stompClient.send('/app/room.react', {}, JSON.stringify({ roomId: activeRoom.roomId, emoji: emoji }));
+    spawnReaction(emoji, currentUsername);
+}
+
+function sendWatchMessageReaction(messageId, emoji) {
+    if (!activeRoom || !stompClient.connected || !messageId) return;
+    stompClient.send('/app/room.message.react', {}, JSON.stringify({
+        roomId: activeRoom.roomId,
+        messageId: Number(messageId),
+        emoji: emoji
+    }));
+}
+
+function handleWatchChatReactionEvent(event) {
+    if (!event || event.messageId == null || !event.reactions) return;
+    if (!chatMessages) return;
+    var row = chatMessages.querySelector('[data-msg-id="' + event.messageId + '"]');
+    if (!row) return;
+    if (window.ReactionsUI) {
+        ReactionsUI.renderBar(row, event.messageId, event.reactions, currentUsername, function (emoji) {
+            sendWatchMessageReaction(event.messageId, emoji);
+        });
+    }
+}
+
+var PREMIUM_REACTION_EMOJIS = ['🎆', '🌈', '🦄', '😈', '💥', '🤯'];
+
+function spawnReaction(emoji, username) {
+    if (!reactionLayer) return;
+    if (PREMIUM_REACTION_EMOJIS.indexOf(emoji) !== -1) {
+        spawnPremiumEffect(emoji);
+        return;
+    }
+    var el = document.createElement('span');
+    el.className = 'reaction-float';
+    el.textContent = emoji;
+    var drift = (Math.random() * 120 - 60).toFixed(0);
+    el.style.left = (18 + Math.random() * 64) + '%';
+    el.style.setProperty('--drift', drift + 'px');
+    if (username) el.setAttribute('data-user', username);
+    reactionLayer.appendChild(el);
+    setTimeout(function () {
+        if (el.parentNode) el.parentNode.removeChild(el);
+    }, 2200);
+}
+
+/* Полноэкранные премиум-эффекты реакций */
+function spawnPremiumEffect(emoji) {
+    if (!reactionLayer) return;
+    var effect = document.createElement('div');
+    effect.className = 'premium-reaction-effect';
+    effect.setAttribute('data-emoji', emoji);
+
+    if (emoji === '🎆') {
+        for (var i = 0; i < 26; i++) {
+            var p = document.createElement('span');
+            p.className = 'premium-burst';
+            p.textContent = ['✨', '🌟', '⭐', '💫', '🎆'][i % 5];
+            p.style.left = (50 + Math.cos(i / 26 * Math.PI * 2) * 8) + '%';
+            p.style.top = '55%';
+            p.style.setProperty('--bx', (Math.cos(i / 26 * Math.PI * 2) * (30 + Math.random() * 30)) + 'vw');
+            p.style.setProperty('--by', (Math.sin(i / 26 * Math.PI * 2) * (-40 - Math.random() * 30)) + 'vh');
+            p.style.animationDelay = (Math.random() * 0.15) + 's';
+            p.style.fontSize = (18 + Math.random() * 26) + 'px';
+            effect.appendChild(p);
+        }
+    } else if (emoji === '🌈' || emoji === '🦄') {
+        var rainCount = emoji === '🌈' ? 30 : 24;
+        var glyphs = emoji === '🌈' ? ['🌈', '☁️', '💧'] : ['🦄', '⭐', '✨', '💖'];
+        for (var j = 0; j < rainCount; j++) {
+            var r = document.createElement('span');
+            r.className = 'premium-rain';
+            r.textContent = glyphs[j % glyphs.length];
+            r.style.left = (Math.random() * 100) + '%';
+            r.style.animationDelay = (Math.random() * 1.4) + 's';
+            r.style.fontSize = (20 + Math.random() * 30) + 'px';
+            effect.appendChild(r);
+        }
+    } else if (emoji === '😈' || emoji === '💥' || emoji === '🤯') {
+        for (var k = 0; k < 34; k++) {
+            var s = document.createElement('span');
+            s.className = 'premium-ring';
+            s.textContent = emoji;
+            s.style.left = '50%';
+            s.style.top = '55%';
+            s.style.setProperty('--dx', (Math.cos(k / 34 * Math.PI * 2) * (26 + Math.random() * 34)) + 'vw');
+            s.style.setProperty('--dy', (Math.sin(k / 34 * Math.PI * 2) * (-30 - Math.random() * 26)) + 'vh');
+            s.style.animationDelay = (Math.random() * 0.2) + 's';
+            s.style.fontSize = (22 + Math.random() * 30) + 'px';
+            effect.appendChild(s);
+        }
+    }
+
+    reactionLayer.appendChild(effect);
+    setTimeout(function () {
+        if (effect.parentNode) effect.parentNode.removeChild(effect);
+    }, 2600);
+}
+
+function clearReactions() {
+    if (reactionLayer) reactionLayer.innerHTML = '';
+}
+
+/* ===== Playlist ===== */
+
+function loadPlaylist(roomId) {
+    fetch('/watch/' + roomId + '/playlist').then(function (r) {
+        return r.json();
+    }).then(function (data) {
+        if (data && Array.isArray(data.items)) {
+            playlist = data;
+            renderPlaylist();
+            updateControls();
+            preloadPlaylistVideos();
+        }
+    }).catch(function () {});
+}
+
+function onPlaylistUpdate(data) {
+    if (!data || !activeRoom || data.roomId !== activeRoom.roomId) return;
+    playlist = data;
+    renderPlaylist();
+    updateControls();
+    preloadPlaylistVideos();
+}
+
+function hasNextInPlaylist() {
+    var items = playlist.items || [];
+    if (!items.length || !playlist.currentItemId) return false;
+    for (var i = 0; i < items.length - 1; i++) {
+        if (items[i].itemId === playlist.currentItemId) return true;
+    }
+    return false;
+}
+
+function renderPlaylist() {
+    if (!playlistList) return;
+    var items = playlist.items || [];
+    playlistList.innerHTML = '';
+    if (!items.length) {
+        var empty = document.createElement('div');
+        empty.className = 'sidebar-empty';
+        empty.textContent = 'Очередь пуста';
+        playlistList.appendChild(empty);
+        return;
+    }
+    items.forEach(function (item, idx) {
+        var row = document.createElement('div');
+        row.className = 'watch-playlist-item';
+        if (playlist.currentItemId && item.itemId === playlist.currentItemId) {
+            row.classList.add('is-current');
+        }
+        row.setAttribute('data-item-id', item.itemId);
+
+        var info = document.createElement('div');
+        info.className = 'watch-playlist-item-info';
+
+        var title = document.createElement('span');
+        title.className = 'watch-playlist-item-title';
+        title.textContent = item.title || item.videoUrl;
+        title.title = item.videoUrl;
+
+        var meta = document.createElement('span');
+        meta.className = 'watch-playlist-item-meta';
+        meta.textContent = (idx + 1) + '. ' + item.addedBy;
+
+        info.appendChild(title);
+        info.appendChild(meta);
+        row.appendChild(info);
+
+        if (isHost) {
+            var play = document.createElement('button');
+            play.type = 'button';
+            play.className = 'watch-btn small playlist-play-btn';
+            play.textContent = '▶';
+            play.title = 'Запустить это видео';
+
+            var remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'watch-btn small danger playlist-remove-btn';
+            remove.textContent = '✕';
+            remove.title = 'Убрать из очереди';
+
+            row.appendChild(play);
+            row.appendChild(remove);
+        }
+        playlistList.appendChild(row);
+    });
+}
+
+/* ===== Hub ===== */
+
+function renderRooms(rooms) {
+    if (!roomsList) return;
+    roomsList.innerHTML = '';
+    if (!rooms || rooms.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'sidebar-empty';
+        empty.textContent = 'Сейчас нет активных комнат';
+        roomsList.appendChild(empty);
+        return;
+    }
+    rooms.forEach(function (room) {
+        var item = document.createElement('div');
+        item.className = 'watch-room-item';
+        item.setAttribute('data-room-id', room.roomId);
+
+        if (room.videoThumb) {
+            var thumb = document.createElement('div');
+            thumb.className = 'watch-room-thumb';
+            var img = document.createElement('img');
+            img.src = room.videoThumb;
+            img.alt = '';
+            img.loading = 'lazy';
+            img.referrerPolicy = 'no-referrer';
+            thumb.appendChild(img);
+            item.appendChild(thumb);
+        }
+
+        var info = document.createElement('div');
+        info.className = 'watch-room-info';
+
+        var name = document.createElement('span');
+        name.className = 'watch-room-name';
+        name.textContent = (room.videoTitle && room.videoTitle.trim()) ? room.videoTitle : room.name;
+
+        var meta = document.createElement('span');
+        meta.className = 'watch-room-meta';
+        meta.textContent = room.hostUsername + ' · ' + room.memberCount + ' чел.';
+
+        info.appendChild(name);
+        info.appendChild(meta);
+
+        var members = room.members || [];
+        if (members.length > 0) {
+            var membersRow = document.createElement('span');
+            membersRow.className = 'watch-room-members';
+            members.slice(0, 5).forEach(function (m) {
+                var avatar = document.createElement('span');
+                avatar.className = 'watch-room-member';
+                avatar.title = m.username;
+                if (m.avatarFilename) {
+                    var img = document.createElement('img');
+                    img.className = 'watch-room-member-img';
+                    img.src = '/uploads/avatars/' + encodeURIComponent(m.avatarFilename);
+                    img.alt = m.username;
+                    avatar.appendChild(img);
+                } else {
+                    var letter = document.createElement('span');
+                    letter.className = 'watch-room-member-letter';
+                    letter.textContent = (m.username || '?').charAt(0).toUpperCase();
+                    avatar.appendChild(letter);
+                }
+                membersRow.appendChild(avatar);
+            });
+            if (room.memberCount > 5) {
+                var more = document.createElement('span');
+                more.className = 'watch-room-members-more';
+                more.title = room.memberCount + ' зрителей';
+                more.textContent = '…';
+                membersRow.appendChild(more);
+            }
+            info.appendChild(membersRow);
+        }
+
+        if (room.status === 'PLAYING' && room.videoTitle) {
+            var nowPlaying = document.createElement('span');
+            nowPlaying.className = 'watch-room-nowplaying';
+            var dot = document.createElement('span');
+            dot.className = 'watch-nowplaying-dot';
+            var title = document.createElement('span');
+            title.textContent = 'Сейчас играет';
+            nowPlaying.appendChild(dot);
+            nowPlaying.appendChild(title);
+            info.appendChild(nowPlaying);
+        }
+
+        var status = document.createElement('span');
+        status.className = 'watch-room-status';
+        if (room.status === 'PLAYING') {
+            status.classList.add('is-playing');
+            status.textContent = 'Сейчас играет';
+        } else if (room.status === 'PAUSED') {
+            status.classList.add('is-paused');
+            status.textContent = 'Пауза';
+        } else {
+            status.textContent = 'Ожидание';
+        }
+        info.appendChild(status);
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'watch-btn small join-room-btn';
+        btn.setAttribute('data-room-code', room.roomCode);
+        btn.textContent = 'Смотреть';
+
+        item.appendChild(info);
+        item.appendChild(btn);
+        roomsList.appendChild(item);
+    });
+}
+
+/* ===== Events ===== */
+
+if (createForm) {
+    createForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!stompClient.connected) { showToast('Нет соединения с сервером'); return; }
+        var name = roomNameInput.value.trim();
+        var visibility = selectedVisibility;
+        stompClient.send('/app/room.create', {}, JSON.stringify({ name: name, visibility: visibility }));
+        roomNameInput.value = '';
+    });
+}
+
+var visibilityToggle = document.getElementById('room-visibility-toggle');
+var selectedVisibility = 'PUBLIC';
+if (visibilityToggle) {
+    visibilityToggle.addEventListener('click', function (e) {
+        var option = e.target.closest('.watch-visibility-option');
+        if (!option) return;
+        selectedVisibility = option.getAttribute('data-visibility');
+        var all = visibilityToggle.querySelectorAll('.watch-visibility-option');
+        for (var i = 0; i < all.length; i++) {
+            all[i].classList.toggle('is-active', all[i] === option);
+        }
+        var hint = document.getElementById('create-hint');
+        if (hint) {
+            hint.textContent = selectedVisibility === 'PRIVATE'
+                ? 'Приватная комната видна только по приглашению — код придёт друзьям.'
+                : 'Вы станете хостом и будете управлять воспроизведением. Публичные комнаты видны в ленте.';
+        }
+    });
+}
+
+if (joinForm) {
+    joinForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!stompClient.connected) { showToast('Нет соединения с сервером'); return; }
+        var code = roomCodeInput.value.trim().toUpperCase();
+        if (!code) return;
+        stompClient.send('/app/room.join', {}, JSON.stringify({ roomCode: code }));
+        roomCodeInput.value = '';
+    });
+}
+
+if (roomsList) {
+    roomsList.addEventListener('click', function (e) {
+        var btn = e.target.closest('.join-room-btn');
+        if (!btn) return;
+        var code = btn.getAttribute('data-room-code');
+        if (code) stompClient.send('/app/room.join', {}, JSON.stringify({ roomCode: code }));
+    });
+}
+
+if (leaveBtn) {
+    leaveBtn.addEventListener('click', function () {
+        if (!activeRoom) return;
+        if (stompClient.connected) {
+            try {
+                stompClient.send('/app/room.leave', {}, JSON.stringify({ roomId: activeRoom.roomId }));
+            } catch (e) {}
+        }
+        clearSavedRoom();
+        resetRoomView();
+        closeVideoSearch();
+    });
+}
+
+var chatBack = document.querySelector('.chat-back');
+if (chatBack) {
+    chatBack.addEventListener('click', function (e) {
+        if (!activeRoom) return;
+        e.preventDefault();
+        if (stompClient.connected) {
+            try {
+                stompClient.send('/app/room.leave', {}, JSON.stringify({ roomId: activeRoom.roomId }));
+            } catch (err) {}
+        }
+        clearSavedRoom();
+        resetRoomView();
+        closeVideoSearch();
+    });
+}
+
+if (inviteBtn) {
+    inviteBtn.addEventListener('click', function () {
+        if (!activeRoom) return;
+        openInviteModal();
+    });
+}
+
+if (inviteModalClose) {
+    inviteModalClose.addEventListener('click', closeInviteModal);
+}
+if (inviteModalOverlay) {
+    inviteModalOverlay.addEventListener('click', function (e) {
+        if (e.target === inviteModalOverlay) closeInviteModal();
+    });
+}
+if (inviteCopyLinkBtn) {
+    inviteCopyLinkBtn.addEventListener('click', function () {
+        copyInviteLink();
+        closeInviteModal();
+    });
+}
+if (inviteFilter) {
+    inviteFilter.addEventListener('input', function () {
+        if (inviteChatList) {
+            var query = inviteFilter.value.trim().toLowerCase();
+            var rows = inviteChatList.querySelectorAll('.invite-chat-item');
+            var visible = 0;
+            for (var i = 0; i < rows.length; i++) {
+                var match = !query || rows[i].getAttribute('data-search').indexOf(query) !== -1;
+                rows[i].style.display = match ? '' : 'none';
+                if (match) visible++;
+            }
+            var empty = inviteChatList.querySelector('.invite-chat-empty');
+            if (!visible && !empty) {
+                inviteChatList.insertAdjacentHTML('beforeend', '<p class="invite-chat-empty">Нет подходящих чатов</p>');
+            } else if (visible && empty) {
+                empty.remove();
+            }
+        }
+    });
+}
+
+if (setUrlBtn) {
+    setUrlBtn.addEventListener('click', function () {
+        if (!isHost || !activeRoom) return;
+        var url = videoUrlInput.value.trim();
+        if (!url) { showToast('Вставьте ссылку на видео'); return; }
+        if (!isSupportedVideoUrl(url)) { showToast('Неподдерживаемая ссылка: используйте YouTube, VK, Rutube, Vimeo или прямой файл .mp4/.webm'); return; }
+        sendControl('PLAYING', 0, url);
+        videoUrlInput.value = '';
+    });
+    videoUrlInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') setUrlBtn.click();
+    });
+}
+
+if (playBtn) {
+    playBtn.addEventListener('click', function () {
+        if (!isHost || !currentVideoUrl) return;
+        if (playerMode && playerMode !== 'html5' && playerMode !== 'youtube') {
+            var startPos = embedTiming.playing
+                ? 0
+                : (activeRoom && activeRoom.status === 'PAUSED' ? (activeRoom.positionMs || 0) : 0);
+            embedTiming.posMs = startPos;
+            embedTiming.startedAt = Date.now();
+            embedTiming.playing = true;
+            embedStarted = true;
+            if (currentMeta) mountEmbed(currentMeta, true, startPos / 1000);
+            sendControl('PLAYING', getCurrentTimeMs(), null, true);
+        } else {
+            if (playerMode === 'html5') {
+                var pp = videoEl.play();
+                if (pp && pp.catch) pp.catch(function () { showPlayerOverlay(); });
+            }
+            sendControl('PLAYING', getCurrentTimeMs(), null, true);
+        }
+    });
+}
+
+if (pauseBtn) {
+    pauseBtn.addEventListener('click', function () {
+        if (!isHost || !currentVideoUrl) return;
+        if (playerMode && playerMode !== 'html5' && playerMode !== 'youtube') {
+            var t = embedTimeMs();
+            embedTiming.playing = false;
+            embedTiming.posMs = t;
+            embedStarted = false;
+            if (currentMeta) mountEmbed(currentMeta, false, t / 1000);
+        } else if (playerMode === 'html5') {
+            videoEl.pause();
+        }
+        sendControl('PAUSED', getCurrentTimeMs());
+    });
+}
+
+function applyPendingHtml5Snap() {
+    if (!pendingHtml5Snap || playerMode !== 'html5') return;
+    var snap = pendingHtml5Snap;
+    if (!videoEl.src) return;
+    if (Date.now() - snap.ts > 15000) {
+        pendingHtml5Snap = null;
+        return;
+    }
+    if (Math.abs(videoEl.currentTime - snap.target) > 0.5) {
+        applyingSync = true;
+        try { videoEl.currentTime = snap.target; } catch (e) {}
+        applyingSync = false;
+    } else {
+        pendingHtml5Snap = null;
+        showToast('[sync] гость на ' + snap.target.toFixed(1) + 'с');
+        if (snap.play) {
+            var p = videoEl.play();
+            if (p && p.catch) p.catch(function () {});
+        }
+    }
+}
+
+if (videoEl) {
+    videoEl.addEventListener('seeked', applyPendingHtml5Snap);
+    videoEl.addEventListener('canplay', applyPendingHtml5Snap);
+    videoEl.addEventListener('loadeddata', applyPendingHtml5Snap);
+    videoEl.addEventListener('timeupdate', applyPendingHtml5Snap);
+    videoEl.addEventListener('play', function () {
+        if (!isHost || applyingSync || playerMode !== 'html5') return;
+        if (Date.now() - lastSendControlTs < 1500) return;
+        sendControl('PLAYING', getCurrentTimeMs());
+    });
+    videoEl.addEventListener('pause', function () {
+        if (!isHost || applyingSync || playerMode !== 'html5') return;
+        if (Date.now() - lastSendControlTs < 1500) return;
+        sendControl('PAUSED', getCurrentTimeMs());
+    });
+    videoEl.addEventListener('seeked', function () {
+        if (hostScrubbing) return;
+        if (!isHost || applyingSync || !activeRoom || playerMode !== 'html5') return;
+        if (Date.now() - lastSendControlTs < 1500) return;
+        sendControl(activeRoom.status === 'PLAYING' ? 'PLAYING' : 'PAUSED', getCurrentTimeMs());
+    });
+    videoEl.addEventListener('timeupdate', updateSeekBar);
+    videoEl.addEventListener('durationchange', updateSeekBar);
+    videoEl.addEventListener('ended', function () {
+        if (!isHost || applyingSync || playerMode !== 'html5') return;
+        if (Date.now() - lastSendControlTs < 1500) return;
+        if (hasNextInPlaylist()) {
+            stompClient.send('/app/room.playlist.next', {}, JSON.stringify({ roomId: activeRoom.roomId }));
+        } else {
+            sendControl('PAUSED', getCurrentTimeMs());
+        }
+    });
+}
+
+function applyScrubSeek() {
+    scrubTick = null;
+    if (!hostScrubbing || !seekBar) return;
+    var val = (Number(seekBar.value) || 0) / 1000;
+    if (playerMode === 'html5') {
+        try { videoEl.currentTime = val; } catch (e) {}
+    } else if (playerMode === 'youtube' && ytPlayer && ytApiReady) {
+        try { ytPlayer.seekTo(val, true); } catch (e) {}
+    }
+}
+
+if (seekBar) {
+    seekBar.addEventListener('pointerdown', function () {
+        if (!isHost) return;
+        hostScrubbing = true;
+    });
+    seekBar.addEventListener('input', function () {
+        if (!isHost) return;
+        hostScrubbing = true;
+        var val = (Number(seekBar.value) || 0) / 1000;
+        seekTime.textContent = formatTime(val) + ' / ' + formatTime(seekDurationSec());
+        var m = Number(seekBar.max) || 1000;
+        var pct = m > 0 ? (Number(seekBar.value) || 0) / m * 100 : 0;
+        seekBar.style.setProperty('--fill', Math.min(Math.max(pct, 0), 100) + '%');
+        if (!scrubTick) {
+            scrubTick = setTimeout(applyScrubSeek, 150);
+        }
+    });
+    seekBar.addEventListener('change', function () {
+        if (!isHost) return;
+        hostScrubbing = false;
+        if (scrubTick) { clearTimeout(scrubTick); scrubTick = null; }
+        var val = (Number(seekBar.value) || 0) / 1000;
+        var playing = false;
+        if (playerMode === 'html5') {
+            playing = videoEl && !videoEl.paused;
+            try { videoEl.currentTime = val; } catch (e) {}
+        } else if (playerMode === 'youtube' && ytPlayer && ytApiReady) {
+            try { playing = ytPlayer.getPlayerState() === 1; } catch (e) {}
+            try { ytPlayer.seekTo(val, true); } catch (e) {}
+        }
+        lastSeekTime = Date.now();
+        if (activeRoom) activeRoom.positionMs = Math.round(val * 1000);
+        sendControl(playing ? 'PLAYING' : 'PAUSED', Math.round(val * 1000), null, true);
+    });
+}
+
+if (playlistAddForm) {
+    playlistAddForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!isHost || !activeRoom || !stompClient.connected) return;
+        var url = playlistUrlInput.value.trim();
+        if (!url) { showToast('Вставьте ссылку на видео'); return; }
+        if (!isSupportedVideoUrl(url)) { showToast('Неподдерживаемая ссылка: используйте YouTube, VK, Rutube, Vimeo или прямой файл .mp4/.webm'); return; }
+        var title = playlistTitleInput.value.trim();
+        stompClient.send('/app/room.playlist.add', {}, JSON.stringify({ roomId: activeRoom.roomId, url: url, title: title }));
+        playlistUrlInput.value = '';
+        playlistTitleInput.value = '';
+    });
+}
+
+/* ===== Video search ===== */
+
+function openVideoSearch() {
+    if (!isHost || !activeRoom) return;
+    if (!videoSearchOverlay) return;
+    videoSearchOverlay.hidden = false;
+    videoSearchResults.innerHTML = '';
+    setVideoSearchStatus('');
+    if (videoSearchInput) {
+        videoSearchInput.value = '';
+        setTimeout(function () { videoSearchInput.focus(); }, 50);
+    }
+}
+
+function closeVideoSearch() {
+    if (videoSearchOverlay) videoSearchOverlay.hidden = true;
+}
+
+function setVideoSearchStatus(text) {
+    if (!videoSearchStatus) return;
+    if (text) {
+        videoSearchStatus.textContent = text;
+        videoSearchStatus.hidden = false;
+    } else {
+        videoSearchStatus.textContent = '';
+        videoSearchStatus.hidden = true;
+    }
+}
+
+function runVideoSearch(query) {
+    if (!videoSearchResults) return;
+    videoSearchResults.innerHTML = '<div class="sidebar-empty">Поиск...</div>';
+    setVideoSearchStatus('');
+    fetch('/api/video/search?q=' + encodeURIComponent(query) + '&limit=12')
+        .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+        })
+        .then(function (res) {
+            if (!res.ok || !res.data) {
+                videoSearchResults.innerHTML = '';
+                setVideoSearchStatus('Не удалось выполнить поиск. Попробуйте ещё раз.');
+                return;
+            }
+            var results = res.data.results || [];
+            if (!results.length) {
+                videoSearchResults.innerHTML = '';
+                setVideoSearchStatus('Ничего не найдено по запросу «' + query + '».');
+                return;
+            }
+            videoSearchResults.innerHTML = '';
+            results.forEach(function (item) {
+                videoSearchResults.appendChild(buildVideoSearchResult(item));
+            });
+        })
+        .catch(function () {
+            videoSearchResults.innerHTML = '';
+            setVideoSearchStatus('Ошибка сети. Попробуйте ещё раз.');
+        });
+}
+
+function buildVideoSearchResult(item) {
+    var row = document.createElement('div');
+    row.className = 'video-search-result';
+    row.setAttribute('role', 'button');
+    row.setAttribute('tabindex', '0');
+    row.title = item.title || item.url || '';
+    var thumb = document.createElement('img');
+    thumb.className = 'video-search-result-thumb';
+    thumb.src = item.thumb || '';
+    thumb.alt = '';
+    thumb.loading = 'lazy';
+    thumb.referrerPolicy = 'no-referrer';
+    var body = document.createElement('div');
+    body.className = 'video-search-result-body';
+    var title = document.createElement('span');
+    title.className = 'video-search-result-title';
+    title.textContent = item.title || item.url || '';
+    var badge = document.createElement('span');
+    badge.className = 'video-search-result-badge';
+    var sourceNames = { youtube: 'YouTube', rutube: 'Rutube', vk: 'VK Видео' };
+    badge.textContent = sourceNames[item.source] || (item.source || '');
+    body.appendChild(title);
+    body.appendChild(badge);
+    row.appendChild(thumb);
+    row.appendChild(body);
+    row.addEventListener('click', function () {
+        addVideoSearchResult(item);
+    });
+    row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            addVideoSearchResult(item);
+        }
+    });
+    return row;
+}
+
+function addVideoSearchResult(item) {
+    if (!isHost || !activeRoom) {
+        closeVideoSearch();
+        return;
+    }
+    if (!stompClient || !stompClient.connected) {
+        showToast('Нет соединения с сервером');
+        return;
+    }
+    var url = item.url || '';
+    var title = item.title || '';
+    if (!isSupportedVideoUrl(url)) {
+        showToast('Не удалось добавить это видео');
+        return;
+    }
+    stompClient.send('/app/room.playlist.add', {}, JSON.stringify({ roomId: activeRoom.roomId, url: url, title: title }));
+    closeVideoSearch();
+    showToast('Добавлено в очередь');
+}
+
+if (videoSearchBtn) {
+    videoSearchBtn.addEventListener('click', openVideoSearch);
+}
+if (videoSearchClose) {
+    videoSearchClose.addEventListener('click', closeVideoSearch);
+}
+if (videoSearchOverlay) {
+    videoSearchOverlay.addEventListener('click', function (e) {
+        if (e.target === videoSearchOverlay) {
+            closeVideoSearch();
+        }
+    });
+}
+if (videoSearchForm) {
+    videoSearchForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!videoSearchInput) return;
+        var q = videoSearchInput.value.trim();
+        if (!q) {
+            setVideoSearchStatus('Введите название видео');
+            return;
+        }
+        runVideoSearch(q);
+    });
+}
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && videoSearchOverlay && !videoSearchOverlay.hidden) {
+        closeVideoSearch();
+    }
+    /* Гость не управляет плеером с клавиатуры (Space/K/K+перемотка) */
+    if (!isHost && (e.code === 'Space' || e.key === ' ' ||
+        e.key === 'k' || e.key === 'K' ||
+        e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        var tag = e.target ? e.target.tagName : '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        if (playerMode === 'html5' || playerMode === 'youtube') {
+            e.preventDefault();
+        }
+    }
+});
+
+if (nextBtn) {
+    nextBtn.addEventListener('click', function () {
+        if (!isHost || !activeRoom) return;
+        stompClient.send('/app/room.playlist.next', {}, JSON.stringify({ roomId: activeRoom.roomId }));
+    });
+}
+
+if (playlistList) {
+    playlistList.addEventListener('click', function (e) {
+        if (!isHost || !activeRoom) return;
+        var itemRow = e.target.closest('.watch-playlist-item');
+        if (!itemRow) return;
+        var itemId = Number(itemRow.getAttribute('data-item-id'));
+        if (e.target.closest('.playlist-play-btn')) {
+            stompClient.send('/app/room.playlist.play', {}, JSON.stringify({ roomId: activeRoom.roomId, itemId: itemId }));
+        } else if (e.target.closest('.playlist-remove-btn')) {
+            var removeTitle = '';
+            for (var i = 0; i < (playlist.items || []).length; i++) {
+                if (Number(playlist.items[i].itemId) === itemId) {
+                    removeTitle = playlist.items[i].title || playlist.items[i].videoUrl || '';
+                    break;
+                }
+            }
+            if (window.showConfirmDialog) {
+                showConfirmDialog('Вы точно хотите удалить из очереди «' + (removeTitle || 'видео') + '»?', function () {
+                    stompClient.send('/app/room.playlist.remove', {}, JSON.stringify({ roomId: activeRoom.roomId, itemId: itemId }));
+                });
+            } else {
+                stompClient.send('/app/room.playlist.remove', {}, JSON.stringify({ roomId: activeRoom.roomId, itemId: itemId }));
+            }
+        }
+    });
+}
+
+if (reactionBar) {
+    reactionBar.addEventListener('click', function (e) {
+        var btn = e.target.closest('.reaction-btn');
+        if (!btn) return;
+        sendReaction(btn.getAttribute('data-emoji') || btn.textContent);
+    });
+}
+
+var premiumReactionBar = document.getElementById('premium-reaction-bar');
+if (premiumReactionBar) {
+    premiumReactionBar.addEventListener('click', function (e) {
+        var btn = e.target.closest('.premium-reaction-btn');
+        if (!btn) return;
+        if (!currentUserPremium) {
+            window.location.href = '/premium';
+            return;
+        }
+        sendReaction(btn.getAttribute('data-emoji') || btn.textContent);
+    });
+}
+
+if (playerOverlayBtn) {
+    playerOverlayBtn.addEventListener('click', function () {
+        hidePlayerOverlay();
+        if (playerMode === 'youtube') {
+            if (!ytPlayer) return;
+            ytAutoplayResolved = true;
+            applyingSync = true;
+            try {
+                ytPlayAttempt = 0;
+                ytPlayer.playVideo();
+            } catch (e) {}
+            applyingSync = false;
+        } else {
+            var p = videoEl.play();
+            if (p && p.catch) p.catch(function () {});
+        }
+    });
+}
+
+if (chatForm) {
+    chatForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!activeRoom || !stompClient.connected) return;
+        var content = chatInput.value.trim();
+        if (!content) return;
+        stompClient.send('/app/room.message', {}, JSON.stringify({ roomId: activeRoom.roomId, content: content }));
+        chatInput.value = '';
+        chatInput.focus();
+    });
+}
+
+/* ===== Voice listeners ===== */
+
+if (voiceMsgBtn) {
+    voiceMsgBtn.addEventListener('click', function () {
+        if (voiceMsgBtn.disabled) {
+            finishVoiceRecording();
+        } else {
+            startVoiceRecording();
+        }
+    });
+}
+if (voiceMsgCancel) {
+    voiceMsgCancel.addEventListener('click', function () {
+        cancelVoiceRecording();
+    });
+}
+if (voiceMsgSend) {
+    voiceMsgSend.addEventListener('click', function () {
+        finishVoiceRecording();
+    });
+}
+if (voiceJoinBtn) {
+    voiceJoinBtn.addEventListener('click', function () {
+        if (voiceState.joined) {
+            leaveVoiceChat();
+        } else {
+            joinVoiceChat();
+        }
+    });
+}
+if (voiceLeaveBtn) {
+    voiceLeaveBtn.addEventListener('click', function () {
+        leaveVoiceChat();
+    });
+}
+if (voiceMuteBtn) {
+    voiceMuteBtn.addEventListener('click', function () {
+        if (!voiceConnected()) return;
+        voiceState.muted = !voiceState.muted;
+        voiceState.stream.getAudioTracks().forEach(function (t) { t.enabled = !voiceState.muted; });
+        setVoiceMuteUi();
+    });
+}
+
+window.addEventListener('beforeunload', function () {
+    leaveVoiceChat(false);
+});
+
+/* ===== Connect ===== */
+
+stompClient.connect({}, function () {
+    stompClient.subscribe('/topic/rooms', function (payload) {
+        renderRooms(JSON.parse(payload.body));
+    });
+    stompClient.subscribe('/user/queue/room', function (payload) {
+        onRoomJoined(JSON.parse(payload.body));
+    });
+    stompClient.subscribe('/user/queue/room-state', function (payload) {
+        onRoomJoined(JSON.parse(payload.body));
+    });
+    stompClient.subscribe('/user/queue/room-error', function (payload) {
+        var data = JSON.parse(payload.body);
+        showToast(String(data.error || 'Произошла ошибка'));
+    });
+
+    if (!didInitialJoin) {
+        didInitialJoin = true;
+        var saved = getSavedRoom();
+        var code = inviteRoom || (saved && saved.roomCode);
+        if (code) {
+            stompClient.send('/app/room.join', {}, JSON.stringify({ roomCode: code }));
+        }
+    }
+}, function () {
+    if (!connectErrorShown) {
+        connectErrorShown = true;
+        showToast('Не удалось установить соединение с сервером');
+    }
+});
+
+stompClient.onerror = function (frame) {
+    var text = (frame && frame.headers && frame.headers.message)
+        ? frame.headers.message
+        : 'Произошла ошибка';
+    showToast(String(text));
+};
+
+/* ===== YouTube IFrame API ===== */
+
+window.onYouTubeIframeAPIReady = function () {
+    ytApiReady = true;
+    maybeCreateYt();
+};
+
+setInterval(function () {
+    if (playerMode === 'youtube') {
+        checkYtAutoplay();
+    }
+    /* Гость не может ставить на паузу: если комната в PLAYING, а воспроизведение
+       у гостя остановилось (клавиша Space, клик по своим контролам ютуба/эмбеда),
+       автоматически возвращаем его. Управляет только хост. */
+    if (!isHost && activeRoom && activeRoom.status === 'PLAYING') {
+        enforceHostPlayback();
+    }
+    if ((playerMode === 'html5' || playerMode === 'youtube') && !hostScrubbing) {
+        if (isHost && activeRoom && videoEl && isFinite(videoEl.currentTime) && videoEl.currentTime > 0) {
+            activeRoom.positionMs = Math.round(videoEl.currentTime * 1000);
+        }
+        updateSeekBar();
+    }
+}, 500);
+
+/* ===== FULLSCREEN (available to ALL users) ===== */
+(function () {
+    if (!fullscreenBtn) return;
+
+    var playerWrap = document.querySelector('.watch-player-wrap');
+
+    function isFullscreen() {
+        return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+    }
+
+    function toggleFullscreen() {
+        if (isFullscreen()) {
+            if (document.exitFullscreen) document.exitFullscreen();
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+        } else {
+            var el = playerWrap || document.documentElement;
+            if (el.requestFullscreen) el.requestFullscreen();
+            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+            else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+        }
+    }
+
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+    document.addEventListener('fullscreenchange', updateFsIcon);
+    document.addEventListener('webkitfullscreenchange', updateFsIcon);
+    document.addEventListener('mozfullscreenchange', updateFsIcon);
+
+    function updateFsIcon() {
+        if (isFullscreen()) {
+            fullscreenBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            fullscreenBtn.title = 'Выйти из полноэкранного режима';
+        } else {
+            fullscreenBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            fullscreenBtn.title = 'На весь экран';
+        }
+    }
+
+    /* Show button on touch devices (no hover) */
+    if ('ontouchstart' in window) {
+        fullscreenBtn.style.opacity = '1';
+    }
+})();
+
+/* ===== Stickers ===== */
+if (window.StickerUI) {
+    StickerUI.init({
+        attachSelector: '#watch-chat-input',
+        composerSelector: '#watch-chat-form',
+        onPick: function (stickerCode) {
+            if (!activeRoom || !stompClient.connected) return;
+            stompClient.send('/app/room.message', {}, JSON.stringify({ roomId: activeRoom.roomId, stickerCode: stickerCode }));
+        }
+    });
+}
+
+/* ===== Video Preloader ===== */
+var VideoPreloader = (function () {
+    var cache = {};
+    var loading = {};
+    var MAX_CONCURRENT = 2;
+    var activeLoads = 0;
+    var queue = [];
+
+    function getVideoId(url) {
+        var m;
+        m = url.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/);
+        if (m) return 'yt:' + m[1];
+        m = url.match(/(?:vk\.com\/video|vkvideo\.ru\/(?:video|play))(-?\d+)_(\d+)/i);
+        if (m) return 'vk:' + m[1] + '_' + m[2];
+        m = url.match(/rutube\.ru\/(?:video|play\/embed)\/([\w-]+)/i);
+        if (m) return 'rt:' + m[1];
+        m = url.match(/vimeo\.com\/(\d+)/i);
+        if (m) return 'vim:' + m[1];
+        return 'raw:' + url;
+    }
+
+    function preloadHtml5(url) {
+        var vid = getVideoId(url);
+        if (cache[vid] || loading[vid]) return;
+        loading[vid] = true;
+        activeLoads++;
+
+        var v = document.createElement('video');
+        v.preload = 'auto';
+        v.muted = true;
+        v.playsInline = true;
+        v.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;top:-9999px;';
+        v.src = url;
+        v.load();
+        document.body.appendChild(v);
+
+        function done() {
+            cache[vid] = { type: 'html5', el: v, url: url };
+            loading[vid] = false;
+            activeLoads--;
+            processQueue();
+        }
+        v.addEventListener('canplaythrough', function () { done(); }, { once: true });
+        v.addEventListener('error', function () {
+            activeLoads--;
+            loading[vid] = false;
+            try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) {}
+            if (v.parentNode) v.parentNode.removeChild(v);
+            processQueue();
+        }, { once: true });
+        setTimeout(function () { if (loading[vid]) done(); }, 8000);
+    }
+
+    function preloadHls(url, src) {
+        var vid = getVideoId(url);
+        if (cache[vid] || loading[vid]) return;
+        loading[vid] = true;
+        activeLoads++;
+
+        var v = document.createElement('video');
+        v.preload = 'auto';
+        v.muted = true;
+        v.playsInline = true;
+        v.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;top:-9999px;';
+        document.body.appendChild(v);
+
+        var hlsInstance = null;
+        function done() {
+            cache[vid] = { type: 'hls', el: v, hls: hlsInstance, url: url, src: src };
+            loading[vid] = false;
+            activeLoads--;
+            processQueue();
+        }
+
+        if (window.Hls && Hls.isSupported()) {
+            hlsInstance = new Hls({ maxBufferLength: 60, maxMaxBufferLength: 120 });
+            hlsInstance.on(Hls.Events.ERROR, function (evt, data) {
+                if (data.fatal) {
+                    activeLoads--;
+                    loading[vid] = false;
+                    try { hlsInstance.destroy(); } catch (e) {}
+                    if (v.parentNode) v.parentNode.removeChild(v);
+                    processQueue();
+                }
+            });
+            hlsInstance.on(Hls.Events.MANIFEST_PARSED, function () { done(); });
+            hlsInstance.loadSource(src);
+            hlsInstance.attachMedia(v);
+            setTimeout(function () { if (loading[vid]) done(); }, 10000);
+        } else if (v.canPlayType('application/vnd.apple.mpegurl')) {
+            v.src = src;
+            v.addEventListener('canplaythrough', function () { done(); }, { once: true });
+            v.load();
+            setTimeout(function () { if (loading[vid]) done(); }, 10000);
+        } else {
+            activeLoads--;
+            loading[vid] = false;
+            if (v.parentNode) v.parentNode.removeChild(v);
+            processQueue();
+        }
+    }
+
+    function preloadVkStream(url) {
+        var vid = getVideoId(url);
+        if (cache[vid] || loading[vid]) return;
+        loading[vid] = true;
+        activeLoads++;
+
+        var vkSrc = '/api/video/play/vk?id=' + encodeURIComponent(vid.replace('vk:', ''));
+        fetch(vkSrc).then(function (r) { return r.ok ? r.text() : null; }).then(function (t) {
+            if (!t) {
+                loading[vid] = false;
+                activeLoads--;
+                processQueue();
+                return;
+            }
+            var sep = t.indexOf('|');
+            var u = sep > 0 ? t.substring(sep + 1) : t;
+            var isHls = sep > 0 && t.substring(0, sep) === 'hls';
+            if (isHls) {
+                activeLoads--;
+                loading[vid] = false;
+                preloadHls(url, u);
+            } else {
+                var v = document.createElement('video');
+                v.preload = 'auto';
+                v.muted = true;
+                v.playsInline = true;
+                v.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;left:-9999px;top:-9999px;';
+                v.src = u;
+                v.load();
+                document.body.appendChild(v);
+                function done() {
+                    cache[vid] = { type: 'html5', el: v, url: url };
+                    loading[vid] = false;
+                    activeLoads--;
+                    processQueue();
+                }
+                v.addEventListener('canplaythrough', function () { done(); }, { once: true });
+                v.addEventListener('error', function () {
+                    activeLoads--;
+                    loading[vid] = false;
+                    try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) {}
+                    if (v.parentNode) v.parentNode.removeChild(v);
+                    processQueue();
+                }, { once: true });
+                setTimeout(function () { if (loading[vid]) done(); }, 8000);
+            }
+        }).catch(function () {
+            loading[vid] = false;
+            activeLoads--;
+            processQueue();
+        });
+    }
+
+    function processQueue() {
+        while (queue.length > 0 && activeLoads < MAX_CONCURRENT) {
+            var task = queue.shift();
+            task();
+        }
+    }
+
+    function schedule(fn) {
+        if (activeLoads < MAX_CONCURRENT) {
+            fn();
+        } else {
+            queue.push(fn);
+        }
+    }
+
+    function preload(url) {
+        if (!url) return;
+        var meta = parseVideoUrl(url);
+        if (!meta) return;
+        var vid = getVideoId(url);
+        if (cache[vid] || loading[vid]) return;
+
+        if (meta.type === 'html5') {
+            schedule(function () { preloadHtml5(url); });
+        } else if (meta.type === 'rutube') {
+            var playSrc = '/api/video/play/rutube?id=' + encodeURIComponent(meta.id);
+            schedule(function () { preloadHls(url, playSrc); });
+        } else if (meta.type === 'vk') {
+            schedule(function () { preloadVkStream(url); });
+        }
+    }
+
+    function get(url) {
+        if (!url) return null;
+        return cache[getVideoId(url)] || null;
+    }
+
+    function release(url) {
+        if (!url) return;
+        var vid = getVideoId(url);
+        var entry = cache[vid];
+        if (!entry) return;
+        if (entry.type === 'hls' && entry.hls) {
+            try { entry.hls.destroy(); } catch (e) {}
+        }
+        if (entry.el) {
+            try { entry.el.pause(); entry.el.removeAttribute('src'); entry.el.load(); } catch (e) {}
+            if (entry.el.parentNode) entry.el.parentNode.removeChild(entry.el);
+        }
+        delete cache[vid];
+    }
+
+    function clearAll() {
+        for (var k in cache) {
+            if (!Object.prototype.hasOwnProperty.call(cache, k)) continue;
+            var entry = cache[k];
+            if (entry.type === 'hls' && entry.hls) {
+                try { entry.hls.destroy(); } catch (e) {}
+            }
+            if (entry.el) {
+                try { entry.el.pause(); entry.el.removeAttribute('src'); entry.el.load(); } catch (e) {}
+                if (entry.el.parentNode) entry.el.parentNode.removeChild(entry.el);
+            }
+        }
+        cache = {};
+        loading = {};
+        queue = [];
+        activeLoads = 0;
+    }
+
+    function preloadPlaylist(items, currentItemId) {
+        if (!items || !items.length) return;
+        var preloadCount = 0;
+        for (var i = 0; i < items.length && preloadCount < 3; i++) {
+            var item = items[i];
+            if (item.itemId === currentItemId) continue;
+            preload(item.videoUrl);
+            preloadCount++;
+        }
+    }
+
+    return {
+        preload: preload,
+        get: get,
+        release: release,
+        clearAll: clearAll,
+        preloadPlaylist: preloadPlaylist,
+        get cache() { return cache; }
+    };
+})();
+
+function preloadPlaylistVideos() {
+    VideoPreloader.preloadPlaylist(playlist.items || [], playlist.currentItemId);
+}
