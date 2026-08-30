@@ -44,6 +44,8 @@ class ReactionServiceTest {
     private WatchRoomMessageRepository watchRoomMessageRepository;
     @Mock
     private UserService userService;
+    @Mock
+    private PremiumService premiumService;
 
     private ReactionService service;
 
@@ -52,7 +54,7 @@ class ReactionServiceTest {
     @BeforeEach
     void setUp() {
         service = new ReactionService(reactionRepository, messageRepository,
-                groupMessageRepository, watchRoomMessageRepository, userService);
+                groupMessageRepository, watchRoomMessageRepository, userService, premiumService);
     }
 
     private User userWithId(Long id, String username) {
