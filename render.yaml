@@ -36,6 +36,12 @@ services:
         value: admin@example.com
       - key: UPLOAD_DIR
         value: /app/uploads
+      - key: WHISPER_PYTHON
+        value: /opt/venv/bin/python
+      - key: WHISPER_SCRIPT
+        value: /app/whisper/whisper_local.py
+      - key: WHISPER_MODEL
+        value: Systran/faster-whisper-small
     disk:
       name: uploads
       mountPath: /app/uploads

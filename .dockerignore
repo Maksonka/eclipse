@@ -9,3 +9,10 @@ run.out.log
 run.err.log
 server.pid
 *.md
+
+# Local STT binaries/models (rebuilt/downloaded in the Docker image)
+whisper/bin
+whisper/models
+whisper/models-ct2
+whisper/*.zip
+whisper/whisper-bin-x64.zip

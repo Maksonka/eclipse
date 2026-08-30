@@ -2,7 +2,7 @@ import sys
 import os
 from faster_whisper import WhisperModel
 
-MODEL_ID = "Systran/faster-whisper-small"
+MODEL_ID = os.environ.get("WHISPER_MODEL", "Systran/faster-whisper-small")
 CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models-ct2")
 
 
