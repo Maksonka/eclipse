@@ -24,6 +24,8 @@ RUN /opt/venv/bin/python -c "from faster_whisper import WhisperModel; import os;
 
 # Application
 COPY --from=build /app/target/*.jar app.jar
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 EXPOSE 8080
 ENV PORT=8080
@@ -31,4 +33,4 @@ ENV WHISPER_PYTHON=/opt/venv/bin/python
 ENV WHISPER_SCRIPT=/app/whisper/whisper_local.py
 ENV WHISPER_MODEL=Systran/faster-whisper-small
 
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=55.0", "-jar", "app.jar"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
