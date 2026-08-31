@@ -18,7 +18,7 @@
         var avatar = document.createElement('span');
         avatar.className = 'avatar-with-status';
 
-        var box = document.createElement('span');
+        var box = document.createElement('div');
         box.className = 'user-avatar user-search-avatar';
         if (user.avatarFilename) {
             var img = document.createElement('img');

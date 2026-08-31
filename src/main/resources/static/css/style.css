@@ -1085,7 +1085,7 @@ body.chat-page {
 }
 
 .chat-empty-icon::after {
-    content: 'рџ’¬';
+    content: '\1F4AC';
     position: absolute;
     inset: 0;
     display: grid;
@@ -7361,6 +7361,7 @@ body.premium-page {
 }
 
 .user-search-avatar {
+    display: block;
     width: 36px;
     height: 36px;
     font-size: 0.9rem;
