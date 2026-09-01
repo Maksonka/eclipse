@@ -17,7 +17,7 @@ RUN apt-get update \
     && /opt/venv/bin/pip install --no-cache-dir faster-whisper
 
 # Transcription script + model cache predownload (cache model at build time)
-ARG WHISPER_MODEL=Systran/faster-whisper-small
+ARG WHISPER_MODEL=Systran/faster-whisper-base
 ENV WHISPER_MODEL=${WHISPER_MODEL}
 COPY whisper/whisper_local.py /app/whisper/whisper_local.py
 RUN /opt/venv/bin/python -c "from faster_whisper import WhisperModel; import os; WhisperModel(os.environ['WHISPER_MODEL'], device='cpu', compute_type='int8', download_root='/app/whisper/models-ct2'); print('model cached: ' + os.environ['WHISPER_MODEL'])"
@@ -31,6 +31,6 @@ EXPOSE 8080
 ENV PORT=8080
 ENV WHISPER_PYTHON=/opt/venv/bin/python
 ENV WHISPER_SCRIPT=/app/whisper/whisper_local.py
-ENV WHISPER_MODEL=Systran/faster-whisper-small
+ENV WHISPER_MODEL=Systran/faster-whisper-base
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

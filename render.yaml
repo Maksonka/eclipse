@@ -41,7 +41,7 @@ services:
       - key: WHISPER_SCRIPT
         value: /app/whisper/whisper_local.py
       - key: WHISPER_MODEL
-        value: Systran/faster-whisper-small
+        value: Systran/faster-whisper-base
       - key: VAPID_PUBLIC_KEY
         sync: false
       - key: VAPID_PRIVATE_KEY

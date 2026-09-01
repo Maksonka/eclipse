@@ -29,4 +29,4 @@ EOF
   echo "Generated /app/application.properties from environment"
 fi
 
-exec java -XX:MaxRAMPercentage=55.0 -jar /app/app.jar
+exec java -XX:MaxRAMPercentage=40.0 -jar /app/app.jar
