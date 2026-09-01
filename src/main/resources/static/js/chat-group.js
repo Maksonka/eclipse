@@ -371,6 +371,20 @@ function buildGroupMessageRow(message) {
         } catch (e) {}
     }
 
+    if (message.audioUrl && message.transcript) {
+        var transcriptEl = document.createElement('div');
+        transcriptEl.className = 'voice-transcript';
+        transcriptEl.textContent = message.transcript;
+        bubbleEl.appendChild(transcriptEl);
+    } else if (message.audioUrl) {
+        var trBtn = document.createElement('button');
+        trBtn.type = 'button';
+        trBtn.className = 'voice-transcribe-btn';
+        trBtn.setAttribute('data-action', 'transcribe-row');
+        trBtn.textContent = 'Расшифровать';
+        bubbleEl.appendChild(trBtn);
+    }
+
     if (message.stickerUrl) {
         var stickerEl = window.StickerUI
             ? StickerUI.createStickerImage(message.stickerUrl, message.stickerCode, isOutgoing)
@@ -491,6 +505,150 @@ function messagePreview(message) {
     if (message.audioUrl) return 'Голосовое сообщение';
     if (message.attachmentFilename) return '📎 Вложение';
     return '';
+}
+
+function encodeWav16kMono(decoded) {
+    var Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    var targetRate = 16000;
+    var resampledLength = Math.max(1, Math.round(decoded.duration * targetRate));
+    var offline = new Ctx(1, resampledLength, targetRate);
+    var source = offline.createBufferSource();
+    source.buffer = decoded;
+    source.connect(offline.destination);
+    return offline.startRendering().then(function (rendered) {
+        var pcm = rendered.getChannelData(0);
+        var bytesPerSample = 2;
+        var numBytes = pcm.length * bytesPerSample;
+        var wav = new ArrayBuffer(44 + numBytes);
+        var view = new DataView(wav);
+        function writeString(offset, str) {
+            for (var i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+        }
+        writeString(0, 'RIFF');
+        view.setUint32(4, 36 + numBytes, true);
+        writeString(8, 'WAVE');
+        writeString(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, 16000, true);
+        view.setUint32(28, 16000 * bytesPerSample, true);
+        view.setUint16(32, bytesPerSample, true);
+        view.setUint16(34, 16, true);
+        writeString(36, 'data');
+        view.setUint32(40, numBytes, true);
+        var offset = 44;
+        for (var i = 0; i < pcm.length; i++) {
+            var s = Math.max(-1, Math.min(1, pcm[i]));
+            view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+            offset += 2;
+        }
+        return new Blob([wav], { type: 'audio/wav' });
+    });
+}
+
+function getGroupVoiceAudioEl(messageId) {
+    if (!messagesContainer) {
+        return null;
+    }
+    var row = messagesContainer.querySelector('[data-message-id="' + messageId + '"]');
+    if (!row) {
+        return null;
+    }
+    var voiceRoot = row.querySelector('.voice-player[data-voice-src]');
+    var src = voiceRoot ? voiceRoot.getAttribute('data-voice-src') : null;
+    if (!src) {
+        var audio = row.querySelector('audio[data-voice-player]');
+        if (audio) {
+            src = audio.getAttribute('src') || audio.getAttribute('data-src');
+        }
+    }
+    if (!src) {
+        return null;
+    }
+    var a = document.createElement('audio');
+    a.src = src;
+    a.preload = 'auto';
+    return a;
+}
+
+function transcribeGroupVoiceMessage(messageId) {
+    if (!currentUserPremium) {
+        if (window.location) window.location.href = '/premium';
+        return;
+    }
+    var groupId = groupIdInput ? parseInt(groupIdInput.value, 10) : activeGroupId;
+    function sendWithoutTranscript() {
+        if (stompClient && stompClient.connected) {
+            stompClient.send('/app/group.transcribe', {}, JSON.stringify({ messageId: Number(messageId), groupId: groupId }));
+        }
+    }
+    var audio = getGroupVoiceAudioEl(messageId);
+    if (!audio || !audio.src) {
+        sendWithoutTranscript();
+        return;
+    }
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    var baseCtx = null;
+    try {
+        baseCtx = new Ctx();
+    } catch (e) {
+        baseCtx = null;
+    }
+    function decode(buf) {
+        if (baseCtx) return baseCtx.decodeAudioData(buf);
+        return new Ctx().decodeAudioData(buf);
+    }
+    if (typeof fetch !== 'function' || typeof FormData === 'undefined') {
+        sendWithoutTranscript();
+        return;
+    }
+    fetch(audio.src)
+        .then(function (r) { return r.arrayBuffer(); })
+        .then(decode)
+        .then(encodeWav16kMono)
+        .then(function (wavBlob) {
+            var fd = new FormData();
+            fd.append('file', wavBlob, 'voice.wav');
+            return fetch('/api/voice/transcribe', { method: 'POST', body: fd })
+                .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); });
+        })
+        .then(function (res) {
+            if (res.ok && res.data && res.data.transcript) {
+                if (stompClient && stompClient.connected) {
+                    stompClient.send('/app/group.transcribe', {}, JSON.stringify({
+                        messageId: Number(messageId),
+                        groupId: groupId,
+                        transcript: res.data.transcript
+                    }));
+                }
+            } else {
+                sendWithoutTranscript();
+            }
+        })
+        .catch(function () {
+            sendWithoutTranscript();
+        });
+}
+
+var groupChatErrorToastTimer = null;
+function handleGroupChatError(data) {
+    var message = data && data.error ? data.error : 'Не удалось выполнить операцию';
+    var toast = document.getElementById('chat-error-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'chat-error-toast';
+        toast.className = 'chat-error-toast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('visible');
+    if (groupChatErrorToastTimer) {
+        clearTimeout(groupChatErrorToastTimer);
+    }
+    groupChatErrorToastTimer = setTimeout(function () {
+        toast.classList.remove('visible');
+    }, 3500);
 }
 
 function appendGroupMessage(message) {
@@ -830,6 +988,13 @@ if (messagesContainer) {
         if (replyBlock) {
             scrollToMessage(replyBlock.getAttribute('data-reply-id'));
         }
+        var trBtn = e.target.closest('[data-action="transcribe-row"]');
+        if (trBtn) {
+            var row = trBtn.closest('.message-row');
+            if (row && row.getAttribute('data-message-id')) {
+                transcribeGroupVoiceMessage(row.getAttribute('data-message-id'));
+            }
+        }
     });
 }
 
@@ -1076,6 +1241,9 @@ stompClient.connect({}, function () {
     });
     stompClient.subscribe('/topic/group.' + activeGroupId + '.typing', function (payload) {
         handleGroupTyping(JSON.parse(payload.body));
+    });
+    stompClient.subscribe('/user/queue/chat-error', function (payload) {
+        handleGroupChatError(JSON.parse(payload.body));
     });
 }, function (error) {
     console.error('WebSocket connection error:', error);

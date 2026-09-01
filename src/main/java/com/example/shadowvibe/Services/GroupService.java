@@ -66,6 +66,7 @@ public class GroupService {
     private final MuteService muteService;
     private final FavoriteService favoriteService;
     private final PremiumService premiumService;
+    private final TranscriptionService transcriptionService;
 
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
@@ -83,7 +84,8 @@ public class GroupService {
         PresenceService presenceService,
         MuteService muteService,
         FavoriteService favoriteService,
-        PremiumService premiumService) {
+        PremiumService premiumService,
+        TranscriptionService transcriptionService) {
         this.chatGroupRepository = chatGroupRepository;
         this.groupMessageRepository = groupMessageRepository;
         this.groupMembershipRepository = groupMembershipRepository;
@@ -98,6 +100,7 @@ public class GroupService {
         this.muteService = muteService;
         this.favoriteService = favoriteService;
         this.premiumService = premiumService;
+        this.transcriptionService = transcriptionService;
     }
 
     public ChatGroup createGroup(String creatorUsername, String name, String memberUsernames) {
@@ -313,6 +316,42 @@ public class GroupService {
         return dto;
     }
 
+    public GroupMessageDto transcribeGroupMessage(Long messageId, Long groupId, String username, String transcript) {
+        if (!premiumService.isPremium(username)) {
+            throw new RuntimeException("Расшифровка голосовых доступна только с Premium");
+        }
+        getGroupForMember(groupId, username);
+        GroupMessage message = groupMessageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Сообщение не найдено"));
+        if (!message.getGroup().getId().equals(groupId)) {
+            throw new RuntimeException("Сообщение не принадлежит этой группе");
+        }
+        if (!message.hasAudio()) {
+            throw new RuntimeException("Это сообщение нельзя расшифровать");
+        }
+        String text;
+        if (message.hasTranscript()) {
+            text = message.getTranscript();
+        } else {
+            text = (transcript != null && !transcript.isBlank())
+                    ? transcript.trim()
+                    : transcriptionService.transcribe(message.getAudioDurationMs());
+            if (text.isBlank()) {
+                text = transcriptionService.transcribe(message.getAudioDurationMs());
+            }
+            if (text.length() > 4000) {
+                text = text.substring(0, 4000);
+            }
+            message.setTranscript(text);
+            message.setEdited(true);
+            message.setEditedAt(LocalDateTime.now());
+            groupMessageRepository.save(message);
+        }
+        GroupMessageDto dto = toDto(message);
+        messagingTemplate.convertAndSend("/topic/group." + groupId, dto);
+        return dto;
+    }
+
     private void sendGroupPush(GroupMessage message) {
         String sender = message.getSender().getUsername();
         ChatGroup group = message.getGroup();
@@ -496,6 +535,7 @@ public class GroupService {
         dto.setStickerUrl(message.getStickerUrl());
         dto.setAudioUrl(message.getAudioUrl());
         dto.setAudioDurationMs(message.getAudioDurationMs());
+        dto.setTranscript(message.getTranscript());
         dto.setReactions(reactionService.getReactions(ReactionTargetType.GROUP, message.getId()));
         dto.setEdited(message.isEdited());
         dto.setEditedAt(message.getEditedAt() != null

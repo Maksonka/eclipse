@@ -108,6 +108,17 @@
                                th:src="${msg.audioUrl}"
                                preload="metadata"></audio>
 
+                        <div class="voice-transcript"
+                             th:if="${msg.audioUrl != null and msg.transcript != null and !msg.transcript.trim().isEmpty()}"
+                             th:text="${msg.transcript}"></div>
+
+                        <button type="button"
+                                class="voice-transcribe-btn"
+                                th:if="${msg.audioUrl != null and currentUserPremium and (msg.transcript == null or msg.transcript.trim().isEmpty())}"
+                                data-action="transcribe-row"
+                                title="Расшифровать голосовое"
+                                aria-label="Расшифровать голосовое">Расшифровать</button>
+
                         <span class="content"
                               th:if="${msg.content != null and !msg.content.isEmpty()}"
                               th:text="${msg.content}"></span>
@@ -188,6 +199,7 @@
     const initialReactions = /*[[${reactionsByMessage}]]*/ {};
     const mutedDirectPartners = /*[[${mutedDirectPartners}]]*/ [];
     const mutedGroupIds = /*[[${mutedGroupIds}]]*/ [];
+    const currentUserPremium = /*[[${currentUserPremium}]]*/ false;
 </script>
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script><div id="context-menu" class="context-menu" hidden>
@@ -205,7 +217,7 @@
 <script th:src="@{/js/forward-dialog.js(v=1)}"></script>
 <script th:src="@{/js/voice-player.js(v=9)}"></script>
 <script th:src="@{/js/mute-manager.js(v=1)}"></script>
-    <script th:src="@{/js/chat-group.js(v=23)}"></script>
+    <script th:src="@{/js/chat-group.js(v=24)}"></script>
 <script th:src="@{/js/favorites.js(v=3)}"></script>
 <script th:src="@{/js/group-invites.js(v=5)}"></script>
 <div id="scheduled-modal" class="favorites-modal" hidden>

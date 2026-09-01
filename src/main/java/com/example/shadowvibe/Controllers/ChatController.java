@@ -93,6 +93,7 @@ private final ReactionService reactionService;
         model.addAttribute("group", group);
         model.addAttribute("groupMuted", muteService.isGroupMuted(principal.getName(), groupId));
         model.addAttribute("groupMessages", groupMessages);
+        model.addAttribute("currentUserPremium", premiumService.isPremium(principal.getName()));
         model.addAttribute("reactionsByMessage",
                 reactionService.getReactionsBatch(ReactionTargetType.GROUP,
                         groupMessages.stream().map(GroupMessage::getId).toList()));
