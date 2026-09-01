@@ -10,6 +10,8 @@ public class GroupMessageDto {
     private String attachmentType;
     private String attachmentOriginalName;
     private Long attachmentSize;
+    private String audioUrl;
+    private Long audioDurationMs;
     private Long replyToMessageId;
     private String replyToContent;
     private String replyToSenderUsername;
@@ -117,6 +119,12 @@ public class GroupMessageDto {
     public void setAttachmentSize(Long attachmentSize) {
         this.attachmentSize = attachmentSize;
     }
+
+    public String getAudioUrl() { return audioUrl; }
+    public void setAudioUrl(String audioUrl) { this.audioUrl = audioUrl; }
+
+    public Long getAudioDurationMs() { return audioDurationMs; }
+    public void setAudioDurationMs(Long audioDurationMs) { this.audioDurationMs = audioDurationMs; }
 
     public Long getReplyToMessageId() { return replyToMessageId; }
     public void setReplyToMessageId(Long replyToMessageId) { this.replyToMessageId = replyToMessageId; }

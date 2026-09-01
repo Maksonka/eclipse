@@ -354,6 +354,23 @@ function buildGroupMessageRow(message) {
         bubbleEl.appendChild(attachmentEl);
     }
 
+    if (message.audioUrl) {
+        try {
+            var voiceEl = window.VoicePlayer
+                ? VoicePlayer.create(message.audioUrl, message.audioDurationMs)
+                : (function () {
+                    var a = document.createElement('audio');
+                    a.src = message.audioUrl;
+                    a.controls = true;
+                    a.preload = 'metadata';
+                    return a;
+                })();
+            if (voiceEl) {
+                bubbleEl.appendChild(voiceEl);
+            }
+        } catch (e) {}
+    }
+
     if (message.stickerUrl) {
         var stickerEl = window.StickerUI
             ? StickerUI.createStickerImage(message.stickerUrl, message.stickerCode, isOutgoing)
@@ -826,6 +843,188 @@ document.addEventListener('keydown', function (e) {
 var socket = new SockJS('/ws');
 var stompClient = Stomp.over(socket);
 stompClient.debug = null;
+
+var voiceButton = document.getElementById('voice-button');
+var voiceRecBar = document.getElementById('voice-rec-bar');
+var voiceRecTimer = document.getElementById('voice-rec-timer');
+var voiceRecSend = document.getElementById('voice-rec-send');
+var voiceRecCancel = document.getElementById('voice-rec-cancel');
+
+var voiceRecorder = null;
+var voiceChunks = [];
+var voiceRecTimerInterval = null;
+var voiceRecStarted = 0;
+var voiceRecording = false;
+var VOICE_REC_MAX = 60 * 1000;
+
+function formatVoiceTime(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000));
+    var m = Math.floor(s / 60);
+    s = s % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function updateVoiceRecTimer() {
+    if (!voiceRecTimer) {
+        return;
+    }
+    var elapsed = Date.now() - voiceRecStarted;
+    voiceRecTimer.textContent = formatVoiceTime(elapsed);
+    if (elapsed >= VOICE_REC_MAX) {
+        finishVoiceRecording();
+    }
+}
+
+function setVoiceRecordingUI(recording) {
+    voiceRecording = recording;
+    if (voiceRecBar) {
+        voiceRecBar.hidden = !recording;
+    }
+    if (voiceButton) {
+        voiceButton.disabled = recording;
+    }
+    if (sendButton) {
+        sendButton.disabled = recording || !stompClient || !stompClient.connected;
+    }
+}
+
+function startVoiceRecording() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+        showComposerError('Запись голоса не поддерживается этим браузером');
+        return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        var mime = 'audio/webm';
+        if (!window.MediaRecorder.isTypeSupported(mime)) {
+            mime = '';
+        }
+        try {
+            voiceRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+        } catch (e) {
+            stream.getTracks().forEach(function (t) { t.stop(); });
+            showComposerError('Не удалось запустить запись');
+            return;
+        }
+        voiceChunks = [];
+        voiceRecorder.ondataavailable = function (e) {
+            if (e.data && e.data.size) {
+                voiceChunks.push(e.data);
+            }
+        };
+        voiceRecorder.onstop = function () {
+            stream.getTracks().forEach(function (t) { t.stop(); });
+            setVoiceRecordingUI(false);
+            uploadVoiceRecording();
+        };
+        voiceRecorder.onerror = function () {
+            showComposerError('Ошибка записи');
+            voiceChunks = [];
+            voiceRecorder = null;
+            setVoiceRecordingUI(false);
+        };
+        voiceRecorder.start();
+        voiceRecStarted = Date.now();
+        setVoiceRecordingUI(true);
+        updateVoiceRecTimer();
+        voiceRecTimerInterval = setInterval(updateVoiceRecTimer, 250);
+    }).catch(function () {
+        showComposerError('Нет доступа к микрофону');
+    });
+}
+
+function cancelVoiceRecording() {
+    voiceChunks = [];
+    if (voiceRecTimerInterval) {
+        clearInterval(voiceRecTimerInterval);
+        voiceRecTimerInterval = null;
+    }
+    if (voiceRecorder) {
+        try {
+            voiceRecorder.onstop = null;
+            if (voiceRecorder.state !== 'inactive') {
+                voiceRecorder.stop();
+            }
+        } catch (e) {}
+        voiceRecorder = null;
+    }
+    setVoiceRecordingUI(false);
+}
+
+function finishVoiceRecording() {
+    if (voiceRecTimerInterval) {
+        clearInterval(voiceRecTimerInterval);
+        voiceRecTimerInterval = null;
+    }
+    if (voiceRecorder && voiceRecorder.state !== 'inactive') {
+        try {
+            voiceRecorder.stop();
+        } catch (e) {}
+    } else {
+        setVoiceRecordingUI(false);
+    }
+}
+
+function uploadVoiceRecording() {
+    var chunks = voiceChunks;
+    var durationMs = Date.now() - voiceRecStarted;
+    voiceChunks = [];
+    if (!chunks.length) {
+        showComposerError('Запись пустая — ничего не отправлено');
+        return;
+    }
+    var blob = new Blob(chunks, { type: 'audio/webm' });
+    var fd = new FormData();
+    fd.append('file', blob, 'voice.webm');
+    fd.append('durationMs', String(durationMs));
+    fetch('/api/voice/upload', { method: 'POST', body: fd })
+        .then(function (r) {
+            return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+        })
+        .then(function (res) {
+            if (!res.ok || !res.data || !res.data.url) {
+                showComposerError('Не удалось отправить голосовое сообщение');
+                return;
+            }
+            if (!activeGroupId || !stompClient.connected) {
+                showComposerError('Нет соединения — голосовое не отправлено');
+                return;
+            }
+            var payload = {
+                groupId: activeGroupId,
+                audioUrl: res.data.url,
+                audioDurationMs: durationMs
+            };
+            if (replyState && replyState.messageId) {
+                payload.replyToMessageId = replyState.messageId;
+            }
+            stompClient.send('/app/group.send', {}, JSON.stringify(payload));
+            clearReplyPreview();
+        })
+        .catch(function () {
+            showComposerError('Ошибка сети при отправке голосового');
+        });
+}
+
+if (voiceButton) {
+    voiceButton.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (voiceRecording) {
+            finishVoiceRecording();
+        } else {
+            startVoiceRecording();
+        }
+    });
+}
+if (voiceRecSend) {
+    voiceRecSend.addEventListener('click', function () {
+        finishVoiceRecording();
+    });
+}
+if (voiceRecCancel) {
+    voiceRecCancel.addEventListener('click', function () {
+        cancelVoiceRecording();
+    });
+}
 
 function sendGroupReaction(messageId, emoji) {
     if (!stompClient || !stompClient.connected || !activeGroupId) {

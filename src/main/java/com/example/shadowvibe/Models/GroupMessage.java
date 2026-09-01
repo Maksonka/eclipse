@@ -32,6 +32,12 @@ public class GroupMessage {
     @Column(name = "attachment_size")
     private Long attachmentSize;
 
+    @Column(name = "audio_url", length = 500)
+    private String audioUrl;
+
+    @Column(name = "audio_duration_ms")
+    private Long audioDurationMs;
+
     @Column(name = "reply_to_id")
     private Long replyToMessageId;
 
@@ -149,6 +155,14 @@ public class GroupMessage {
     public boolean hasAttachment() {
         return attachmentFilename != null && !attachmentFilename.isBlank();
     }
+
+    public String getAudioUrl() { return audioUrl; }
+    public void setAudioUrl(String audioUrl) { this.audioUrl = audioUrl; }
+
+    public Long getAudioDurationMs() { return audioDurationMs; }
+    public void setAudioDurationMs(Long audioDurationMs) { this.audioDurationMs = audioDurationMs; }
+
+    public boolean hasAudio() { return audioUrl != null && !audioUrl.isBlank(); }
 
     public Long getReplyToMessageId() { return replyToMessageId; }
     public void setReplyToMessageId(Long replyToMessageId) { this.replyToMessageId = replyToMessageId; }

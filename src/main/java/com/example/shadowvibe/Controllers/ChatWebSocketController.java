@@ -142,8 +142,9 @@ public class ChatWebSocketController {
         }
 
         boolean hasSticker = request.getStickerCode() != null && !request.getStickerCode().isBlank();
+        boolean hasAudio = request.getAudioUrl() != null && !request.getAudioUrl().isBlank();
         if (request.getContent() == null || request.getContent().isBlank()) {
-            if (!hasSticker) {
+            if (!hasSticker && !hasAudio) {
                 return;
             }
         }
@@ -154,6 +155,14 @@ public class ChatWebSocketController {
                     principal.getName(),
                     request.getGroupId(),
                     request.getStickerCode().trim()
+            );
+        } else if (hasAudio) {
+            saved = groupService.saveGroupAudioMessage(
+                    principal.getName(),
+                    request.getGroupId(),
+                    request.getAudioUrl().trim(),
+                    request.getAudioDurationMs(),
+                    request.getReplyToMessageId()
             );
         } else {
             saved = groupService.saveGroupMessage(

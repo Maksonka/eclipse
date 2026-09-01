@@ -258,6 +258,33 @@ public class GroupService {
         return groupMessageRepository.save(message);
     }
 
+    public GroupMessage saveGroupAudioMessage(String senderUsername, Long groupId,
+                                              String audioUrl, Long audioDurationMs,
+                                              Long replyToMessageId) {
+        ChatGroup group = getGroupForMember(groupId, senderUsername);
+        User sender = userService.findByUsername(senderUsername)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+        GroupMessage message = new GroupMessage();
+        message.setContent("");
+        message.setSender(sender);
+        message.setGroup(group);
+        message.setTimestamp(LocalDateTime.now());
+        message.setAudioUrl(audioUrl);
+        message.setAudioDurationMs(audioDurationMs);
+
+        if (replyToMessageId != null) {
+            GroupMessage original = groupMessageRepository.findById(replyToMessageId).orElse(null);
+            if (original != null) {
+                message.setReplyToMessageId(original.getId());
+                message.setReplyToContent(original.getContent() != null ? original.getContent() : "");
+                message.setReplyToSenderUsername(original.getSender().getUsername());
+            }
+        }
+
+        return groupMessageRepository.save(message);
+    }
+
     public GroupMessage saveGroupStickerMessage(String senderUsername, Long groupId, String stickerCode) {
         Sticker sticker = stickerService.findByCode(stickerCode);
         if (sticker == null) {
@@ -466,6 +493,8 @@ public class GroupService {
         );
         dto.setStickerCode(message.getStickerCode());
         dto.setStickerUrl(message.getStickerUrl());
+        dto.setAudioUrl(message.getAudioUrl());
+        dto.setAudioDurationMs(message.getAudioDurationMs());
         dto.setReactions(reactionService.getReactions(ReactionTargetType.GROUP, message.getId()));
         dto.setEdited(message.isEdited());
         dto.setEditedAt(message.getEditedAt() != null
