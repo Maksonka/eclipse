@@ -1183,6 +1183,10 @@ if (window.ReactionsUI && messagesContainer) {
     });
 }
 
+if (window.VoicePlayer && messagesContainer) {
+    VoicePlayer.initAll(messagesContainer);
+}
+
 if (window.StickerUI) {
     StickerUI.init({
         attachSelector: '#attach-button',
