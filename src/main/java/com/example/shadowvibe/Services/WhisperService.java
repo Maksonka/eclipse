@@ -32,7 +32,24 @@ public class WhisperService {
         Path inFile = tmpDir.resolve(base + ".wav");
         try {
             Files.write(inFile, wavBytes);
-            ProcessBuilder pb = new ProcessBuilder(python, script, inFile.toString());
+            return runWhisper(inFile.toString());
+        } catch (Exception e) {
+            throw new RuntimeException("Ошибка при распознавании речи: " + e.getMessage(), e);
+        } finally {
+            try { Files.deleteIfExists(inFile); } catch (IOException ignored) {}
+        }
+    }
+
+    public synchronized String transcribeFile(String audioPath) {
+        if (audioPath == null || !Files.exists(Path.of(audioPath))) {
+            throw new RuntimeException("Аудиофайл не найден для распознавания");
+        }
+        return runWhisper(audioPath);
+    }
+
+    private String runWhisper(String inFile) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(python, script, inFile);
             pb.redirectErrorStream(true);
             Process process = pb.start();
             byte[] out = process.getInputStream().readAllBytes();
@@ -40,20 +57,23 @@ public class WhisperService {
                 process.destroyForcibly();
                 throw new IOException("Распознавание превысило лимит времени");
             }
+            String outText = new String(out, StandardCharsets.UTF_8);
             if (process.exitValue() != 0) {
-                throw new IOException("Ошибка распознавания (код " + process.exitValue() + ")");
+                throw new IOException("Ошибка распознавания (код " + process.exitValue() + "): "
+                        + (outText.isBlank() ? "" : outText.trim()));
             }
-            List<String> lines = new String(out, StandardCharsets.UTF_8).lines()
+            List<String> lines = outText.lines()
                     .filter(l -> !l.isBlank())
                     .toList();
             if (lines.isEmpty()) {
                 return "";
             }
             return lines.get(lines.size() - 1).trim();
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             throw new RuntimeException("Ошибка при распознавании речи: " + e.getMessage(), e);
-        } finally {
-            try { Files.deleteIfExists(inFile); } catch (IOException ignored) {}
         }
     }
 }

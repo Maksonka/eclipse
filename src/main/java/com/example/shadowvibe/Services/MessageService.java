@@ -20,6 +20,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -49,7 +51,10 @@ public class MessageService {
     private final FavoriteService favoriteService;
     private final PremiumService premiumService;
     private final TranscriptionService transcriptionService;
+    private final WhisperService whisperService;
 
+    @org.springframework.beans.factory.annotation.Value("${app.upload.dir:uploads}")
+    private String uploadDir;
 
     public MessageService(MessageRepository messageRepository,
                           GroupMessageRepository groupMessageRepository,
@@ -63,7 +68,8 @@ public class MessageService {
                           MuteService muteService,
                           FavoriteService favoriteService,
                           PremiumService premiumService,
-                          TranscriptionService transcriptionService) {
+                          TranscriptionService transcriptionService,
+                          WhisperService whisperService) {
         this.messageRepository = messageRepository;
         this.groupMessageRepository = groupMessageRepository;
         this.userService = userService;
@@ -77,6 +83,7 @@ public class MessageService {
         this.favoriteService = favoriteService;
         this.premiumService = premiumService;
         this.transcriptionService = transcriptionService;
+        this.whisperService = whisperService;
     }
 
 
@@ -305,10 +312,7 @@ public class MessageService {
         }
         String text = transcript != null && !transcript.isBlank()
                 ? transcript.trim()
-                : transcriptionService.transcribe(message.getAudioDurationMs());
-        if (text.isBlank()) {
-            text = transcriptionService.transcribe(message.getAudioDurationMs());
-        }
+                : transcribeStoredAudio(message.getAudioUrl(), message.getAudioDurationMs());
         if (text.length() > 4000) {
             text = text.substring(0, 4000);
         }
@@ -323,6 +327,19 @@ public class MessageService {
             messagingTemplate.convertAndSendToUser(message.getSender().getUsername(), "/queue/messages", dto);
         });
         return dto;
+    }
+
+    private String transcribeStoredAudio(String audioUrl, Long durationMs) {
+        if (!whisperService.isAvailable()) {
+            throw new RuntimeException("Распознавание временно недоступно");
+        }
+        String filename = audioUrl.substring(audioUrl.lastIndexOf('/') + 1);
+        Path path = Paths.get(uploadDir).toAbsolutePath().normalize().resolve("voice").resolve(filename);
+        String text = whisperService.transcribeFile(path.toString());
+        if (text == null || text.isBlank()) {
+            throw new RuntimeException("Не удалось распознать речь в этом голосовом сообщении");
+        }
+        return text;
     }
 
     public Message forwardToUser(String sourceType, Long sourceMessageId, String targetUsername, String username) {

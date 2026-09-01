@@ -1264,52 +1264,21 @@ function transcribeVoiceMessage(messageId) {
         if (window.location) window.location.href = '/premium';
         return;
     }
-    function sendWithoutTranscript() {
-        if (stompClient && stompClient.connected) {
-            stompClient.send('/app/chat.transcribe', {}, JSON.stringify({ messageId: Number(messageId) }));
-        }
+    var row = messagesContainer ? messagesContainer.querySelector('[data-message-id="' + messageId + '"]') : null;
+    var btn = row ? row.querySelector('.voice-transcribe-btn') : null;
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Расшифровка…';
     }
-    var audio = getVoiceAudioEl(messageId);
-    if (!audio || !audio.src) {
-        sendWithoutTranscript();
+    if (!stompClient || !stompClient.connected) {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Расшифровать';
+        }
+        showComposerError('Нет соединения');
         return;
     }
-    var Ctx = window.AudioContext || window.webkitAudioContext;
-    var baseCtx = null;
-    try {
-        baseCtx = new Ctx();
-    } catch (e) {
-        baseCtx = null;
-    }
-    function decode(buf) {
-        if (baseCtx) return baseCtx.decodeAudioData(buf);
-        return new Ctx().decodeAudioData(buf);
-    }
-    fetch(audio.src)
-        .then(function (r) { return r.arrayBuffer(); })
-        .then(decode)
-        .then(encodeWav16kMono)
-        .then(function (wavBlob) {
-            var fd = new FormData();
-            fd.append('file', wavBlob, 'voice.wav');
-            return fetch('/api/voice/transcribe', { method: 'POST', body: fd })
-                .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); });
-        })
-        .then(function (res) {
-            if (res.ok && res.data && res.data.transcript) {
-                if (stompClient && stompClient.connected) {
-                    stompClient.send('/app/chat.transcribe', {}, JSON.stringify({
-                        messageId: Number(messageId),
-                        transcript: res.data.transcript
-                    }));
-                }
-            } else {
-                sendWithoutTranscript();
-            }
-        })
-        .catch(function () {
-            sendWithoutTranscript();
-        });
+    stompClient.send('/app/chat.transcribe', {}, JSON.stringify({ messageId: Number(messageId) }));
 }
 
 function openContextMenuAt(clientX, clientY, bubble) {

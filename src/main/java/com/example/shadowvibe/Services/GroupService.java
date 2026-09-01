@@ -67,6 +67,7 @@ public class GroupService {
     private final FavoriteService favoriteService;
     private final PremiumService premiumService;
     private final TranscriptionService transcriptionService;
+    private final WhisperService whisperService;
 
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
@@ -85,7 +86,8 @@ public class GroupService {
         MuteService muteService,
         FavoriteService favoriteService,
         PremiumService premiumService,
-        TranscriptionService transcriptionService) {
+        TranscriptionService transcriptionService,
+        WhisperService whisperService) {
         this.chatGroupRepository = chatGroupRepository;
         this.groupMessageRepository = groupMessageRepository;
         this.groupMembershipRepository = groupMembershipRepository;
@@ -101,6 +103,7 @@ public class GroupService {
         this.favoriteService = favoriteService;
         this.premiumService = premiumService;
         this.transcriptionService = transcriptionService;
+        this.whisperService = whisperService;
     }
 
     public ChatGroup createGroup(String creatorUsername, String name, String memberUsernames) {
@@ -335,10 +338,7 @@ public class GroupService {
         } else {
             text = (transcript != null && !transcript.isBlank())
                     ? transcript.trim()
-                    : transcriptionService.transcribe(message.getAudioDurationMs());
-            if (text.isBlank()) {
-                text = transcriptionService.transcribe(message.getAudioDurationMs());
-            }
+                    : transcribeStoredAudio(message.getAudioUrl());
             if (text.length() > 4000) {
                 text = text.substring(0, 4000);
             }
@@ -350,6 +350,19 @@ public class GroupService {
         GroupMessageDto dto = toDto(message);
         messagingTemplate.convertAndSend("/topic/group." + groupId, dto);
         return dto;
+    }
+
+    private String transcribeStoredAudio(String audioUrl) {
+        if (!whisperService.isAvailable()) {
+            throw new RuntimeException("Распознавание временно недоступно");
+        }
+        String filename = audioUrl.substring(audioUrl.lastIndexOf('/') + 1);
+        Path path = Paths.get(uploadDir).toAbsolutePath().normalize().resolve("voice").resolve(filename);
+        String text = whisperService.transcribeFile(path.toString());
+        if (text == null || text.isBlank()) {
+            throw new RuntimeException("Не удалось распознать речь в этом голосовом сообщении");
+        }
+        return text;
     }
 
     private void sendGroupPush(GroupMessage message) {
