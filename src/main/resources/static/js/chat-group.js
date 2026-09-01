@@ -528,7 +528,17 @@ function transcribeGroupVoiceMessage(messageId) {
         return;
     }
     stompClient.send('/app/group.transcribe', {}, JSON.stringify({ messageId: Number(messageId), groupId: groupId }));
-}var groupChatErrorToastTimer = null;
+}function resetTranscribeButtons() {
+    var buttons = document.querySelectorAll('.voice-transcribe-btn');
+    for (var i = 0; i < buttons.length; i++) {
+        if (buttons[i].disabled && buttons[i].textContent === 'Расшифровка…') {
+            buttons[i].disabled = false;
+            buttons[i].textContent = 'Расшифровать';
+        }
+    }
+}
+
+var groupChatErrorToastTimer = null;
 function handleGroupChatError(data) {
     var message = data && data.error ? data.error : 'Не удалось выполнить операцию';
     var toast = document.getElementById('chat-error-toast');
@@ -546,6 +556,7 @@ function handleGroupChatError(data) {
     groupChatErrorToastTimer = setTimeout(function () {
         toast.classList.remove('visible');
     }, 3500);
+    resetTranscribeButtons();
 }
 
 function appendGroupMessage(message) {

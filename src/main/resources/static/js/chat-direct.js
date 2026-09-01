@@ -1554,6 +1554,16 @@ function getMessageLabel(row) {
 
 let chatErrorToastTimer = null;
 
+function resetTranscribeButtons() {
+    var buttons = document.querySelectorAll('.voice-transcribe-btn');
+    for (var i = 0; i < buttons.length; i++) {
+        if (buttons[i].disabled && buttons[i].textContent === 'Расшифровка…') {
+            buttons[i].disabled = false;
+            buttons[i].textContent = 'Расшифровать';
+        }
+    }
+}
+
 function handleChatError(data) {
     var message = data && data.error ? data.error : 'Не удалось отправить сообщение';
     var toast = document.getElementById('chat-error-toast');
@@ -1571,6 +1581,7 @@ function handleChatError(data) {
     chatErrorToastTimer = setTimeout(function () {
         toast.classList.remove('visible');
     }, 4000);
+    resetTranscribeButtons();
 }
 
 if (replyPreviewEl) {
