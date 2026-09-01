@@ -103,6 +103,11 @@
                              th:src="${msg.stickerUrl}"
                              th:alt="'Стикер от ' + ${msg.sender.username}"/>
 
+                        <audio th:if="${msg.audioUrl != null}"
+                               data-voice-player
+                               th:src="${msg.audioUrl}"
+                               preload="metadata"></audio>
+
                         <span class="content"
                               th:if="${msg.content != null and !msg.content.isEmpty()}"
                               th:text="${msg.content}"></span>

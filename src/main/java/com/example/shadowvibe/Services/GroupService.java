@@ -166,6 +166,7 @@ public class GroupService {
             GroupMessage latest = latestByGroup.get(group.getId());
             String preview = latest != null
                     ? (latest.hasSticker() ? "Стикер"
+                        : latest.hasAudio() ? "Голосовое сообщение"
                         : latest.getContent() != null && !latest.getContent().isBlank()
                         ? truncate(latest.getContent())
                         : AttachmentService.labelForType(latest.getAttachmentType()))
