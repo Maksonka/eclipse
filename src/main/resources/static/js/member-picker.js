@@ -24,7 +24,24 @@
         var input = picker.querySelector('.member-picker-input');
         var results = picker.querySelector('.member-picker-results');
         var chips = picker.querySelector('.member-picker-chips');
+        var trigger = picker.querySelector('.member-picker-trigger');
+        var countEl = picker.querySelector('.member-picker-trigger-count');
         var selected = [];
+
+        function isOpen() {
+            return picker.classList.contains('is-open');
+        }
+        function setOpen(open) {
+            if (open) {
+                picker.classList.add('is-open');
+                renderDefault();
+            } else {
+                picker.classList.remove('is-open');
+            }
+            input.value = '';
+            results.hidden = true;
+        }
+        function toggle() { setOpen(!isOpen()); }
 
         function selectedSet() {
             var s = {};
@@ -89,6 +106,9 @@
             });
             hidden.value = selected.map(function (u) { return u.username; }).join(', ');
             hidden.dispatchEvent(new Event('change', { bubbles: true }));
+            if (countEl) {
+                countEl.textContent = selected.length ? String(selected.length) : '';
+            }
         }
 
         function addUser(user) {
@@ -96,13 +116,13 @@
             selected.push(user);
             renderChips();
             input.value = '';
-            if (!input.value.trim()) renderDefault();
+            if (isOpen()) renderDefault();
         }
 
         function removeUser(username) {
             selected = selected.filter(function (u) { return u.username !== username; });
             renderChips();
-            if (!input.value.trim()) renderDefault();
+            if (isOpen() && !input.value.trim()) renderDefault();
         }
 
         function renderDefault() {
@@ -123,7 +143,7 @@
                 var empty = document.createElement('div');
                 empty.className = 'member-picker-empty';
                 if (q === '_default') {
-                    empty.textContent = 'Нет чатов для выбора — введите ник вручную';
+                    empty.textContent = 'Нет чатов для выбора';
                 } else {
                     empty.textContent = 'Никого не нашли';
                 }
@@ -178,16 +198,17 @@
             if (!q) { renderDefault(); return; }
             debounceTimer = setTimeout(function () { search(q); }, 200);
         });
-        input.addEventListener('focus', function () {
-            if (!input.value.trim()) renderDefault();
-        });
         input.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') {
-                input.value = ''; hideResults(); input.blur();
-            }
+            if (e.key === 'Escape') { setOpen(false); input.blur(); }
         });
+        if (trigger) {
+            trigger.addEventListener('click', function (e) {
+                e.preventDefault();
+                toggle();
+            });
+        }
         document.addEventListener('click', function (e) {
-            if (!picker.contains(e.target)) hideResults();
+            if (!picker.contains(e.target)) setOpen(false);
         });
     }
 })();
