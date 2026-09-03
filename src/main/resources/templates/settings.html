@@ -153,28 +153,28 @@
                     </form>
                 </div>
 
-                <div class="ghost-exceptions-block">
+                <div class="ghost-exceptions-block" id="ghost-exceptions-block">
                     <h3>Исключения</h3>
                     <p class="settings-hint">
                         Для этих пользователей призрак не действует — они видят вашу активность как обычно.
                     </p>
 
-                    <form class="ghost-add-form" th:action="@{/settings/ghost/exceptions}" method="post">
-                        <div class="ghost-add-inputs">
-                            <input type="text" name="exceptionUsername" placeholder="Ник пользователя"
-                                   list="ghost-user-list" required/>
-                            <datalist id="ghost-user-list">
-                                <option th:each="ex : ${ghostExceptions}" th:value="${ex['username']}"/>
-                            </datalist>
+                    <div class="ghost-picker" id="ghost-picker">
+                        <script th:inline="javascript">
+                            window.__ghostExisting = /*[[${ghostExceptions}]]*/ [];
+                            window.__ghostChatPartners = /*[[${ghostChatPartners}]]*/ [];
+                        </script>
+                        <div class="ghost-picker-input-row">
+                            <input type="text" id="ghost-picker-input" placeholder="Выберите из чатов…" autocomplete="off"/>
                             <label class="ghost-show-activity">
-                                <input type="checkbox" name="showActivity" value="true"/>
+                                <input type="checkbox" id="ghost-picker-activity" value="true"/>
                                 Показывать активность
                             </label>
-                            <button type="submit" class="btn-secondary">Добавить</button>
                         </div>
-                    </form>
+                        <div class="ghost-picker-results" id="ghost-picker-results" hidden></div>
+                    </div>
 
-                    <div class="ghost-exceptions-list" th:if="${!#lists.isEmpty(ghostExceptions)}">
+                    <div class="ghost-exceptions-list" id="ghost-exceptions-list" th:if="${!#lists.isEmpty(ghostExceptions)}">
                         <div class="ghost-exception-row" th:each="ex : ${ghostExceptions}">
                             <span class="ghost-exception-name" th:text="${ex['username']}"></span>
                             <form th:action="@{/settings/ghost/exceptions/update}" method="post" class="ghost-exception-form">
@@ -192,7 +192,7 @@
                             </form>
                         </div>
                     </div>
-                    <p class="settings-hint" th:if="${#lists.isEmpty(ghostExceptions)}">
+                    <p class="settings-hint" th:if="${#lists.isEmpty(ghostExceptions)}" id="ghost-exceptions-empty">
                         Пока нет исключений.
                     </p>
                 </div>
@@ -241,6 +241,173 @@
             localStorage.setItem('eclipse-theme', theme);
         });
     });
+
+    (function () {
+        'use strict';
+        var picker = document.getElementById('ghost-picker');
+        var input = document.getElementById('ghost-picker-input');
+        var resultsEl = document.getElementById('ghost-picker-results');
+        var activityBox = document.getElementById('ghost-picker-activity');
+        if (!picker || !input || !resultsEl) return;
+
+        var existing = Object.prototype.toString.call(window.__ghostExisting) === '[object Array]'
+            ? window.__ghostExisting.map(function (e) { return (e && e.username) ? e.username : e; })
+            : [];
+        var chatPartners = Object.prototype.toString.call(window.__ghostChatPartners) === '[object Array]'
+            ? window.__ghostChatPartners
+            : [];
+
+        var debounceTimer = null;
+        var requestSeq = 0;
+
+        function buildRow(user) {
+            var row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'ghost-picker-item';
+
+            var avatar = document.createElement('span');
+            avatar.className = 'user-avatar ghost-picker-avatar';
+            if (user.avatarFilename) {
+                var img = document.createElement('img');
+                img.className = 'user-avatar-img';
+                img.src = '/uploads/avatars/' + encodeURIComponent(user.avatarFilename);
+                img.alt = user.username;
+                img.loading = 'lazy';
+                avatar.appendChild(img);
+            } else {
+                var letter = document.createElement('span');
+                letter.className = 'user-avatar-letter';
+                letter.textContent = (user.username || '?').charAt(0).toUpperCase();
+                avatar.appendChild(letter);
+            }
+            row.appendChild(avatar);
+
+            var name = document.createElement('span');
+            name.className = 'ghost-picker-name';
+            name.textContent = user.username;
+            row.appendChild(name);
+
+            row.addEventListener('click', function () {
+                addException(user.username);
+            });
+            return row;
+        }
+
+        function addException(username) {
+            var show = activityBox ? activityBox.checked : false;
+            var body = new URLSearchParams();
+            body.append('exceptionUsername', username);
+            if (show) body.append('showActivity', 'true');
+            fetch('/settings/ghost/exceptions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: body.toString()
+            }).then(function (r) {
+                if (r.redirected) {
+                    window.location.reload();
+                    return;
+                }
+                if (r.ok) {
+                    window.location.reload();
+                } else {
+                    showMsg('Не удалось добавить пользователя');
+                }
+            }).catch(function () {
+                showMsg('Не удалось добавить пользователя');
+            });
+        }
+
+        function showMsg(text) {
+            var el = document.createElement('div');
+            el.className = 'auth-alert auth-alert-error';
+            el.textContent = text;
+            var block = document.getElementById('ghost-exceptions-block');
+            if (block) {
+                block.prepend(el);
+                setTimeout(function () { el.remove(); }, 3500);
+            }
+        }
+
+        function render(users, q) {
+            if (q !== '_partners' && input.value.trim() !== q) return;
+            if (q === '_partners' && input.value.trim()) return;
+            var visible = users.filter(function (u) {
+                return existing.indexOf(u.username) === -1;
+            });
+            if (!visible.length) {
+                resultsEl.innerHTML = '';
+                var empty = document.createElement('div');
+                empty.className = 'ghost-picker-empty';
+                if (q === '_partners') {
+                    empty.textContent = 'Нет чатов для выбора — введите ник вручную';
+                } else {
+                    empty.textContent = existing.indexOf(q) !== -1 ? 'Уже в исключениях' : 'Никого не нашли';
+                }
+                resultsEl.appendChild(empty);
+            } else {
+                var frag = document.createDocumentFragment();
+                visible.forEach(function (u) { frag.appendChild(buildRow(u)); });
+                resultsEl.innerHTML = '';
+                resultsEl.appendChild(frag);
+            }
+            resultsEl.hidden = false;
+        }
+
+        function hideResults() {
+            resultsEl.hidden = true;
+            resultsEl.innerHTML = '';
+        }
+
+        function search(q) {
+            var seq = ++requestSeq;
+            fetch('/api/users/search?q=' + encodeURIComponent(q), {
+                headers: { 'Accept': 'application/json' }
+            })
+                .then(function (r) {
+                    if (r.status === 401 || (r.headers.get('Content-Type') || '').indexOf('text/html') !== -1) {
+                        window.location.href = '/login';
+                        throw new Error('aborted');
+                    }
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(function (users) {
+                    if (seq === requestSeq) render(Array.isArray(users) ? users : [], q);
+                })
+                .catch(function (err) {
+                    if (err && err.message === 'aborted') return;
+                    if (seq === requestSeq) {
+                        resultsEl.innerHTML = '';
+                        var e = document.createElement('div');
+                        e.className = 'ghost-picker-empty';
+                        e.textContent = 'Ошибка поиска';
+                        resultsEl.appendChild(e);
+                        resultsEl.hidden = false;
+                    }
+                });
+        }
+
+        function showPartners() {
+            render(chatPartners, '_partners');
+            resultsEl.hidden = false;
+        }
+
+        input.addEventListener('input', function () {
+            var q = input.value.trim();
+            if (debounceTimer) clearTimeout(debounceTimer);
+            if (!q) { showPartners(); return; }
+            debounceTimer = setTimeout(function () { search(q); }, 200);
+        });
+        input.addEventListener('focus', function () {
+            if (!input.value.trim()) showPartners();
+        });
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { input.value = ''; hideResults(); input.blur(); }
+        });
+        document.addEventListener('click', function (e) {
+            if (!picker.contains(e.target)) hideResults();
+        });
+    })();
 </script>
 </body>
 </html>

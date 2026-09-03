@@ -3,9 +3,11 @@ package com.example.shadowvibe.Services;
 import com.example.shadowvibe.Models.GhostException;
 import com.example.shadowvibe.Models.User;
 import com.example.shadowvibe.Repositories.GhostExceptionRepository;
+import com.example.shadowvibe.Repositories.MessageRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,10 +17,14 @@ public class GhostModeService {
 
     private final GhostExceptionRepository ghostExceptionRepository;
     private final UserService userService;
+    private final MessageRepository messageRepository;
 
-    public GhostModeService(GhostExceptionRepository ghostExceptionRepository, UserService userService) {
+    public GhostModeService(GhostExceptionRepository ghostExceptionRepository,
+                            UserService userService,
+                            MessageRepository messageRepository) {
         this.ghostExceptionRepository = ghostExceptionRepository;
         this.userService = userService;
+        this.messageRepository = messageRepository;
     }
 
     public boolean isGhostModeEnabled(String username) {
@@ -99,5 +105,27 @@ public class GhostModeService {
     @Transactional
     public void removeException(String username, String exceptionUsername) {
         ghostExceptionRepository.deleteByUsernameAndExceptionUsername(username, exceptionUsername);
+    }
+
+    public List<Map<String, Object>> getChatPartners(String username) {
+        List<String> partnerNames = messageRepository.findConversationPartners(username);
+        List<String> existing = ghostExceptionRepository.findByUsername(username).stream()
+                .map(ge -> ge.getExceptionUser().getUsername())
+                .toList();
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (String name : partnerNames) {
+            if (existing.contains(name) || name.equals(username)) {
+                continue;
+            }
+            User partner = userService.findByUsername(name).orElse(null);
+            if (partner == null) {
+                continue;
+            }
+            Map<String, Object> map = new HashMap<>();
+            map.put("username", partner.getUsername());
+            map.put("avatarFilename", partner.getAvatarFilename());
+            result.add(map);
+        }
+        return result;
     }
 }

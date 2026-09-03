@@ -51,6 +51,7 @@ SettingsController {
         model.addAttribute("currentUser", user);
         model.addAttribute("blockedCount", blockedUsernames.size());
         model.addAttribute("ghostExceptions", ghostModeService.getExceptions(principal.getName()));
+        model.addAttribute("ghostChatPartners", ghostModeService.getChatPartners(principal.getName()));
         return "settings";
     }
 
