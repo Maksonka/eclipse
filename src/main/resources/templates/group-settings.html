@@ -69,8 +69,17 @@
                   method="post" style="margin-bottom:16px">
                 <label class="field">
                     <span>Добавить участников</span>
-                    <input type="text" name="members" placeholder="user1, user2, user3"/>
-                    <small class="field-hint">Ники через запятую. Добавлять участников может только создатель группы</small>
+                    <div class="member-picker" id="member-picker">
+                        <script th:inline="javascript">
+                            window.__chatPartners = /*[[${chatPartners}]]*/ [];
+                            window.__existingMembers = /*[[${groupMembers}]]*/ [];
+                        </script>
+                        <input type="hidden" name="members" value=""/>
+                        <div class="member-picker-chips"></div>
+                        <input type="text" class="member-picker-input" placeholder="Выберите из чатов или введите ник…" autocomplete="off"/>
+                        <small class="field-hint">Добавлять участников может только создатель группы</small>
+                        <div class="member-picker-results" hidden></div>
+                    </div>
                 </label>
                 <button type="submit" class="btn-primary">Добавить</button>
             </form>
@@ -124,5 +133,6 @@
 </div>
 
     <script th:src="@{/js/file-picker.js(v=1)}"></script>
+    <script th:src="@{/js/member-picker.js(v=1)}"></script>
 </body>
 </html>

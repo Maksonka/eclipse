@@ -5,6 +5,7 @@ import com.example.shadowvibe.Models.GroupMessage;
 import com.example.shadowvibe.Models.User;
 import com.example.shadowvibe.Services.GroupInviteService;
 import com.example.shadowvibe.Services.GroupService;
+import com.example.shadowvibe.Services.MessageService;
 import com.example.shadowvibe.Services.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -30,11 +31,13 @@ public class GroupController {
     private final GroupService groupService;
     private final GroupInviteService groupInviteService;
     private final UserService userService;
+    private final MessageService messageService;
 
-    public GroupController(GroupService groupService, GroupInviteService groupInviteService, UserService userService) {
+    public GroupController(GroupService groupService, GroupInviteService groupInviteService, UserService userService, MessageService messageService) {
         this.groupService = groupService;
         this.groupInviteService = groupInviteService;
         this.userService = userService;
+        this.messageService = messageService;
     }
 
     @GetMapping("/create")
@@ -43,6 +46,7 @@ public class GroupController {
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
         model.addAttribute("currentUser", user);
         model.addAttribute("groups", groupService.getGroupPreviews(principal.getName()));
+        model.addAttribute("chatPartners", messageService.getChatPartners(principal.getName()));
         return "group-create";
     }
 
@@ -82,6 +86,10 @@ public class GroupController {
         model.addAttribute("group", group);
         model.addAttribute("groupMembers", members);
         model.addAttribute("isCreator", isCreator);
+        List<String> memberNames = members.stream().map(User::getUsername).toList();
+        model.addAttribute("chatPartners", messageService.getChatPartners(principal.getName()).stream()
+                .filter(p -> !memberNames.contains(p.get("username")))
+                .toList());
         return "group-settings";
     }
 

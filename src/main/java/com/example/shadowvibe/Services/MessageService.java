@@ -655,4 +655,23 @@ public class MessageService {
             send.run();
         }
     }
+
+    public List<Map<String, Object>> getChatPartners(String username) {
+        List<String> partnerNames = messageRepository.findConversationPartners(username);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (String name : partnerNames) {
+            if (name.equals(username)) {
+                continue;
+            }
+            User partner = userService.findByUsername(name).orElse(null);
+            if (partner == null) {
+                continue;
+            }
+            Map<String, Object> map = new HashMap<>();
+            map.put("username", partner.getUsername());
+            map.put("avatarFilename", partner.getAvatarFilename());
+            result.add(map);
+        }
+        return result;
+    }
 }
