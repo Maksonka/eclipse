@@ -118,6 +118,87 @@
             </form>
         </section>
 
+        <section class="settings-section" th:classappend="${!currentUser.premium ? 'settings-section-locked' : ''}">
+            <h2>
+                Режим «Призрака»
+                <span class="ghost-badge" th:if="${currentUser.premium}">👻 Premium</span>
+                <span class="theme-lock" th:unless="${currentUser.premium}">🔒 Premium</span>
+            </h2>
+            <p class="settings-hint">
+                Оставайтесь незаметными: ваши собеседники не увидят «печатает…» и галочки «прочитано».
+                Для близких можно сделать исключение и показывать активность.
+            </p>
+
+            <th:block th:if="${!currentUser.premium}">
+                <p class="ghost-locked-note">
+                    Режим «Призрака» доступен с
+                    <a th:href="@{/premium}">Premium</a>.
+                </p>
+            </th:block>
+
+            <th:block th:if="${currentUser.premium}">
+                <div class="auth-alert auth-alert-success" th:if="${ghostMessage}" th:text="${ghostMessage}"></div>
+                <div class="auth-alert auth-alert-error" th:if="${ghostError}" th:text="${ghostError}"></div>
+
+                <div class="ghost-status-row">
+                    <div class="ghost-status-text">
+                        <strong>Призрак активен</strong>
+                        <small>Скрывать «печатает…» и галочки «прочитано»</small>
+                    </div>
+                    <form th:action="@{/settings/ghost/toggle}" method="post" class="ghost-toggle-form">
+                        <label class="ghost-switch">
+                            <input type="checkbox" th:checked="${currentUser.ghostMode}" onchange="this.form.submit()"/>
+                            <span class="ghost-switch-slider"></span>
+                        </label>
+                    </form>
+                </div>
+
+                <div class="ghost-exceptions-block">
+                    <h3>Исключения</h3>
+                    <p class="settings-hint">
+                        Для этих пользователей призрак не действует — они видят вашу активность как обычно.
+                    </p>
+
+                    <form class="ghost-add-form" th:action="@{/settings/ghost/exceptions}" method="post">
+                        <div class="ghost-add-inputs">
+                            <input type="text" name="exceptionUsername" placeholder="Ник пользователя"
+                                   list="ghost-user-list" required/>
+                            <datalist id="ghost-user-list">
+                                <option th:each="ex : ${ghostExceptions}" th:value="${ex['username']}"/>
+                            </datalist>
+                            <label class="ghost-show-activity">
+                                <input type="checkbox" name="showActivity" value="true"/>
+                                Показывать активность
+                            </label>
+                            <button type="submit" class="btn-secondary">Добавить</button>
+                        </div>
+                    </form>
+
+                    <div class="ghost-exceptions-list" th:if="${!#lists.isEmpty(ghostExceptions)}">
+                        <div class="ghost-exception-row" th:each="ex : ${ghostExceptions}">
+                            <span class="ghost-exception-name" th:text="${ex['username']}"></span>
+                            <form th:action="@{/settings/ghost/exceptions/update}" method="post" class="ghost-exception-form">
+                                <input type="hidden" name="exceptionUsername" th:value="${ex['username']}"/>
+                                <label class="ghost-show-activity">
+                                    <input type="checkbox" name="showActivity" value="true"
+                                           onchange="this.form.submit()"
+                                           th:checked="${ex['showActivity']}"/>
+                                    Показывать активность
+                                </label>
+                            </form>
+                            <form th:action="@{/settings/ghost/exceptions/delete}" method="post">
+                                <input type="hidden" name="exceptionUsername" th:value="${ex['username']}"/>
+                                <button type="submit" class="ghost-remove-btn" title="Удалить исключение">✕</button>
+                            </form>
+                        </div>
+                    </div>
+                    <p class="settings-hint" th:if="${#lists.isEmpty(ghostExceptions)}">
+                        Пока нет исключений.
+                    </p>
+                </div>
+            </th:block>
+        </section>
+
         <section class="settings-section">
             <h2>Смена пароля</h2>
             <p class="settings-hint">Введите текущий пароль и новый пароль</p>

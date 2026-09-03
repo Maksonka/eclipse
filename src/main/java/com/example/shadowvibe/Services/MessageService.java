@@ -52,6 +52,7 @@ public class MessageService {
     private final PremiumService premiumService;
     private final TranscriptionService transcriptionService;
     private final WhisperService whisperService;
+    private final GhostModeService ghostModeService;
 
     @org.springframework.beans.factory.annotation.Value("${app.upload.dir:uploads}")
     private String uploadDir;
@@ -69,7 +70,8 @@ public class MessageService {
                           FavoriteService favoriteService,
                           PremiumService premiumService,
                           TranscriptionService transcriptionService,
-                          WhisperService whisperService) {
+                          WhisperService whisperService,
+                          GhostModeService ghostModeService) {
         this.messageRepository = messageRepository;
         this.groupMessageRepository = groupMessageRepository;
         this.userService = userService;
@@ -84,6 +86,7 @@ public class MessageService {
         this.premiumService = premiumService;
         this.transcriptionService = transcriptionService;
         this.whisperService = whisperService;
+        this.ghostModeService = ghostModeService;
     }
 
 
@@ -220,11 +223,13 @@ public class MessageService {
                 "unreadCount", unread
         ));
 
-        messagingTemplate.convertAndSendToUser(
-                message.getReceiver().getUsername(),
-                "/queue/typing",
-                new ChatTypingDto(message.getSender().getUsername(), false)
-        );
+        if (!ghostModeService.shouldSuppressTyping(message.getSender().getUsername(), message.getReceiver().getUsername())) {
+            messagingTemplate.convertAndSendToUser(
+                    message.getReceiver().getUsername(),
+                    "/queue/typing",
+                    new ChatTypingDto(message.getSender().getUsername(), false)
+            );
+        }
 
         String receiver = message.getReceiver().getUsername();
         if (!presenceService.isOnline(receiver)
@@ -558,8 +563,10 @@ public class MessageService {
         if (messageIds == null || messageIds.isEmpty()) {
             return;
         }
-        ChatReadReceiptDto receipt = new ChatReadReceiptDto(readerUsername, partnerUsername, messageIds);
-        messagingTemplate.convertAndSendToUser(partnerUsername, "/queue/read-receipts", receipt);
+        if (!ghostModeService.shouldSuppressReadReceipt(readerUsername, partnerUsername)) {
+            ChatReadReceiptDto receipt = new ChatReadReceiptDto(readerUsername, partnerUsername, messageIds);
+            messagingTemplate.convertAndSendToUser(partnerUsername, "/queue/read-receipts", receipt);
+        }
         messagingTemplate.convertAndSendToUser(readerUsername, "/queue/unread-update", Map.of(
                 "partnerUsername", partnerUsername,
                 "unreadCount", 0L
