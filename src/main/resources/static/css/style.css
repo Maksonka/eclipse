@@ -3524,6 +3524,23 @@ body.settings-page {
     font-size: 0.85rem;
     color: var(--text-dim);
 }
+
+.ghost-picker-activity-row {
+    display: flex;
+    align-items: center;
+    padding: 2px 2px 8px;
+    border-bottom: 1px solid rgba(128,128,128,0.1);
+    margin-bottom: 8px;
+}
+.ghost-picker-dropdown .member-picker-input {
+    margin-top: 0;
+}
+.ghost-picker-dropdown .member-picker-results {
+    margin-top: 8px;
+}
+.ghost-picker-trigger {
+    margin-top: 0;
+}
 .ghost-show-activity {
     display: inline-flex;
     align-items: center;
