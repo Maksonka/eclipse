@@ -81,6 +81,7 @@ var reactionLayer = document.getElementById('reaction-layer');
 var reactionBar = document.getElementById('reaction-bar');
 var liveBadge = document.getElementById('room-live-badge');
 var fullscreenBtn = document.getElementById('fullscreen-btn');
+var rotateBtn = document.getElementById('rotate-btn');
 var playlist = { currentItemId: null, items: [] };
 var didInitialJoin = false;
 var connectErrorShown = false;
@@ -2714,9 +2715,42 @@ setInterval(function () {
 
     fullscreenBtn.addEventListener('click', toggleFullscreen);
 
+    /* Rotate button: fullscreen + landscape lock (mainly for phones) */
+    function rotateScreen() {
+        if (isFullscreen()) {
+            toggleFullscreen();
+            try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+            return;
+        }
+        toggleFullscreen();
+        if (screen.orientation && screen.orientation.lock) {
+            try {
+                var cur = screen.orientation.type || '';
+                var want = cur.indexOf('landscape') === 0 ? 'landscape' : 'landscape-primary';
+                screen.orientation.lock(want).catch(function () {});
+            } catch (e) {}
+        }
+    }
+
+    if (rotateBtn && ('ontouchstart' in window || !(window.matchMedia && window.matchMedia('(hover: hover)').matches))) {
+        rotateBtn.hidden = false;
+        rotateBtn.style.opacity = '1';
+        rotateBtn.addEventListener('click', rotateScreen);
+    } else if (rotateBtn) {
+        rotateBtn.hidden = true;
+    }
+
     document.addEventListener('fullscreenchange', updateFsIcon);
     document.addEventListener('webkitfullscreenchange', updateFsIcon);
     document.addEventListener('mozfullscreenchange', updateFsIcon);
+
+    function unlockOrientation() {
+        try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+    }
+
+    document.addEventListener('fullscreenchange', function () {
+        if (!isFullscreen()) unlockOrientation();
+    });
 
     function updateFsIcon() {
         if (isFullscreen()) {

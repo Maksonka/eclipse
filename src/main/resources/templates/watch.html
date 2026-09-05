@@ -159,6 +159,11 @@
                     <div class="watch-embed-note" id="watch-embed-note" hidden>
                         Управление у этой платформы недоступно — хост запускает видео у всех одновременно. Если у вас видео не поехало само, нажмите один раз в любом месте страницы.
                     </div>
+                    <button type="button" class="watch-fs-btn" id="rotate-btn" hidden title="Повернуть экран">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 4v6h6M20 20v-6h-6M20 15a8 8 0 0 1-13.9 3M4 9a8 8 0 0 1 13.9-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
                     <button type="button" class="watch-fs-btn" id="fullscreen-btn" title="На весь экран">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -339,6 +344,6 @@
  <script th:src="@{/js/stickers.js(v=12)}"></script>
 <script th:src="@{/js/voice-player.js(v=9)}"></script>
 <script th:src="@{/js/reactions.js(v=1)}"></script>
-<script th:src="@{/js/watch.js(v=67)}"></script>
+<script th:src="@{/js/watch.js(v=68)}"></script>
 </body>
 </html>

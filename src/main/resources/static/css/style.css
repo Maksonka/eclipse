@@ -4015,6 +4015,10 @@ body.watch-page {
     transform: scale(0.92);
 }
 
+#rotate-btn {
+    right: 56px;
+}
+
 .watch-hub {
     flex: 1;
     min-height: 0;
@@ -5945,6 +5949,10 @@ html, body {
         top: 8px;
         right: 8px;
         border-radius: 6px;
+    }
+
+    #rotate-btn {
+        right: 50px;
     }
 
     .watch-fs-btn svg {
