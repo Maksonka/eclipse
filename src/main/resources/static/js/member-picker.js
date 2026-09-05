@@ -22,6 +22,8 @@
     function initPicker(picker) {
         var hidden = picker.querySelector('input[name="members"]');
         var input = picker.querySelector('.member-picker-input');
+        var searchBox = picker.querySelector('.member-picker-search');
+        var clearBtn = picker.querySelector('.member-picker-clear');
         var results = picker.querySelector('.member-picker-results');
         var chips = picker.querySelector('.member-picker-chips');
         var trigger = picker.querySelector('.member-picker-trigger');
@@ -39,7 +41,13 @@
                 picker.classList.remove('is-open');
             }
             input.value = '';
+            syncClear();
             results.hidden = true;
+        }
+        function toggle() { setOpen(!isOpen()); }
+
+        function syncClear() {
+            if (clearBtn) clearBtn.classList.toggle('is-visible', !!input.value);
         }
         function toggle() { setOpen(!isOpen()); }
 
@@ -116,6 +124,7 @@
             selected.push(user);
             renderChips();
             input.value = '';
+            syncClear();
             if (isOpen()) renderDefault();
         }
 
@@ -192,7 +201,21 @@
         }
 
         var debounceTimer = null;
+        if (searchBox) {
+            searchBox.addEventListener('click', function (e) { if (e.target === searchBox) input.focus(); });
+        }
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                input.value = '';
+                syncClear();
+                renderDefault();
+                input.focus();
+            });
+        }
         input.addEventListener('input', function () {
+            syncClear();
             var q = input.value.trim();
             if (debounceTimer) clearTimeout(debounceTimer);
             if (!q) { renderDefault(); return; }
