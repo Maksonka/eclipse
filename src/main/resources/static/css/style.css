@@ -2734,13 +2734,104 @@ body.profile-page {
 
 /* ===== SIDEBAR FOOTER ===== */
 
-.sidebar-footer {
+.sidebar-more-wrap {
+    position: relative;
     padding: 10px 14px 14px;
     border-top: 1px solid var(--border);
     background: var(--bg-sidebar);
-    display: flex;
+}
+
+.sidebar-more-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.sidebar-more-btn:hover {
+    color: var(--purple-400);
+    border-color: var(--purple-500);
+    background: rgba(139, 92, 246, 0.06);
+    transform: translateY(-1px);
+}
+
+.sidebar-more-btn svg {
+    display: block;
+}
+
+.sidebar-more-wrap.is-open .sidebar-more-btn {
+    color: var(--purple-400);
+    border-color: var(--purple-500);
+    background: rgba(139, 92, 246, 0.08);
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.14);
+}
+
+.sidebar-more-menu {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 10px;
+    right: 10px;
+    z-index: 70;
+    display: none;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
+    padding: 8px;
+    border-radius: 12px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.sidebar-more-wrap.is-open .sidebar-more-menu {
+    display: flex;
+}
+
+.sidebar-more-menu > a,
+.sidebar-more-menu > button {
+    width: 100%;
+    text-align: left;
+}
+
+.sidebar-more-menu .sidebar-admin-link,
+.sidebar-more-menu .sidebar-watch-link,
+.sidebar-more-menu .sidebar-favorites-link,
+.sidebar-more-menu .sidebar-create-group,
+.sidebar-more-menu .sidebar-premium-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-more-menu .sidebar-admin-link:hover,
+.sidebar-more-menu .sidebar-watch-link:hover,
+.sidebar-more-menu .sidebar-favorites-link:hover,
+.sidebar-more-menu .sidebar-create-group:hover,
+.sidebar-more-menu .sidebar-premium-link:hover {
+    background: var(--surface-hover);
+    color: var(--purple-400);
+}
+
+.sidebar-more-menu .sidebar-premium-link {
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    padding-top: 10px;
+    margin-top: 2px;
 }
 
 .sidebar-admin-link {
