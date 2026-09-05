@@ -37,12 +37,13 @@
             if (open) {
                 picker.classList.add('is-open');
                 renderDefault();
+                results.hidden = false;
             } else {
                 picker.classList.remove('is-open');
+                results.hidden = true;
             }
             input.value = '';
             syncClear();
-            results.hidden = true;
         }
         function toggle() { setOpen(!isOpen()); }
 

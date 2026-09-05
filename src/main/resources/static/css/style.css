@@ -3573,6 +3573,15 @@ body.settings-page {
 }
 .member-picker-avatar {
     flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    font-size: 0.8rem;
+}
+.ghost-picker-avatar {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    font-size: 0.8rem;
 }
 .member-picker-name {
     font-weight: 600;
