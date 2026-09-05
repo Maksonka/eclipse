@@ -150,6 +150,7 @@ var ytPlayer = null;
 var ytApiReady = false;
 var ytPlayAttempt = 0;
 var ytAutoplayResolved = false;
+var ytMutedForAutoplay = false;
 var ytControlsForHost = -1;
 var pendingYt = null;
 var embedStarted = false;
@@ -345,7 +346,15 @@ function checkYtAutoplay() {
         return;
     }
     if (st === 2 || st === 0) return;
-    if (Date.now() - ytPlayAttempt > 1500) showPlayerOverlay();
+    if (Date.now() - ytPlayAttempt < 1500) return;
+    if (!ytMutedForAutoplay) {
+        ytMutedForAutoplay = true;
+        try { ytPlayer.mute(); } catch (e) {}
+        ytPlayAttempt = Date.now();
+        try { ytPlayer.playVideo(); } catch (e) {}
+        return;
+    }
+    ytAutoplayResolved = true;
 }
 
 function getCurrentTimeMs() {
@@ -795,8 +804,7 @@ function syncPlayback(status, posMs, updatedAtMs, restart) {
                 try { videoEl.currentTime = hTarget; } catch (e) {}
                 applyingSync = false;
             }
-            var p = videoEl.play();
-            if (p && p.catch) p.catch(function () { showPlayerOverlay(); });
+            html5Play();
         } else {
             if (!canControl) {
                 pendingHtml5Snap = { target: hTarget, play: false, ts: Date.now() };
@@ -1024,12 +1032,44 @@ function enforceHostPlayback() {
 }
 
 function showPlayerOverlay() {
+    if (!playerOverlay) return;
     playerOverlay.hidden = false;
 }
 
 function hidePlayerOverlay() {
+    if (!playerOverlay) return;
     playerOverlay.hidden = true;
 }
+
+/* Автоплей с запасным вариантом: если браузер блокирует звук, запускаем
+   приглушённо и возвращаем звук по первому клику в любом месте страницы. */
+function html5Play() {
+    if (!videoEl) return;
+    var p = videoEl.play();
+    if (p && p.catch) p.catch(function () {
+        if (!videoEl.muted) {
+            videoEl.muted = true;
+            var p2 = videoEl.play();
+            if (p2 && p2.catch) p2.catch(function () {});
+        }
+    });
+}
+
+function unlockPlayerAudio() {
+    if (videoEl && videoEl.muted) {
+        try { videoEl.muted = false; } catch (e) {}
+        var p = videoEl.play();
+        if (p && p.catch) p.catch(function () {});
+    }
+    if (playerMode === 'youtube' && ytPlayer && ytApiReady && ytMutedForAutoplay) {
+        ytMutedForAutoplay = false;
+        try { ytPlayer.unMute(); } catch (e) {}
+        try { ytPlayer.playVideo(); } catch (e) {}
+    }
+}
+
+document.addEventListener('pointerdown', unlockPlayerAudio, { once: true, capture: true });
+document.addEventListener('keydown', unlockPlayerAudio, { once: true, capture: true });
 
 function isEmbedMode() {
     return playerMode && playerMode !== 'html5' && playerMode !== 'youtube';
@@ -2150,8 +2190,7 @@ if (playBtn) {
             sendControl('PLAYING', getCurrentTimeMs(), null, true);
         } else {
             if (playerMode === 'html5') {
-                var pp = videoEl.play();
-                if (pp && pp.catch) pp.catch(function () { showPlayerOverlay(); });
+                html5Play();
             }
             sendControl('PLAYING', getCurrentTimeMs(), null, true);
         }
@@ -2196,8 +2235,7 @@ function applyPendingHtml5Snap() {
             return;
         }
         showToast('[sync] гость на ' + snap.target.toFixed(1) + 'с');
-        var p = videoEl.play();
-        if (p && p.catch) p.catch(function () {});
+        html5Play();
     }
 }
 
@@ -2522,8 +2560,7 @@ if (playerOverlayBtn) {
             } catch (e) {}
             applyingSync = false;
         } else {
-            var p = videoEl.play();
-            if (p && p.catch) p.catch(function () {});
+            html5Play();
         }
     });
 }
