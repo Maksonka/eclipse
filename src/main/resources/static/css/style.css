@@ -1864,7 +1864,45 @@ body.chat-page {
     }
 
     .sidebar-header {
-        padding: 14px 12px;
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .sidebar-user {
+        gap: 10px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .sidebar-user-info {
+        min-width: 0;
+    }
+
+    .sidebar-user-label {
+        display: none;
+    }
+
+    .sidebar-avatar {
+        width: 38px;
+        height: 38px;
+        font-size: 0.9rem;
+    }
+
+    .sidebar-premium-badge {
+        font-size: 0.62rem;
+        padding: 1px 6px;
+    }
+
+    .sidebar-header-actions {
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .sidebar-icon-btn,
+    .sidebar-settings,
+    .sidebar-logout {
+        width: 34px;
+        height: 34px;
     }
 }
 
