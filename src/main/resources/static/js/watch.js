@@ -775,26 +775,33 @@ function loadVideo(url, posMs, status, updatedAtMs) {
 function syncPlayback(status, posMs, updatedAtMs, restart) {
     if (!status) return;
     if (playerMode === 'html5') {
+        var hTarget = driftTargetMs(posMs, updatedAtMs) / 1000;
         if (!videoEl.src) {
-            if (restart && !isHost) {
-                pendingHtml5Snap = { target: driftTargetMs(posMs, updatedAtMs) / 1000, play: status === 'PLAYING', ts: Date.now() };
-            }
+            pendingHtml5Snap = { target: hTarget, play: status === 'PLAYING', ts: Date.now() };
             return;
         }
+        var canControl = videoEl.readyState >= 2 || (videoEl.seekable && videoEl.seekable.length > 0);
         if (status === 'PLAYING') {
-            var target = driftTargetMs(posMs, updatedAtMs) / 1000;
             if (restart) {
-                pendingHtml5Snap = { target: target, play: true, ts: Date.now() };
-                showToast('[sync] прыжок на ' + target.toFixed(1) + 'с (было ' + videoEl.currentTime.toFixed(1) + 'с)');
+                pendingHtml5Snap = { target: hTarget, play: true, ts: Date.now() };
+                showToast('[sync] прыжок на ' + hTarget.toFixed(1) + 'с (было ' + videoEl.currentTime.toFixed(1) + 'с)');
             }
-            if (restart || (!isHost && Math.abs(videoEl.currentTime - target) > 2)) {
+            if (!canControl) {
+                if (!pendingHtml5Snap) pendingHtml5Snap = { target: hTarget, play: true, ts: Date.now() };
+                return;
+            }
+            if (restart || (!isHost && Math.abs(videoEl.currentTime - hTarget) > 2)) {
                 applyingSync = true;
-                try { videoEl.currentTime = target; } catch (e) {}
+                try { videoEl.currentTime = hTarget; } catch (e) {}
                 applyingSync = false;
             }
             var p = videoEl.play();
             if (p && p.catch) p.catch(function () { showPlayerOverlay(); });
         } else {
+            if (!canControl) {
+                pendingHtml5Snap = { target: hTarget, play: false, ts: Date.now() };
+                return;
+            }
             applyingSync = true;
             videoEl.pause();
             if (!isHost) {
@@ -2175,17 +2182,22 @@ function applyPendingHtml5Snap() {
         pendingHtml5Snap = null;
         return;
     }
+    if (videoEl.readyState < 2 && !(videoEl.seekable && videoEl.seekable.length > 0)) return;
     if (Math.abs(videoEl.currentTime - snap.target) > 0.5) {
         applyingSync = true;
         try { videoEl.currentTime = snap.target; } catch (e) {}
         applyingSync = false;
     } else {
         pendingHtml5Snap = null;
-        showToast('[sync] гость на ' + snap.target.toFixed(1) + 'с');
-        if (snap.play) {
-            var p = videoEl.play();
-            if (p && p.catch) p.catch(function () {});
+        if (!snap.play) {
+            applyingSync = true;
+            try { videoEl.pause(); } catch (e) {}
+            applyingSync = false;
+            return;
         }
+        showToast('[sync] гость на ' + snap.target.toFixed(1) + 'с');
+        var p = videoEl.play();
+        if (p && p.catch) p.catch(function () {});
     }
 }
 
