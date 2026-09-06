@@ -5756,6 +5756,70 @@ html, body {
     }
 }
 
+/* Home landing: compact on phones so it fits without scrolling */
+@media (max-width: 480px) {
+    .auth-shell {
+        padding: 12px;
+    }
+
+    .home-brand {
+        margin-bottom: 14px;
+    }
+
+    .home-brand h1 {
+        font-size: 1.55rem;
+        margin-bottom: 6px;
+    }
+
+    .home-brand p {
+        max-width: 100%;
+        font-size: 0.86rem;
+        line-height: 1.4;
+    }
+
+    .home-logo {
+        width: 46px;
+        height: 46px;
+        margin-bottom: 10px;
+    }
+
+    .home-features {
+        margin-bottom: 14px;
+        gap: 8px;
+    }
+
+    .home-features li {
+        padding: 10px 12px;
+        gap: 10px;
+    }
+
+    .home-feature-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+    }
+
+    .home-feature-text strong {
+        font-size: 0.9rem;
+    }
+
+    .home-feature-text span {
+        font-size: 0.82rem;
+        line-height: 1.4;
+    }
+
+    .home-actions {
+        gap: 8px;
+    }
+
+    .home-actions .btn-primary,
+    .home-actions .btn-secondary {
+        padding: 10px 14px;
+        font-size: 0.92rem;
+    }
+}
+
 /* Settings / Profile forms: fields stack on mobile */
 @media (max-width: 480px) {
     .settings-form .field,
