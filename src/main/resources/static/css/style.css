@@ -1225,28 +1225,6 @@ body.chat-page {
     color: rgba(255, 255, 255, 0.6);
 }
 
-.voice-transcript {
-    margin-top: 6px;
-    padding: 7px 10px;
-    border-radius: 10px;
-    border-left: 3px solid var(--purple-400);
-    background: rgba(139, 92, 246, 0.10);
-    font-size: 0.84rem;
-    line-height: 1.45;
-    color: var(--text);
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-}
-
-.message-row.incoming .voice-transcript {
-    background: rgba(139, 92, 246, 0.10);
-}
-
-.message-row.outgoing .voice-transcript {
-    background: rgba(255, 255, 255, 0.10);
-    color: var(--text);
-}
-
 .voice-transcribe-btn {
     margin-top: 6px;
     display: inline-flex;

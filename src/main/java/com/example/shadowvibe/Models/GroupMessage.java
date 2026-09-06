@@ -38,9 +38,6 @@ public class GroupMessage {
     @Column(name = "audio_duration_ms")
     private Long audioDurationMs;
 
-    @Column(name = "transcript", length = 4000)
-    private String transcript;
-
     @Column(name = "reply_to_id")
     private Long replyToMessageId;
 
@@ -166,11 +163,6 @@ public class GroupMessage {
     public void setAudioDurationMs(Long audioDurationMs) { this.audioDurationMs = audioDurationMs; }
 
     public boolean hasAudio() { return audioUrl != null && !audioUrl.isBlank(); }
-
-    public String getTranscript() { return transcript; }
-    public void setTranscript(String transcript) { this.transcript = transcript; }
-
-    public boolean hasTranscript() { return transcript != null && !transcript.isBlank(); }
 
     public Long getReplyToMessageId() { return replyToMessageId; }
     public void setReplyToMessageId(Long replyToMessageId) { this.replyToMessageId = replyToMessageId; }

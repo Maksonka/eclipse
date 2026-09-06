@@ -22,7 +22,6 @@ public class ChatMessageDto {
     private String stickerUrl;
     private String audioUrl;
     private Long audioDurationMs;
-    private String transcript;
     private Map<String, List<String>> reactions;
     private boolean edited;
     private String editedAt;
@@ -156,9 +155,6 @@ public class ChatMessageDto {
 
     public Long getAudioDurationMs() { return audioDurationMs; }
     public void setAudioDurationMs(Long audioDurationMs) { this.audioDurationMs = audioDurationMs; }
-
-    public String getTranscript() { return transcript; }
-    public void setTranscript(String transcript) { this.transcript = transcript; }
 
     public Map<String, List<String>> getReactions() { return reactions; }
     public void setReactions(Map<String, List<String>> reactions) { this.reactions = reactions; }

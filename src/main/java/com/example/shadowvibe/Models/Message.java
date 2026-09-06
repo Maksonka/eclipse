@@ -57,9 +57,6 @@ public class Message {
     @Column(name = "audio_duration_ms")
     private Long audioDurationMs;
 
-    @Column(name = "transcript", length = 4000)
-    private String transcript;
-
     @Column(name = "edited")
     private boolean edited;
 
@@ -217,11 +214,6 @@ public class Message {
 
     public Long getAudioDurationMs() { return audioDurationMs; }
     public void setAudioDurationMs(Long audioDurationMs) { this.audioDurationMs = audioDurationMs; }
-
-    public String getTranscript() { return transcript; }
-    public void setTranscript(String transcript) { this.transcript = transcript; }
-
-    public boolean hasTranscript() { return transcript != null && !transcript.isBlank(); }
 
     public boolean isEdited() { return edited; }
     public void setEdited(boolean edited) { this.edited = edited; }

@@ -378,7 +378,6 @@ public class MessageService {
         dto.setStickerUrl(message.getStickerUrl());
         dto.setAudioUrl(message.getAudioUrl());
         dto.setAudioDurationMs(message.getAudioDurationMs());
-        dto.setTranscript(message.getTranscript());
         dto.setReactions(reactionService.getReactions(ReactionTargetType.DIRECT, message.getId()));
         dto.setEdited(message.isEdited());
         dto.setEditedAt(message.getEditedAt() != null

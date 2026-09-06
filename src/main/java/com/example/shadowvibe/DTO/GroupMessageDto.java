@@ -12,7 +12,6 @@ public class GroupMessageDto {
     private Long attachmentSize;
     private String audioUrl;
     private Long audioDurationMs;
-    private String transcript;
     private Long replyToMessageId;
     private String replyToContent;
     private String replyToSenderUsername;
@@ -126,9 +125,6 @@ public class GroupMessageDto {
 
     public Long getAudioDurationMs() { return audioDurationMs; }
     public void setAudioDurationMs(Long audioDurationMs) { this.audioDurationMs = audioDurationMs; }
-
-    public String getTranscript() { return transcript; }
-    public void setTranscript(String transcript) { this.transcript = transcript; }
 
     public Long getReplyToMessageId() { return replyToMessageId; }
     public void setReplyToMessageId(Long replyToMessageId) { this.replyToMessageId = replyToMessageId; }
