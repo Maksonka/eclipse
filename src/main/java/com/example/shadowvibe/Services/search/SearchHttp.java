@@ -22,15 +22,33 @@ public final class SearchHttp {
     }
 
     public static String get(String url, Map<String, String> headers) throws Exception {
+        return request("GET", url, headers, null);
+    }
+
+    public static String post(String url, Map<String, String> headers, String body) throws Exception {
+        return request("POST", url, headers, body);
+    }
+
+    private static String request(String method, String url, Map<String, String> headers, String body) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
         conn.setConnectTimeout(12000);
         conn.setReadTimeout(12000);
         conn.setInstanceFollowRedirects(true);
+        conn.setRequestMethod(method);
         conn.setRequestProperty("User-Agent", UA);
         conn.setRequestProperty("Accept-Language", "ru-RU,ru;q=0.9,en;q=0.8");
         conn.setRequestProperty("Accept", "application/json, text/plain, */*");
+        if (body != null) {
+            conn.setDoOutput(true);
+            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+        }
         for (Map.Entry<String, String> e : headers.entrySet()) {
             conn.setRequestProperty(e.getKey(), e.getValue());
+        }
+        if (body != null) {
+            try (java.io.OutputStream os = conn.getOutputStream()) {
+                os.write(body.getBytes(StandardCharsets.UTF_8));
+            }
         }
         int code = conn.getResponseCode();
         if (code != HttpURLConnection.HTTP_OK) {

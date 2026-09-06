@@ -236,7 +236,11 @@ function playHls(el, src) {
             if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
                 try { hls.recoverMediaError(); } catch (e) {}
             } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-                try { hls.startLoad(); } catch (e) {}
+                if (data.details === 'manifestLoadError' || data.details === 'manifestParsingError') {
+                    fallbackToEmbed();
+                } else {
+                    try { hls.startLoad(); } catch (e) {}
+                }
             } else {
                 fallbackToEmbed();
             }
@@ -688,15 +692,36 @@ function loadVideo(url, posMs, status, updatedAtMs) {
         var playSrc = '/api/video/play/rutube?id=' + encodeURIComponent(meta.id);
         if (preloaded && preloaded.type === 'hls') {
             destroyHls();
-            VideoPreloader.release(url);
             videoEl.hidden = false;
+            VideoPreloader.detach(url);
             if (window.Hls && Hls.isSupported()) {
-                var hls = preloaded.hls;
-                try { hls.attachMedia(videoEl); } catch (e) {
+                var hls = null;
+                if (preloaded.hls && !preloaded.hls.destroyed) {
+                    hls = preloaded.hls;
+                }
+                if (hls) {
+                    try { hls.attachMedia(videoEl); } catch (e) { hls = null; }
+                }
+                if (!hls) {
+                    try { if (preloaded.hls) preloaded.hls.destroy(); } catch (e) {}
                     hls = new Hls({ maxBufferLength: 30 });
                     hls.loadSource(preloaded.src);
                     hls.attachMedia(videoEl);
                 }
+                hls.on(Hls.Events.ERROR, function (evt, data) {
+                    if (!data.fatal) return;
+                    if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                        try { hls.recoverMediaError(); } catch (e) {}
+                    } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                        if (data.details === 'manifestLoadError' || data.details === 'manifestParsingError') {
+                            fallbackToEmbed();
+                        } else {
+                            try { hls.startLoad(); } catch (e) {}
+                        }
+                    } else {
+                        fallbackToEmbed();
+                    }
+                });
                 hlsPlayer = hls;
                 directSrc = preloaded.src;
                 syncPlayback(status, posMs, updatedAtMs, true);
@@ -721,16 +746,38 @@ function loadVideo(url, posMs, status, updatedAtMs) {
         videoEl.muted = false;
         var vkSrc = '/api/video/play/vk?id=' + encodeURIComponent(meta.oid + '_' + meta.id);
         if (preloaded && (preloaded.type === 'html5' || preloaded.type === 'hls')) {
-            VideoPreloader.release(url);
             if (preloaded.type === 'hls') {
                 destroyHls();
+                videoEl.hidden = false;
+                VideoPreloader.detach(url);
                 if (window.Hls && Hls.isSupported()) {
-                    var vkHls = preloaded.hls;
-                    try { vkHls.attachMedia(videoEl); } catch (e) {
+                    var vkHls = null;
+                    if (preloaded.hls && !preloaded.hls.destroyed) {
+                        vkHls = preloaded.hls;
+                    }
+                    if (vkHls) {
+                        try { vkHls.attachMedia(videoEl); } catch (e) { vkHls = null; }
+                    }
+                    if (!vkHls) {
+                        try { if (preloaded.hls) preloaded.hls.destroy(); } catch (e) {}
                         vkHls = new Hls({ maxBufferLength: 30 });
                         vkHls.loadSource(preloaded.src);
                         vkHls.attachMedia(videoEl);
                     }
+                    vkHls.on(Hls.Events.ERROR, function (evt, data) {
+                        if (!data.fatal) return;
+                        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                            try { vkHls.recoverMediaError(); } catch (e) {}
+                        } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                            if (data.details === 'manifestLoadError' || data.details === 'manifestParsingError') {
+                                fallbackToEmbed();
+                            } else {
+                                try { vkHls.startLoad(); } catch (e) {}
+                            }
+                        } else {
+                            fallbackToEmbed();
+                        }
+                    });
                     hlsPlayer = vkHls;
                     directSrc = preloaded.src;
                 } else {
@@ -738,6 +785,7 @@ function loadVideo(url, posMs, status, updatedAtMs) {
                     videoEl.load();
                 }
             } else {
+                VideoPreloader.release(url);
                 videoEl.src = preloaded.el.src;
                 videoEl.load();
             }
@@ -2915,6 +2963,18 @@ var VideoPreloader = (function () {
         delete cache[vid];
     }
 
+    function detach(url) {
+        if (!url) return;
+        var vid = getVideoId(url);
+        var entry = cache[vid];
+        if (!entry) return;
+        if (entry.el) {
+            try { entry.el.pause(); } catch (e) {}
+            if (entry.el.parentNode) entry.el.parentNode.removeChild(entry.el);
+        }
+        delete cache[vid];
+    }
+
     function clearAll() {
         for (var k in cache) {
             if (!Object.prototype.hasOwnProperty.call(cache, k)) continue;
@@ -2948,6 +3008,7 @@ var VideoPreloader = (function () {
         preload: preload,
         get: get,
         release: release,
+        detach: detach,
         clearAll: clearAll,
         preloadPlaylist: preloadPlaylist,
         get cache() { return cache; }
