@@ -49,6 +49,7 @@ run*.err*
 
 ### Local secrets (DB credentials, VAPID keys) ###
 src/main/resources/application.properties
+.env
 
 ### Android local build state ###
 android/.gradle/
