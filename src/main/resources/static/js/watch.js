@@ -1760,14 +1760,8 @@ function handleWatchChatReactionEvent(event) {
     }
 }
 
-var PREMIUM_REACTION_EMOJIS = ['🎆', '🌈', '🦄', '😈', '💥', '🤯'];
-
 function spawnReaction(emoji, username) {
     if (!reactionLayer) return;
-    if (PREMIUM_REACTION_EMOJIS.indexOf(emoji) !== -1) {
-        spawnPremiumEffect(emoji);
-        return;
-    }
     var el = document.createElement('span');
     el.className = 'reaction-float';
     el.textContent = emoji;
@@ -1779,59 +1773,6 @@ function spawnReaction(emoji, username) {
     setTimeout(function () {
         if (el.parentNode) el.parentNode.removeChild(el);
     }, 2200);
-}
-
-/* Полноэкранные премиум-эффекты реакций */
-function spawnPremiumEffect(emoji) {
-    if (!reactionLayer) return;
-    var effect = document.createElement('div');
-    effect.className = 'premium-reaction-effect';
-    effect.setAttribute('data-emoji', emoji);
-
-    if (emoji === '🎆') {
-        for (var i = 0; i < 26; i++) {
-            var p = document.createElement('span');
-            p.className = 'premium-burst';
-            p.textContent = ['✨', '🌟', '⭐', '💫', '🎆'][i % 5];
-            p.style.left = (50 + Math.cos(i / 26 * Math.PI * 2) * 8) + '%';
-            p.style.top = '55%';
-            p.style.setProperty('--bx', (Math.cos(i / 26 * Math.PI * 2) * (30 + Math.random() * 30)) + 'vw');
-            p.style.setProperty('--by', (Math.sin(i / 26 * Math.PI * 2) * (-40 - Math.random() * 30)) + 'vh');
-            p.style.animationDelay = (Math.random() * 0.15) + 's';
-            p.style.fontSize = (18 + Math.random() * 26) + 'px';
-            effect.appendChild(p);
-        }
-    } else if (emoji === '🌈' || emoji === '🦄') {
-        var rainCount = emoji === '🌈' ? 30 : 24;
-        var glyphs = emoji === '🌈' ? ['🌈', '☁️', '💧'] : ['🦄', '⭐', '✨', '💖'];
-        for (var j = 0; j < rainCount; j++) {
-            var r = document.createElement('span');
-            r.className = 'premium-rain';
-            r.textContent = glyphs[j % glyphs.length];
-            r.style.left = (Math.random() * 100) + '%';
-            r.style.animationDelay = (Math.random() * 1.4) + 's';
-            r.style.fontSize = (20 + Math.random() * 30) + 'px';
-            effect.appendChild(r);
-        }
-    } else if (emoji === '😈' || emoji === '💥' || emoji === '🤯') {
-        for (var k = 0; k < 34; k++) {
-            var s = document.createElement('span');
-            s.className = 'premium-ring';
-            s.textContent = emoji;
-            s.style.left = '50%';
-            s.style.top = '55%';
-            s.style.setProperty('--dx', (Math.cos(k / 34 * Math.PI * 2) * (26 + Math.random() * 34)) + 'vw');
-            s.style.setProperty('--dy', (Math.sin(k / 34 * Math.PI * 2) * (-30 - Math.random() * 26)) + 'vh');
-            s.style.animationDelay = (Math.random() * 0.2) + 's';
-            s.style.fontSize = (22 + Math.random() * 30) + 'px';
-            effect.appendChild(s);
-        }
-    }
-
-    reactionLayer.appendChild(effect);
-    setTimeout(function () {
-        if (effect.parentNode) effect.parentNode.removeChild(effect);
-    }, 2600);
 }
 
 function clearReactions() {
@@ -2531,19 +2472,6 @@ if (reactionBar) {
     reactionBar.addEventListener('click', function (e) {
         var btn = e.target.closest('.reaction-btn');
         if (!btn) return;
-        sendReaction(btn.getAttribute('data-emoji') || btn.textContent);
-    });
-}
-
-var premiumReactionBar = document.getElementById('premium-reaction-bar');
-if (premiumReactionBar) {
-    premiumReactionBar.addEventListener('click', function (e) {
-        var btn = e.target.closest('.premium-reaction-btn');
-        if (!btn) return;
-        if (!currentUserPremium) {
-            window.location.href = '/premium';
-            return;
-        }
         sendReaction(btn.getAttribute('data-emoji') || btn.textContent);
     });
 }

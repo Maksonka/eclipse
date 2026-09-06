@@ -44,8 +44,6 @@ class ReactionServiceTest {
     private WatchRoomMessageRepository watchRoomMessageRepository;
     @Mock
     private UserService userService;
-    @Mock
-    private PremiumService premiumService;
 
     private ReactionService service;
 

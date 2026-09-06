@@ -44,7 +44,6 @@ public class ChatController {
 private final ReactionService reactionService;
     private final MuteService muteService;
     private final BlockService blockService;
-    // private final PremiumService premiumService; // PREMIUM отключён
 
     public ChatController(MessageService messageService,
                           UserService userService,
@@ -74,7 +73,7 @@ private final ReactionService reactionService;
                          Model model,
                          @RequestParam(required = false) String q) {
         populateSidebar(model, principal, null, null, q);
-        model.addAttribute("currentUserPremium", true); // PREMIUM отключён
+        
         return "chat";
     }
 
@@ -90,7 +89,7 @@ private final ReactionService reactionService;
         model.addAttribute("group", group);
         model.addAttribute("groupMuted", muteService.isGroupMuted(principal.getName(), groupId));
         model.addAttribute("groupMessages", groupMessages);
-        model.addAttribute("currentUserPremium", true); // PREMIUM отключён
+        
         model.addAttribute("reactionsByMessage",
                 reactionService.getReactionsBatch(ReactionTargetType.GROUP,
                         groupMessages.stream().map(GroupMessage::getId).toList()));
@@ -133,7 +132,7 @@ private final ReactionService reactionService;
         model.addAttribute("receiver", receiver);
         model.addAttribute("chatMuted", muteService.isDirectMuted(principal.getName(), receiverUsername));
         model.addAttribute("receiverOnline", presenceService.isOnlineVisibleTo(principal.getName(), receiverUsername));
-        model.addAttribute("currentUserPremium", true); // PREMIUM отключён
+        
         populateSidebar(model, principal, receiverUsername, null, q);
         return "chat";
     }

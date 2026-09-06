@@ -137,6 +137,12 @@
     </div>
 
     <div class="sidebar-more-wrap" id="sidebar-more">
+        <a class="sidebar-watch-btn" th:href="@{/watch}" title="Совместный просмотр" aria-label="Совместный просмотр">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                <path d="M10 8.5v7l6-3.5l-6-3.5Z" fill="currentColor"/>
+            </svg>
+        </a>
         <button type="button" class="sidebar-more-btn" aria-label="Меню" title="Меню" aria-expanded="false">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
@@ -149,13 +155,6 @@
                     <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
                 </svg>
                 <span>Пользователи</span>
-            </a>
-            <a class="sidebar-watch-link" th:href="@{/watch}">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
-                    <path d="M10 8.5v7l6-3.5l-6-3.5Z" fill="currentColor"/>
-                </svg>
-                <span>Совместный просмотр</span>
             </a>
             <button type="button" id="favorites-toggle" class="sidebar-favorites-link" aria-label="Избранные сообщения" title="Избранные сообщения">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">

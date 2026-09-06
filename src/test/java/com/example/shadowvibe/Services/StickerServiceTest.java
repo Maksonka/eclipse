@@ -38,8 +38,6 @@ class StickerServiceTest {
     private UserRepository userRepository;
     @Mock
     private UserStickerPackRepository userStickerPackRepository;
-    @Mock
-    private PremiumService premiumService;
 
     private StickerService service;
 

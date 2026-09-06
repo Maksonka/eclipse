@@ -188,18 +188,6 @@
                     <button type="button" class="reaction-btn" data-emoji="👏" title="👏">👏</button>
                 </div>
 
-                <div class="reaction-bar premium-reaction-bar" id="premium-reaction-bar">
-                    <span class="reaction-bar-label premium-reaction-label" title="Эффектные реакции на весь экран">
-                        ✨ Эффекты
-                    </span>
-                    <button type="button" class="reaction-btn premium-reaction-btn" data-premium="1" data-emoji="🎆" title="Салют 🎆">🎆</button>
-                    <button type="button" class="reaction-btn premium-reaction-btn" data-premium="1" data-emoji="🌈" title="Радуга 🌈">🌈</button>
-                    <button type="button" class="reaction-btn premium-reaction-btn" data-premium="1" data-emoji="🦄" title="Единорог 🦄">🦄</button>
-                    <button type="button" class="reaction-btn premium-reaction-btn" data-premium="1" data-emoji="😈" title="Дьявол 😈">😈</button>
-                    <button type="button" class="reaction-btn premium-reaction-btn" data-premium="1" data-emoji="💥" title="Взрыв 💥">💥</button>
-                    <button type="button" class="reaction-btn premium-reaction-btn" data-premium="1" data-emoji="🤯" title="Вау 🤯">🤯</button>
-                </div>
-
                 <div class="watch-controls">
                     <div class="watch-controls-row">
                         <button type="button" id="play-btn" class="watch-btn" disabled title="Воспроизвести">
@@ -332,7 +320,6 @@
 
 <script th:inline="javascript">
     const currentUsername = /*[[${#authentication.name}]]*/ '';
-    const currentUserPremium = /*[[${true}]]*/ true; // PREMIUM отключён
     const inviteRoom = /*[[${room}]]*/ '';
 </script>
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
@@ -342,6 +329,6 @@
  <script th:src="@{/js/stickers.js(v=12)}"></script>
 <script th:src="@{/js/voice-player.js(v=9)}"></script>
 <script th:src="@{/js/reactions.js(v=1)}"></script>
-<script th:src="@{/js/watch.js(v=68)}"></script>
+<script th:src="@{/js/watch.js(v=69)}"></script>
 </body>
 </html>

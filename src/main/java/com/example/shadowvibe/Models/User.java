@@ -49,9 +49,6 @@ public class User {
     @Column(name = "premium_trial_used", nullable = false)
     private boolean premiumTrialUsed = false;
 
-    @Column(name = "ghost_mode", nullable = false)
-    private boolean ghostMode = false;
-
     public UserRole getRole() {
         return role;
     }
@@ -173,13 +170,5 @@ public class User {
 
     public boolean isPremium() {
         return premiumUntil != null && premiumUntil.isAfter(java.time.LocalDateTime.now());
-    }
-
-    public boolean isGhostMode() {
-        return ghostMode;
-    }
-
-    public void setGhostMode(boolean ghostMode) {
-        this.ghostMode = ghostMode;
     }
 }

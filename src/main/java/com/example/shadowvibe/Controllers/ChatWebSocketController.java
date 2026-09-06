@@ -4,7 +4,6 @@ import com.example.shadowvibe.Models.Message;
 import com.example.shadowvibe.Services.FavoriteService;
 import com.example.shadowvibe.Services.BlockService;
 import com.example.shadowvibe.Services.GroupService;
-import com.example.shadowvibe.Services.GhostModeService;
 import com.example.shadowvibe.Services.MessageService;
 import com.example.shadowvibe.Services.ReactionService;
 import com.example.shadowvibe.DTO.ChatMessageRequest;
@@ -31,7 +30,6 @@ public class ChatWebSocketController {
     private final ReactionService reactionService;
     private final FavoriteService favoriteService;
     private final BlockService blockService;
-    private final GhostModeService ghostModeService;
     private final SimpMessagingTemplate messagingTemplate;
 
     public ChatWebSocketController(MessageService messageService,
@@ -39,14 +37,12 @@ public class ChatWebSocketController {
                                    ReactionService reactionService,
                                    FavoriteService favoriteService,
                                    BlockService blockService,
-                                   GhostModeService ghostModeService,
                                    SimpMessagingTemplate messagingTemplate) {
         this.messageService = messageService;
         this.groupService = groupService;
         this.reactionService = reactionService;
         this.favoriteService = favoriteService;
         this.blockService = blockService;
-        this.ghostModeService = ghostModeService;
         this.messagingTemplate = messagingTemplate;
     }
 
@@ -116,9 +112,6 @@ public class ChatWebSocketController {
             return;
         }
         if (!blockService.canMessage(principal.getName(), request.getReceiverUsername())) {
-            return;
-        }
-        if (ghostModeService.shouldSuppressTyping(principal.getName(), request.getReceiverUsername())) {
             return;
         }
 
@@ -195,9 +188,6 @@ public class ChatWebSocketController {
             return;
         }
         boolean typing = Boolean.parseBoolean(request.get("typing").toString());
-        if (ghostModeService.shouldSuppressGroupTyping(principal.getName())) {
-            return;
-        }
         ChatTypingDto dto = new ChatTypingDto(principal.getName(), typing);
         messagingTemplate.convertAndSend("/topic/group." + groupId + ".typing", dto);
     }

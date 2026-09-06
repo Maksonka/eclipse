@@ -4,7 +4,6 @@ import com.example.shadowvibe.Models.User;
 import com.example.shadowvibe.Services.AttemptRateLimiter;
 import com.example.shadowvibe.Services.BlockService;
 import com.example.shadowvibe.Services.GroupService;
-import com.example.shadowvibe.Services.GhostModeService;
 import com.example.shadowvibe.Services.UserService;
 import com.example.shadowvibe.Services.WrongPasswordException;
 import com.example.shadowvibe.enums.MessagesFrom;
@@ -28,18 +27,15 @@ SettingsController {
     private final UserService userService;
     private final GroupService groupService;
     private final BlockService blockService;
-    private final GhostModeService ghostModeService;
     private final AttemptRateLimiter rateLimiter;
 
     public SettingsController(UserService userService,
                               GroupService groupService,
                               BlockService blockService,
-                              GhostModeService ghostModeService,
                               AttemptRateLimiter rateLimiter) {
         this.userService = userService;
         this.groupService = groupService;
         this.blockService = blockService;
-        this.ghostModeService = ghostModeService;
         this.rateLimiter = rateLimiter;
     }
 
@@ -50,8 +46,6 @@ SettingsController {
         List<String> blockedUsernames = blockService.getBlockedUsernames(principal.getName());
         model.addAttribute("currentUser", user);
         model.addAttribute("blockedCount", blockedUsernames.size());
-        model.addAttribute("ghostExceptions", ghostModeService.getExceptions(principal.getName()));
-        model.addAttribute("ghostChatPartners", ghostModeService.getChatPartners(principal.getName()));
         return "settings";
     }
 
