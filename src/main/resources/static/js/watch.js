@@ -689,6 +689,7 @@ function loadVideo(url, posMs, status, updatedAtMs) {
     } else if (meta.type === 'rutube') {
         playerMode = 'html5';
         videoEl.hidden = false;
+        videoEl.muted = false;
         var playSrc = '/api/video/play/rutube?id=' + encodeURIComponent(meta.id);
         if (preloaded && preloaded.type === 'hls') {
             var pSrc = preloaded.src;
@@ -747,19 +748,35 @@ function loadVideo(url, posMs, status, updatedAtMs) {
             videoEl.load();
             destroyHls();
             directSrc = vkSrc;
-            fetch(vkSrc).then(function (r) { return r.ok ? r.text() : null; }).then(function (t) {
-                if (!t) { fallbackToEmbed(); return; }
-                if (!currentMeta || currentMeta.id !== meta.id) return;
-                var sep = t.indexOf('|');
-                var u = sep > 0 ? t.substring(sep + 1) : t;
-                if (sep > 0 && t.substring(0, sep) === 'hls') {
-                    playHls(videoEl, u);
-                } else {
-                    videoEl.src = u;
-                    videoEl.load();
-                }
-                syncPlayback(status, posMs, updatedAtMs, false);
-            });
+            var vkTry = function (attempt) {
+                fetch(vkSrc).then(function (r) { return r.ok ? r.text() : null; }).then(function (t) {
+                    if (!t) {
+                        if (attempt < 1) {
+                            setTimeout(function () { vkTry(attempt + 1); }, 1200);
+                            return;
+                        }
+                        fallbackToEmbed();
+                        return;
+                    }
+                    if (!currentMeta || currentMeta.id !== meta.id) return;
+                    var sep = t.indexOf('|');
+                    var u = sep > 0 ? t.substring(sep + 1) : t;
+                    if (sep > 0 && t.substring(0, sep) === 'hls') {
+                        playHls(videoEl, u);
+                    } else {
+                        videoEl.src = u;
+                        videoEl.load();
+                    }
+                    syncPlayback(status, posMs, updatedAtMs, false);
+                }).catch(function () {
+                    if (attempt < 1) {
+                        setTimeout(function () { vkTry(attempt + 1); }, 1200);
+                        return;
+                    }
+                    fallbackToEmbed();
+                });
+            };
+            vkTry(0);
         } else {
             syncPlayback(status, posMs, updatedAtMs, false);
         }
@@ -1069,8 +1086,9 @@ function unlockPlayerAudio() {
     }
 }
 
-document.addEventListener('pointerdown', unlockPlayerAudio, { once: true, capture: true });
-document.addEventListener('keydown', unlockPlayerAudio, { once: true, capture: true });
+document.addEventListener('pointerdown', unlockPlayerAudio, { capture: true });
+document.addEventListener('keydown', unlockPlayerAudio, { capture: true });
+document.addEventListener('touchend', unlockPlayerAudio, { capture: true });
 
 function isEmbedMode() {
     return playerMode && playerMode !== 'html5' && playerMode !== 'youtube';
