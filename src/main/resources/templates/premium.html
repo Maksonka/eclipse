@@ -91,18 +91,61 @@
                 </form>
             </th:block>
             <th:block th:unless="${premiumActive}">
-                <form th:action="@{/premium/activate-mock}" method="post" style="display:inline">
-                    <button type="submit" class="btn-primary">Купить на 30 дней за 99 ₽</button>
-                </form>
+                <th:block th:if="${paymentConfigured}">
+                    <form th:action="@{/premium/checkout}" method="post" style="display:inline">
+                        <button type="submit" class="btn-primary" id="premium-pay-btn">Купить на [[${premiumDays}]] дней за [[${premiumPrice}]] ₽</button>
+                    </form>
+                </th:block>
+                <th:block th:unless="${paymentConfigured}">
+                    <button type="button" class="btn-primary premium-pay-disabled" title="Оплата ещё не настроена администратором">Купить на [[${premiumDays}]] дней за [[${premiumPrice}]] ₽</button>
+                </th:block>
                 <form th:if="${!premiumTrialUsed}" th:action="@{/premium/trial}" method="post" style="display:inline">
                     <button type="submit" class="btn-secondary">Попробовать бесплатно 7 дней</button>
                 </form>
             </th:block>
         </div>
 
-        <p class="premium-hint">Купить можно разово за 99 ₽ на 30 дней.</p>
+        <p class="premium-hint" id="premium-pay-hint">Купить можно разово за [[${premiumPrice}]] ₽ на [[${premiumDays}]] дней.</p>
     </div>
 </div>
+
+<script>
+(function () {
+    var attempts = 0;
+    var stopped = false;
+
+    function showNote(text) {
+        var hint = document.getElementById('premium-pay-hint');
+        if (hint) hint.textContent = text;
+    }
+
+    function check() {
+        if (stopped) return;
+        fetch('/premium/api/payment-status').then(function (r) {
+            return r.json();
+        }).then(function (d) {
+            if (d.state === 'succeeded') {
+                window.location.reload();
+                return;
+            }
+            if (d.state === 'canceled') {
+                stopped = true;
+                showNote('Платёж отменён — попробуйте снова');
+                return;
+            }
+            if (d.state === 'pending' || d.state === 'waiting_for_capture') {
+                showNote('Оплата подтверждается…');
+            }
+            attempts++;
+            if (attempts < 45) {
+                setTimeout(check, 2000);
+            }
+        }).catch(function () {});
+    }
+
+    check();
+})();
+</script>
 
 </body>
 </html>

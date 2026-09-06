@@ -35,10 +35,11 @@ public class SecurityConfig {
         http
                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/ws/**", "/ws-mobile/**", "/api/**", "/chat/**", "/group/**", "/watch/api/**"))
+                        .ignoringRequestMatchers("/ws/**", "/ws-mobile/**", "/api/**", "/chat/**", "/group/**", "/watch/api/**", "/premium/notification"))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/register", "/login", "/error", "/css/**", "/js/**", "/img/**", "/sounds/**", "/sw.js", "/manifest.webmanifest").permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                        .requestMatchers("/premium/notification").permitAll()
                         .requestMatchers("/ws/**").authenticated()
                         .requestMatchers("/admin/**").hasRole(UserRole.ADMIN.name())
                         .requestMatchers("/account/**").hasAnyRole(UserRole.USER.name(), UserRole.ADMIN.name())

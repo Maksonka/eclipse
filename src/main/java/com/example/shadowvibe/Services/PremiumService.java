@@ -22,7 +22,6 @@ public class PremiumService {
     public static final long PREMIUM_VOICE_SIZE = 25L * 1024 * 1024;
 
     public static final int TRIAL_DAYS = 7;
-    public static final int MOCK_DAYS = 30;
 
     private static final DateTimeFormatter UNTIL_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
@@ -58,15 +57,15 @@ public class PremiumService {
         return "Пробный период Premium активирован на " + TRIAL_DAYS + " дней";
     }
 
-    public String activateMock(String username) {
+    public String activatePaid(String username, int days) {
         User user = requireUser(username);
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime base = user.getPremiumUntil() != null && user.getPremiumUntil().isAfter(now)
                 ? user.getPremiumUntil()
                 : now;
-        user.setPremiumUntil(base.plusDays(MOCK_DAYS));
+        user.setPremiumUntil(base.plusDays(days));
         userRepository.save(user);
-        return "Premium активирован на " + MOCK_DAYS + " дней (тестовая оплата)";
+        return "Premium активирован на " + days + " дней";
     }
 
     public String cancel(String username) {
