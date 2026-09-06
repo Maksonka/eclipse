@@ -60,9 +60,7 @@ public class GhostModeService {
     public boolean toggleGhostMode(String username) {
         User user = userService.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-        if (!user.isPremium()) {
-            throw new RuntimeException("Режим Призрака доступен только с Premium");
-        }
+        // PREMIUM отключён: режим Призрака доступен всем
         user.setGhostMode(!user.isGhostMode());
         userService.save(user);
         return user.isGhostMode();

@@ -9,7 +9,6 @@ import com.example.shadowvibe.Services.BlockService;
 import com.example.shadowvibe.Services.GroupService;
 import com.example.shadowvibe.Services.MessageService;
 import com.example.shadowvibe.Services.MuteService;
-import com.example.shadowvibe.Services.PremiumService;
 import com.example.shadowvibe.Services.PresenceService;
 import com.example.shadowvibe.Services.ReactionService;
 import com.example.shadowvibe.Services.SidebarModelService;
@@ -45,7 +44,7 @@ public class ChatController {
 private final ReactionService reactionService;
     private final MuteService muteService;
     private final BlockService blockService;
-    private final PremiumService premiumService;
+    // private final PremiumService premiumService; // PREMIUM отключён
 
     public ChatController(MessageService messageService,
                           UserService userService,
@@ -54,8 +53,7 @@ private final ReactionService reactionService;
                           SidebarModelService sidebarModelService,
                           ReactionService reactionService,
                           MuteService muteService,
-                          BlockService blockService,
-                          PremiumService premiumService) {
+                          BlockService blockService) {
         this.messageService = messageService;
         this.userService = userService;
         this.groupService = groupService;
@@ -64,7 +62,6 @@ private final ReactionService reactionService;
         this.reactionService = reactionService;
         this.muteService = muteService;
         this.blockService = blockService;
-        this.premiumService = premiumService;
     }
 
     @GetMapping("/account")
@@ -77,7 +74,7 @@ private final ReactionService reactionService;
                          Model model,
                          @RequestParam(required = false) String q) {
         populateSidebar(model, principal, null, null, q);
-        model.addAttribute("currentUserPremium", premiumService.isPremium(principal.getName()));
+        model.addAttribute("currentUserPremium", true); // PREMIUM отключён
         return "chat";
     }
 
@@ -93,7 +90,7 @@ private final ReactionService reactionService;
         model.addAttribute("group", group);
         model.addAttribute("groupMuted", muteService.isGroupMuted(principal.getName(), groupId));
         model.addAttribute("groupMessages", groupMessages);
-        model.addAttribute("currentUserPremium", premiumService.isPremium(principal.getName()));
+        model.addAttribute("currentUserPremium", true); // PREMIUM отключён
         model.addAttribute("reactionsByMessage",
                 reactionService.getReactionsBatch(ReactionTargetType.GROUP,
                         groupMessages.stream().map(GroupMessage::getId).toList()));
@@ -136,7 +133,7 @@ private final ReactionService reactionService;
         model.addAttribute("receiver", receiver);
         model.addAttribute("chatMuted", muteService.isDirectMuted(principal.getName(), receiverUsername));
         model.addAttribute("receiverOnline", presenceService.isOnlineVisibleTo(principal.getName(), receiverUsername));
-        model.addAttribute("currentUserPremium", premiumService.isPremium(principal.getName()));
+        model.addAttribute("currentUserPremium", true); // PREMIUM отключён
         populateSidebar(model, principal, receiverUsername, null, q);
         return "chat";
     }

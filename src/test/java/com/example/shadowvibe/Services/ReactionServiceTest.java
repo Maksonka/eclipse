@@ -54,7 +54,7 @@ class ReactionServiceTest {
     @BeforeEach
     void setUp() {
         service = new ReactionService(reactionRepository, messageRepository,
-                groupMessageRepository, watchRoomMessageRepository, userService, premiumService);
+                groupMessageRepository, watchRoomMessageRepository, userService);
     }
 
     private User userWithId(Long id, String username) {

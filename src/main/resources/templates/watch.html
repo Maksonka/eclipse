@@ -188,11 +188,9 @@
                     <button type="button" class="reaction-btn" data-emoji="👏" title="👏">👏</button>
                 </div>
 
-                <div class="reaction-bar premium-reaction-bar" id="premium-reaction-bar"
-                     th:classappend="${currentUser != null and currentUser.premium} ? '' : 'is-locked'">
-                    <span class="reaction-bar-label premium-reaction-label" title="Эксклюзивные премиум-реакции с эффектом на весь экран">
-                        ✨ Premium
-                        <a class="premium-reaction-buy" th:if="${currentUser == null or !currentUser.premium}" th:href="@{/premium}">🔒</a>
+                <div class="reaction-bar premium-reaction-bar" id="premium-reaction-bar">
+                    <span class="reaction-bar-label premium-reaction-label" title="Эффектные реакции на весь экран">
+                        ✨ Эффекты
                     </span>
                     <button type="button" class="reaction-btn premium-reaction-btn" data-premium="1" data-emoji="🎆" title="Салют 🎆">🎆</button>
                     <button type="button" class="reaction-btn premium-reaction-btn" data-premium="1" data-emoji="🌈" title="Радуга 🌈">🌈</button>
@@ -334,7 +332,7 @@
 
 <script th:inline="javascript">
     const currentUsername = /*[[${#authentication.name}]]*/ '';
-    const currentUserPremium = /*[[${currentUser != null ? currentUser.premium : false}]]*/ false;
+    const currentUserPremium = /*[[${true}]]*/ true; // PREMIUM отключён
     const inviteRoom = /*[[${room}]]*/ '';
 </script>
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>

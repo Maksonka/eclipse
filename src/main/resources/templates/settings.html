@@ -51,30 +51,20 @@
                     </span>
                 </label>
 
-                <span class="settings-lock-note" th:if="${!currentUser.premium}">
-                    Премиум-темы доступны с <a th:href="@{/premium}">Premium</a>
-                </span>
-
-                <label class="theme-option"
-                       th:classappend="${!currentUser.premium ? 'theme-option-locked' : ''}">
+                <label class="theme-option">
                     <input type="radio" name="theme" value="AURORA"
-                           th:disabled="${!currentUser.premium}"
                            th:checked="${currentUser.themePreference.name() == 'AURORA'}"/>
                     <span class="theme-option-card">
                         <span class="theme-preview theme-preview-aurora"></span>
                         <span>Аврора</span>
-                        <span class="theme-lock" th:if="${!currentUser.premium}">🔒 Premium</span>
                     </span>
                 </label>
-                <label class="theme-option"
-                       th:classappend="${!currentUser.premium ? 'theme-option-locked' : ''}">
+                <label class="theme-option">
                     <input type="radio" name="theme" value="SUNSET"
-                           th:disabled="${!currentUser.premium}"
                            th:checked="${currentUser.themePreference.name() == 'SUNSET'}"/>
                     <span class="theme-option-card">
                         <span class="theme-preview theme-preview-sunset"></span>
                         <span>Закат</span>
-                        <span class="theme-lock" th:if="${!currentUser.premium}">🔒 Premium</span>
                     </span>
                 </label>
                 <button type="submit" class="btn-primary settings-submit">Сохранить тему</button>
@@ -118,26 +108,17 @@
             </form>
         </section>
 
-        <section class="settings-section" th:classappend="${!currentUser.premium ? 'settings-section-locked' : ''}">
+        <section class="settings-section">
             <h2>
                 Режим «Призрака»
-                <span class="ghost-badge" th:if="${currentUser.premium}">👻 Premium</span>
-                <span class="theme-lock" th:unless="${currentUser.premium}">🔒 Premium</span>
+                <span class="ghost-badge">👻 Premium</span>
             </h2>
             <p class="settings-hint">
                 Оставайтесь незаметными: ваши собеседники не увидят «печатает…» и галочки «прочитано».
                 Для близких можно сделать исключение и показывать активность.
             </p>
 
-            <th:block th:if="${!currentUser.premium}">
-                <p class="ghost-locked-note">
-                    Режим «Призрака» доступен с
-                    <a th:href="@{/premium}">Premium</a>.
-                </p>
-            </th:block>
-
-            <th:block th:if="${currentUser.premium}">
-                <div class="auth-alert auth-alert-success" th:if="${ghostMessage}" th:text="${ghostMessage}"></div>
+            <div class="auth-alert auth-alert-success" th:if="${ghostMessage}" th:text="${ghostMessage}"></div>
                 <div class="auth-alert auth-alert-error" th:if="${ghostError}" th:text="${ghostError}"></div>
 
                 <div class="ghost-status-row">
@@ -225,7 +206,6 @@
                         Пока нет исключений.
                     </p>
                 </div>
-            </th:block>
         </section>
 
         <section class="settings-section">

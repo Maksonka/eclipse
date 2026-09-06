@@ -65,7 +65,7 @@ public class GroupService {
     private final PresenceService presenceService;
     private final MuteService muteService;
     private final FavoriteService favoriteService;
-    private final PremiumService premiumService;
+    // private final PremiumService premiumService; // PREMIUM отключён
     private final TranscriptionService transcriptionService;
     private final WhisperService whisperService;
 
@@ -85,7 +85,7 @@ public class GroupService {
         PresenceService presenceService,
         MuteService muteService,
         FavoriteService favoriteService,
-        PremiumService premiumService,
+        // PremiumService premiumService, // PREMIUM отключён
         TranscriptionService transcriptionService,
         WhisperService whisperService) {
         this.chatGroupRepository = chatGroupRepository;
@@ -101,7 +101,7 @@ public class GroupService {
         this.presenceService = presenceService;
         this.muteService = muteService;
         this.favoriteService = favoriteService;
-        this.premiumService = premiumService;
+        // this.premiumService = premiumService; // PREMIUM отключён
         this.transcriptionService = transcriptionService;
         this.whisperService = whisperService;
     }
@@ -320,9 +320,7 @@ public class GroupService {
     }
 
     public GroupMessageDto transcribeGroupMessage(Long messageId, Long groupId, String username, String transcript) {
-        if (!premiumService.isPremium(username)) {
-            throw new RuntimeException("Расшифровка голосовых доступна только с Premium");
-        }
+        // PREMIUM отключён: расшифровка доступна всем
         getGroupForMember(groupId, username);
         GroupMessage message = groupMessageRepository.findById(messageId)
                 .orElseThrow(() -> new RuntimeException("Сообщение не найдено"));

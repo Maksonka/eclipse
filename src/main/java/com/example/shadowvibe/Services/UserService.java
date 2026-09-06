@@ -115,9 +115,7 @@ public class UserService {
 
     public User updateTheme(String username, ThemePreference theme) {        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
-        if (theme != null && theme.isPremium() && !user.isPremium()) {
-            throw new IllegalArgumentException("Тема «" + theme.name().toLowerCase() + "» доступна только с Premium");
-        }
+        // PREMIUM отключён: все темы доступны
         user.setThemePreference(theme);
         return userRepository.save(user);
     }

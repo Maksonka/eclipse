@@ -45,7 +45,7 @@ class StickerServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new StickerService(stickerRepository, stickerPackRepository, userRepository, userStickerPackRepository, premiumService);
+        service = new StickerService(stickerRepository, stickerPackRepository, userRepository, userStickerPackRepository);
     }
 
     @Test

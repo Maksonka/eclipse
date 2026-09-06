@@ -33,20 +33,18 @@ public class FavoriteService {
     private final GroupMessageRepository groupMessageRepository;
     private final ChatGroupRepository chatGroupRepository;
     private final UserService userService;
-    private final PremiumService premiumService;
+    // private final PremiumService premiumService; // PREMIUM отключён
 
     public FavoriteService(FavoriteMessageRepository favoriteMessageRepository,
                            MessageRepository messageRepository,
                            GroupMessageRepository groupMessageRepository,
                            ChatGroupRepository chatGroupRepository,
-                           UserService userService,
-                           PremiumService premiumService) {
+                           UserService userService) {
         this.favoriteMessageRepository = favoriteMessageRepository;
         this.messageRepository = messageRepository;
         this.groupMessageRepository = groupMessageRepository;
         this.chatGroupRepository = chatGroupRepository;
         this.userService = userService;
-        this.premiumService = premiumService;
     }
 
     public FavoriteMessageDto toggleDirect(Long messageId, String username) {

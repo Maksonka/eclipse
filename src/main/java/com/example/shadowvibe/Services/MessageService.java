@@ -49,7 +49,7 @@ public class MessageService {
     private final PresenceService presenceService;
     private final MuteService muteService;
     private final FavoriteService favoriteService;
-    private final PremiumService premiumService;
+    // private final PremiumService premiumService; // PREMIUM отключён
     private final TranscriptionService transcriptionService;
     private final WhisperService whisperService;
     private final GhostModeService ghostModeService;
@@ -68,7 +68,7 @@ public class MessageService {
                           PresenceService presenceService,
                           MuteService muteService,
                           FavoriteService favoriteService,
-                          PremiumService premiumService,
+                          // PremiumService premiumService, // PREMIUM отключён
                           TranscriptionService transcriptionService,
                           WhisperService whisperService,
                           GhostModeService ghostModeService) {
@@ -83,7 +83,7 @@ public class MessageService {
         this.presenceService = presenceService;
         this.muteService = muteService;
         this.favoriteService = favoriteService;
-        this.premiumService = premiumService;
+        // this.premiumService = premiumService; // PREMIUM отключён
         this.transcriptionService = transcriptionService;
         this.whisperService = whisperService;
         this.ghostModeService = ghostModeService;
@@ -295,9 +295,7 @@ public class MessageService {
     }
 
     public ChatMessageDto transcribeMessage(Long messageId, String username, String transcript) {
-        if (!premiumService.isPremium(username)) {
-            throw new RuntimeException("Расшифровка голосовых доступна только с Premium");
-        }
+        // PREMIUM отключён: расшифровка доступна всем
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new RuntimeException("Сообщение не найдено"));
         if (!message.getSender().getUsername().equals(username)

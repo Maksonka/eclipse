@@ -49,7 +49,7 @@ public class StickerService {
     private final StickerPackRepository stickerPackRepository;
     private final UserRepository userRepository;
     private final UserStickerPackRepository userStickerPackRepository;
-    private final PremiumService premiumService;
+    // private final PremiumService premiumService; // PREMIUM отключён
 
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
@@ -57,13 +57,11 @@ public class StickerService {
     public StickerService(StickerRepository stickerRepository,
                           StickerPackRepository stickerPackRepository,
                           UserRepository userRepository,
-                          UserStickerPackRepository userStickerPackRepository,
-                          PremiumService premiumService) {
+                          UserStickerPackRepository userStickerPackRepository) {
         this.stickerRepository = stickerRepository;
         this.stickerPackRepository = stickerPackRepository;
         this.userRepository = userRepository;
         this.userStickerPackRepository = userStickerPackRepository;
-        this.premiumService = premiumService;
     }
 
     public List<StickerPackDto> listPacks(String currentUsername) {

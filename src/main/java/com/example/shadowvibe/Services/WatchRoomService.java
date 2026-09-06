@@ -55,7 +55,7 @@ public class WatchRoomService {
     private final ReactionService reactionService;
     private final PushService pushService;
     private final PresenceService presenceService;
-    private final PremiumService premiumService;
+    // private final PremiumService premiumService; // PREMIUM отключён
 
     /**
      * Живое состояние комнат. Комната-источник правды для синхронизации:
@@ -79,8 +79,7 @@ public class WatchRoomService {
                             StickerService stickerService,
                             ReactionService reactionService,
                             PushService pushService,
-                            PresenceService presenceService,
-                            PremiumService premiumService) {
+                            PresenceService presenceService) {
         this.roomRepository = roomRepository;
         this.messageRepository = messageRepository;
         this.playlistItemRepository = playlistItemRepository;
@@ -91,7 +90,7 @@ public class WatchRoomService {
         this.reactionService = reactionService;
         this.pushService = pushService;
         this.presenceService = presenceService;
-        this.premiumService = premiumService;
+        // this.premiumService = premiumService; // PREMIUM отключён
     }
 
     @Transactional
@@ -128,7 +127,7 @@ public class WatchRoomService {
                 .orElseThrow(() -> new IllegalArgumentException("Комната не найдена"));
 
         if (!room.isMember(username)) {
-            premiumService.enforceRoomMemberLimit(room.getHostUsername(), room.getMembers().size());
+            // PREMIUM отключён: лимит участников снят
             User user = userService.findByUsername(username)
                     .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден"));
             room.getMembers().add(user);

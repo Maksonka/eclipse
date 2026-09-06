@@ -37,7 +37,6 @@
             <div th:replace="~{fragments/avatar :: avatar(${profileUser.username}, ${profileUser.avatarFilename}, 'profile-avatar')}"></div>
             <div class="profile-header-info">
                 <h1 th:text="${profileUser.username}">username</h1>
-                <span class="premium-badge" th:if="${profileUser.premium}" title="ShadowVibe Premium" aria-label="Premium">⭐ Premium</span>
                 <p class="profile-subtitle" th:if="${isOwnProfile}">Ваш профиль</p>
                 <p class="profile-subtitle" th:unless="${isOwnProfile}">Пользователь ShadowVibe</p>
             </div>

@@ -1,7 +1,6 @@
 package com.example.shadowvibe.Controllers;
 
 import com.example.shadowvibe.Services.AttachmentService;
-import com.example.shadowvibe.Services.PremiumService;
 import com.example.shadowvibe.Services.WhisperService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,14 +18,11 @@ import java.util.Map;
 public class VoiceMessageController {
 
     private final AttachmentService attachmentService;
-    private final PremiumService premiumService;
     private final WhisperService whisperService;
 
     public VoiceMessageController(AttachmentService attachmentService,
-                                  PremiumService premiumService,
                                   WhisperService whisperService) {
         this.attachmentService = attachmentService;
-        this.premiumService = premiumService;
         this.whisperService = whisperService;
     }
 
@@ -50,16 +46,14 @@ public class VoiceMessageController {
 
     @PostMapping("/transcribe")
     public ResponseEntity<?> transcribe(@RequestParam("file") MultipartFile file, Principal principal) {
-        if (principal == null || !premiumService.isPremium(principal.getName())) {
-            return ResponseEntity.status(403).body(Map.of("error", "Расшифровка голосовых доступна только с Premium"));
-        }
+        // PREMIUM отключён: расшифровка доступна всем
         if (!whisperService.isAvailable()) {
             return ResponseEntity.status(503).body(Map.of("error", "Распознавание временно недоступно"));
         }
         if (file == null || file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Пустой аудиофайл"));
         }
-        long maxBytes = premiumService.maxVoiceBytes(principal.getName());
+        long maxBytes = 5L * 1024 * 1024; // PremiumService.FREE_VOICE_SIZE (PREMIUM отключён)
         if (file.getSize() > maxBytes) {
             return ResponseEntity.badRequest().body(Map.of("error", "Файл слишком большой"));
         }

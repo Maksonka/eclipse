@@ -35,20 +35,18 @@ public class ReactionService {
     private final GroupMessageRepository groupMessageRepository;
     private final WatchRoomMessageRepository watchRoomMessageRepository;
     private final UserService userService;
-    private final PremiumService premiumService;
+    // private final PremiumService premiumService; // PREMIUM отключён
 
     public ReactionService(MessageReactionRepository reactionRepository,
                            MessageRepository messageRepository,
                            GroupMessageRepository groupMessageRepository,
                            WatchRoomMessageRepository watchRoomMessageRepository,
-                           UserService userService,
-                           PremiumService premiumService) {
+                           UserService userService) {
         this.reactionRepository = reactionRepository;
         this.messageRepository = messageRepository;
         this.groupMessageRepository = groupMessageRepository;
         this.watchRoomMessageRepository = watchRoomMessageRepository;
         this.userService = userService;
-        this.premiumService = premiumService;
     }
 
     public Map<String, List<String>> toggle(ReactionTargetType type, Long messageId, String username, String emoji) {
@@ -57,9 +55,7 @@ public class ReactionService {
         if (emoji == null || emoji.isBlank() || emoji.length() > 16) {
             throw new RuntimeException("Некорректный эмодзи");
         }
-        if (PREMIUM_EMOJIS.contains(emoji) && !premiumService.isPremium(username)) {
-            throw new RuntimeException("Эксклюзивные реакции доступны только с Premium");
-        }
+        // PREMIUM отключён: эмодзи доступны всем
         assertMessageAccess(type, messageId, username);
 
         int removed = reactionRepository.deleteByTypeAndMessageAndUserAndEmoji(type, messageId, user.getId(), emoji);
