@@ -53,6 +53,35 @@ public class AttachmentService {
             Map.entry("audio/webm", ".webm")
     );
 
+    /**
+     * Расширения, которые никогда нельзя раздавать инлайн (stored XSS и подобное).
+     */
+    private static final Set<String> BLOCKED_CONTENT_TYPES = Set.of(
+            "text/html", "application/xhtml+xml", "image/svg+xml", "image/svg",
+            "text/xml", "application/xml", "text/javascript", "application/javascript",
+            "application/json", "application/vnd.ms-excel.sheet.macroenabled.12"
+    );
+
+    private static final Set<String> BLOCKED_EXTENSIONS = Set.of(
+            ".html", ".htm", ".shtml", ".xhtml", ".svg", ".svgz", ".xml",
+            ".js", ".mjs", ".json", ".jsp", ".jspx", ".asp", ".aspx",
+            ".php", ".php3", ".php4", ".php5", ".phtml", ".pl", ".py", ".rb",
+            ".sh", ".bash", ".bat", ".cmd", ".vbs", ".ps1", ".hta",
+            ".exe", ".msi", ".com", ".scr", ".jar", ".war", ".ear", ".class",
+            ".so", ".dll", ".dylib", ".bin", ".apk", ".dex", ".cgi", ".htaccess",
+            ".swf"
+    );
+
+    /**
+     * Допустимые расширения для файлов неизвестного типа (категория "file").
+     * Такие файлы не могут выполнять код при инлайн-отдаче.
+     */
+    private static final Set<String> SAFE_FILE_EXTENSIONS = Set.of(
+            ".txt", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+            ".odt", ".ods", ".odp", ".rtf", ".csv", ".md", ".epub",
+            ".zip", ".rar", ".7z", ".gz", ".tar"
+    );
+
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
 
@@ -68,8 +97,14 @@ public class AttachmentService {
         }
 
         String contentType = file.getContentType() != null ? file.getContentType().toLowerCase() : "";
+        if (BLOCKED_CONTENT_TYPES.contains(contentType)) {
+            throw new IllegalArgumentException("Этот тип файла не поддерживается");
+        }
         String type = categorize(contentType);
         String extension = extensionFor(contentType, file.getOriginalFilename());
+        if (BLOCKED_EXTENSIONS.contains(extension) || ("file".equals(type) && !SAFE_FILE_EXTENSIONS.contains(extension))) {
+            throw new IllegalArgumentException("Этот тип файла не поддерживается");
+        }
         String filename = UUID.randomUUID().toString().replace("-", "") + extension;
 
         Path dir = Paths.get(uploadDir, "messages").toAbsolutePath().normalize();

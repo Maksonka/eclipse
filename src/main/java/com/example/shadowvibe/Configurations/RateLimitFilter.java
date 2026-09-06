@@ -69,12 +69,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
     }
 
+    /**
+     * IP клиента. Сервер работает за доверенным прокси (Render):
+     * при spring.server.forward-headers-strategy=framework
+     * ForwardedHeaderFilter подставляет реальный IP клиента в getRemoteAddr(),
+     * поэтому читаем именно оттуда, а не из заголовка (X-Forwarded-For подделывается).
+     */
     private String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            int comma = forwarded.indexOf(',');
-            return (comma > 0 ? forwarded.substring(0, comma) : forwarded).trim();
-        }
         return request.getRemoteAddr();
     }
 }
