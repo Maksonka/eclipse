@@ -575,20 +575,6 @@ function buildMessageRow(message) {
         }
     }
 
-    if (message.audioUrl && message.transcript) {
-        var transcriptEl = document.createElement('div');
-        transcriptEl.className = 'voice-transcript';
-        transcriptEl.textContent = message.transcript;
-        bubbleEl.appendChild(transcriptEl);
-    } else if (message.audioUrl) {
-        var trBtn = document.createElement('button');
-        trBtn.type = 'button';
-        trBtn.className = 'voice-transcribe-btn';
-        trBtn.setAttribute('data-action', 'transcribe-row');
-        trBtn.textContent = 'Расшифровать';
-        bubbleEl.appendChild(trBtn);
-    }
-
     if (message.content) {
         var contentEl = document.createElement('span');
         contentEl.className = 'content';
@@ -1259,28 +1245,6 @@ function encodeWav16kMono(decoded) {
     });
 }
 
-function transcribeVoiceMessage(messageId) {
-    if (!currentUserPremium) {
-        if (window.location) window.location.href = '/premium';
-        return;
-    }
-    var row = messagesContainer ? messagesContainer.querySelector('[data-message-id="' + messageId + '"]') : null;
-    var btn = row ? row.querySelector('.voice-transcribe-btn') : null;
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Расшифровка…';
-    }
-    if (!stompClient || !stompClient.connected) {
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = 'Расшифровать';
-        }
-        showComposerError('Нет соединения');
-        return;
-    }
-    stompClient.send('/app/chat.transcribe', {}, JSON.stringify({ messageId: Number(messageId) }));
-}
-
 function openContextMenuAt(clientX, clientY, bubble) {
     if (!contextMenu || !bubble) return;
     var row = bubble.closest('.message-row');
@@ -1310,10 +1274,6 @@ function openContextMenuAt(clientX, clientY, bubble) {
             && !bubble.querySelector('.attachment-video')
             && !bubble.querySelector('.attachment-audio-wrap');
         editBtn.style.display = editable ? '' : 'none';
-    }
-    var transcribeBtn = contextMenu.querySelector('[data-action="transcribe"]');
-    if (transcribeBtn) {
-        transcribeBtn.style.display = bubble.querySelector('.voice-player') ? '' : 'none';
     }
     contextMenu.hidden = false;
     contextMenu.style.left = clientX + 'px';
@@ -1370,16 +1330,6 @@ document.addEventListener('click', function (e) {
     }
 });
 
-if (messagesContainer) {
-    messagesContainer.addEventListener('click', function (e) {
-        var btn = e.target.closest('[data-action="transcribe-row"]');
-        if (!btn) return;
-        var row = btn.closest('[data-message-id]');
-        if (!row) return;
-        transcribeVoiceMessage(row.getAttribute('data-message-id'));
-    });
-}
-
 if (contextMenu) {
     contextMenu.addEventListener('click', function (e) {
         var btn = e.target.closest('.context-menu-item');
@@ -1411,8 +1361,6 @@ if (contextMenu) {
             if (window.Favorites) {
                 window.Favorites.toggle(messageId, 'DIRECT');
             }
-        } else if (action === 'transcribe') {
-            transcribeVoiceMessage(messageId);
         } else if (action === 'edit') {
             startInlineEdit(messageId);
         } else if (action === 'forward') {
@@ -1554,16 +1502,6 @@ function getMessageLabel(row) {
 
 let chatErrorToastTimer = null;
 
-function resetTranscribeButtons() {
-    var buttons = document.querySelectorAll('.voice-transcribe-btn');
-    for (var i = 0; i < buttons.length; i++) {
-        if (buttons[i].disabled && buttons[i].textContent === 'Расшифровка…') {
-            buttons[i].disabled = false;
-            buttons[i].textContent = 'Расшифровать';
-        }
-    }
-}
-
 function handleChatError(data) {
     var message = data && data.error ? data.error : 'Не удалось отправить сообщение';
     var toast = document.getElementById('chat-error-toast');
@@ -1581,7 +1519,6 @@ function handleChatError(data) {
     chatErrorToastTimer = setTimeout(function () {
         toast.classList.remove('visible');
     }, 4000);
-    resetTranscribeButtons();
 }
 
 if (replyPreviewEl) {

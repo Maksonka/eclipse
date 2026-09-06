@@ -260,37 +260,6 @@ public class ChatWebSocketController {
         messageService.editMessage(messageId, principal.getName(), request.get("content").toString());
     }
 
-    @MessageMapping("/chat.transcribe")
-    public void transcribeDirectMessage(@Payload Map<String, Object> request, Principal principal) {
-        if (principal == null || request.get("messageId") == null) {
-            return;
-        }
-        Long messageId = Long.valueOf(request.get("messageId").toString());
-        String transcript = request.get("transcript") != null ? request.get("transcript").toString() : null;
-        try {
-            messageService.transcribeMessage(messageId, principal.getName(), transcript);
-        } catch (RuntimeException e) {
-            messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/chat-error",
-                    Map.of("error", e.getMessage()));
-        }
-    }
-
-    @MessageMapping("/group.transcribe")
-    public void transcribeGroupMessage(@Payload Map<String, Object> request, Principal principal) {
-        if (principal == null || request.get("messageId") == null || request.get("groupId") == null) {
-            return;
-        }
-        Long messageId = Long.valueOf(request.get("messageId").toString());
-        Long groupId = Long.valueOf(request.get("groupId").toString());
-        String transcript = request.get("transcript") != null ? request.get("transcript").toString() : null;
-        try {
-            groupService.transcribeGroupMessage(messageId, groupId, principal.getName(), transcript);
-        } catch (RuntimeException e) {
-            messagingTemplate.convertAndSendToUser(principal.getName(), "/queue/chat-error",
-                    Map.of("error", e.getMessage()));
-        }
-    }
-
     @MessageMapping("/group.edit")
     public void editGroupMessage(@Payload Map<String, Object> request, Principal principal) {
         if (principal == null || request.get("messageId") == null || request.get("groupId") == null

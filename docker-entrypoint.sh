@@ -23,8 +23,6 @@ vk.access-token=\${VK_ACCESS_TOKEN:}
 app.push.vapid.public-key=\${VAPID_PUBLIC_KEY:}
 app.push.vapid.private-key=\${VAPID_PRIVATE_KEY:}
 app.push.vapid.subject=\${VAPID_SUBJECT:mailto:admin@shadowvibe.local}
-app.whisper.python=\${WHISPER_PYTHON:python3}
-app.whisper.script=\${WHISPER_SCRIPT:whisper/whisper_local.py}
 EOF
   echo "Generated /app/application.properties from environment"
 fi

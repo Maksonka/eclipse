@@ -371,20 +371,6 @@ function buildGroupMessageRow(message) {
         } catch (e) {}
     }
 
-    if (message.audioUrl && message.transcript) {
-        var transcriptEl = document.createElement('div');
-        transcriptEl.className = 'voice-transcript';
-        transcriptEl.textContent = message.transcript;
-        bubbleEl.appendChild(transcriptEl);
-    } else if (message.audioUrl) {
-        var trBtn = document.createElement('button');
-        trBtn.type = 'button';
-        trBtn.className = 'voice-transcribe-btn';
-        trBtn.setAttribute('data-action', 'transcribe-row');
-        trBtn.textContent = 'Расшифровать';
-        bubbleEl.appendChild(trBtn);
-    }
-
     if (message.stickerUrl) {
         var stickerEl = window.StickerUI
             ? StickerUI.createStickerImage(message.stickerUrl, message.stickerCode, isOutgoing)
@@ -507,37 +493,6 @@ function messagePreview(message) {
     return '';
 }
 
-function transcribeGroupVoiceMessage(messageId) {
-    if (!currentUserPremium) {
-        if (window.location) window.location.href = '/premium';
-        return;
-    }
-    var groupId = groupIdInput ? parseInt(groupIdInput.value, 10) : activeGroupId;
-    var row = messagesContainer ? messagesContainer.querySelector('[data-message-id="' + messageId + '"]') : null;
-    var btn = row ? row.querySelector('.voice-transcribe-btn') : null;
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Расшифровка…';
-    }
-    if (!stompClient || !stompClient.connected) {
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = 'Расшифровать';
-        }
-        showComposerError('Нет соединения');
-        return;
-    }
-    stompClient.send('/app/group.transcribe', {}, JSON.stringify({ messageId: Number(messageId), groupId: groupId }));
-}function resetTranscribeButtons() {
-    var buttons = document.querySelectorAll('.voice-transcribe-btn');
-    for (var i = 0; i < buttons.length; i++) {
-        if (buttons[i].disabled && buttons[i].textContent === 'Расшифровка…') {
-            buttons[i].disabled = false;
-            buttons[i].textContent = 'Расшифровать';
-        }
-    }
-}
-
 var groupChatErrorToastTimer = null;
 function handleGroupChatError(data) {
     var message = data && data.error ? data.error : 'Не удалось выполнить операцию';
@@ -556,7 +511,6 @@ function handleGroupChatError(data) {
     groupChatErrorToastTimer = setTimeout(function () {
         toast.classList.remove('visible');
     }, 3500);
-    resetTranscribeButtons();
 }
 
 function appendGroupMessage(message) {
@@ -895,13 +849,6 @@ if (messagesContainer) {
         var replyBlock = e.target.closest('.reply-block[data-reply-id]');
         if (replyBlock) {
             scrollToMessage(replyBlock.getAttribute('data-reply-id'));
-        }
-        var trBtn = e.target.closest('[data-action="transcribe-row"]');
-        if (trBtn) {
-            var row = trBtn.closest('.message-row');
-            if (row && row.getAttribute('data-message-id')) {
-                transcribeGroupVoiceMessage(row.getAttribute('data-message-id'));
-            }
         }
     });
 }

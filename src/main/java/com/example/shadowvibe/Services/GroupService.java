@@ -66,8 +66,6 @@ public class GroupService {
     private final MuteService muteService;
     private final FavoriteService favoriteService;
     // private final PremiumService premiumService; // PREMIUM отключён
-    private final TranscriptionService transcriptionService;
-    private final WhisperService whisperService;
 
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
@@ -84,10 +82,7 @@ public class GroupService {
         PushService pushService,
         PresenceService presenceService,
         MuteService muteService,
-        FavoriteService favoriteService,
-        // PremiumService premiumService, // PREMIUM отключён
-        TranscriptionService transcriptionService,
-        WhisperService whisperService) {
+        FavoriteService favoriteService) {
         this.chatGroupRepository = chatGroupRepository;
         this.groupMessageRepository = groupMessageRepository;
         this.groupMembershipRepository = groupMembershipRepository;
@@ -102,8 +97,6 @@ public class GroupService {
         this.muteService = muteService;
         this.favoriteService = favoriteService;
         // this.premiumService = premiumService; // PREMIUM отключён
-        this.transcriptionService = transcriptionService;
-        this.whisperService = whisperService;
     }
 
     public ChatGroup createGroup(String creatorUsername, String name, String memberUsernames) {
@@ -317,50 +310,6 @@ public class GroupService {
         messagingTemplate.convertAndSend("/topic/group." + message.getGroup().getId(), dto);
         sendGroupPush(message);
         return dto;
-    }
-
-    public GroupMessageDto transcribeGroupMessage(Long messageId, Long groupId, String username, String transcript) {
-        // PREMIUM отключён: расшифровка доступна всем
-        getGroupForMember(groupId, username);
-        GroupMessage message = groupMessageRepository.findById(messageId)
-                .orElseThrow(() -> new RuntimeException("Сообщение не найдено"));
-        if (!message.getGroup().getId().equals(groupId)) {
-            throw new RuntimeException("Сообщение не принадлежит этой группе");
-        }
-        if (!message.hasAudio()) {
-            throw new RuntimeException("Это сообщение нельзя расшифровать");
-        }
-        String text;
-        if (message.hasTranscript()) {
-            text = message.getTranscript();
-        } else {
-            text = (transcript != null && !transcript.isBlank())
-                    ? transcript.trim()
-                    : transcribeStoredAudio(message.getAudioUrl());
-            if (text.length() > 4000) {
-                text = text.substring(0, 4000);
-            }
-            message.setTranscript(text);
-            message.setEdited(true);
-            message.setEditedAt(LocalDateTime.now());
-            groupMessageRepository.save(message);
-        }
-        GroupMessageDto dto = toDto(message);
-        messagingTemplate.convertAndSend("/topic/group." + groupId, dto);
-        return dto;
-    }
-
-    private String transcribeStoredAudio(String audioUrl) {
-        if (!whisperService.isAvailable()) {
-            throw new RuntimeException("Распознавание временно недоступно");
-        }
-        String filename = audioUrl.substring(audioUrl.lastIndexOf('/') + 1);
-        Path path = Paths.get(uploadDir).toAbsolutePath().normalize().resolve("voice").resolve(filename);
-        String text = whisperService.transcribeFile(path.toString());
-        if (text == null || text.isBlank()) {
-            throw new RuntimeException("Не удалось распознать речь в этом голосовом сообщении");
-        }
-        return text;
     }
 
     private void sendGroupPush(GroupMessage message) {

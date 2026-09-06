@@ -108,17 +108,6 @@
                                th:src="${msg.audioUrl}"
                                preload="metadata"></audio>
 
-                        <div class="voice-transcript"
-                             th:if="${msg.audioUrl != null and msg.transcript != null and !msg.transcript.trim().isEmpty()}"
-                             th:text="${msg.transcript}"></div>
-
-                        <button type="button"
-                                class="voice-transcribe-btn"
-                                th:if="${msg.audioUrl != null and currentUserPremium and (msg.transcript == null or msg.transcript.trim().isEmpty())}"
-                                data-action="transcribe-row"
-                                title="Расшифровать голосовое"
-                                aria-label="Расшифровать голосовое">Расшифровать</button>
-
                         <span class="content"
                               th:if="${msg.content != null and !msg.content.isEmpty()}"
                               th:text="${msg.content}"></span>

@@ -20,8 +20,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -50,8 +48,6 @@ public class MessageService {
     private final MuteService muteService;
     private final FavoriteService favoriteService;
     // private final PremiumService premiumService; // PREMIUM отключён
-    private final TranscriptionService transcriptionService;
-    private final WhisperService whisperService;
     private final GhostModeService ghostModeService;
 
     @org.springframework.beans.factory.annotation.Value("${app.upload.dir:uploads}")
@@ -69,8 +65,6 @@ public class MessageService {
                           MuteService muteService,
                           FavoriteService favoriteService,
                           // PremiumService premiumService, // PREMIUM отключён
-                          TranscriptionService transcriptionService,
-                          WhisperService whisperService,
                           GhostModeService ghostModeService) {
         this.messageRepository = messageRepository;
         this.groupMessageRepository = groupMessageRepository;
@@ -84,8 +78,6 @@ public class MessageService {
         this.muteService = muteService;
         this.favoriteService = favoriteService;
         // this.premiumService = premiumService; // PREMIUM отключён
-        this.transcriptionService = transcriptionService;
-        this.whisperService = whisperService;
         this.ghostModeService = ghostModeService;
     }
 
@@ -288,61 +280,6 @@ public class MessageService {
             messagingTemplate.convertAndSendToUser(message.getSender().getUsername(), "/queue/messages", dto);
         });
         return dto;
-    }
-
-    public ChatMessageDto transcribeMessage(Long messageId, String username) {
-        return transcribeMessage(messageId, username, null);
-    }
-
-    public ChatMessageDto transcribeMessage(Long messageId, String username, String transcript) {
-        // PREMIUM отключён: расшифровка доступна всем
-        Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new RuntimeException("Сообщение не найдено"));
-        if (!message.getSender().getUsername().equals(username)
-                && !message.getReceiver().getUsername().equals(username)) {
-            throw new RuntimeException("Нет доступа к сообщению");
-        }
-        if (!message.hasAudio()) {
-            throw new RuntimeException("Это сообщение нельзя расшифровать");
-        }
-        if (message.hasTranscript()) {
-            ChatMessageDto existing = toDto(message);
-            sendAfterCommit(() -> {
-                messagingTemplate.convertAndSendToUser(message.getSender().getUsername(), "/queue/messages", existing);
-                messagingTemplate.convertAndSendToUser(message.getReceiver().getUsername(), "/queue/messages", existing);
-            });
-            return existing;
-        }
-        String text = transcript != null && !transcript.isBlank()
-                ? transcript.trim()
-                : transcribeStoredAudio(message.getAudioUrl(), message.getAudioDurationMs());
-        if (text.length() > 4000) {
-            text = text.substring(0, 4000);
-        }
-        message.setTranscript(text);
-        message.setEdited(true);
-        message.setEditedAt(LocalDateTime.now());
-        messageRepository.save(message);
-
-        ChatMessageDto dto = toDto(message);
-        sendAfterCommit(() -> {
-            messagingTemplate.convertAndSendToUser(message.getReceiver().getUsername(), "/queue/messages", dto);
-            messagingTemplate.convertAndSendToUser(message.getSender().getUsername(), "/queue/messages", dto);
-        });
-        return dto;
-    }
-
-    private String transcribeStoredAudio(String audioUrl, Long durationMs) {
-        if (!whisperService.isAvailable()) {
-            throw new RuntimeException("Распознавание временно недоступно");
-        }
-        String filename = audioUrl.substring(audioUrl.lastIndexOf('/') + 1);
-        Path path = Paths.get(uploadDir).toAbsolutePath().normalize().resolve("voice").resolve(filename);
-        String text = whisperService.transcribeFile(path.toString());
-        if (text == null || text.isBlank()) {
-            throw new RuntimeException("Не удалось распознать речь в этом голосовом сообщении");
-        }
-        return text;
     }
 
     public Message forwardToUser(String sourceType, Long sourceMessageId, String targetUsername, String username) {

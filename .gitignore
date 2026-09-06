@@ -47,12 +47,6 @@ uploads/
 run*.log
 run*.err*
 
-### Local STT (whisper / faster-whisper) — binaries and models are downloaded at runtime ###
-whisper/bin/
-whisper/models/
-whisper/models-ct2/
-whisper/*.zip
-
 ### Local secrets (DB credentials, VAPID keys) ###
 src/main/resources/application.properties
 
