@@ -72,7 +72,7 @@
                     <div class="member-picker" id="member-picker">
                         <script th:inline="javascript">
                             window.__chatPartners = /*[[${chatPartners}]]*/ [];
-                            window.__existingMembers = /*[[${groupMembers}]]*/ [];
+                            window.__existingMembers = /*[[${groupMemberDtos}]]*/ [];
                         </script>
                         <input type="hidden" name="members" value=""/>
                         <div class="member-picker-chips"></div>

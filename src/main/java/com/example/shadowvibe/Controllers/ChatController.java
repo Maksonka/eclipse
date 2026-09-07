@@ -88,6 +88,7 @@ private final ReactionService reactionService;
         List<GroupMessage> groupMessages = groupService.getGroupHistory(groupId, principal.getName());
         model.addAttribute("group", group);
         model.addAttribute("groupMuted", muteService.isGroupMuted(principal.getName(), groupId));
+        model.addAttribute("isCreator", group.getCreatedBy().getUsername().equals(principal.getName()));
         model.addAttribute("groupMessages", groupMessages);
         
         model.addAttribute("reactionsByMessage",

@@ -21,6 +21,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -86,6 +87,13 @@ public class GroupController {
         model.addAttribute("group", group);
         model.addAttribute("groupMembers", members);
         model.addAttribute("isCreator", isCreator);
+        List<Map<String, Object>> memberDtos = members.stream().map(member -> {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("username", member.getUsername());
+            map.put("avatarFilename", member.getAvatarFilename());
+            return map;
+        }).toList();
+        model.addAttribute("groupMemberDtos", memberDtos);
         List<String> memberNames = members.stream().map(User::getUsername).toList();
         model.addAttribute("chatPartners", messageService.getChatPartners(principal.getName()).stream()
                 .filter(p -> !memberNames.contains(p.get("username")))
